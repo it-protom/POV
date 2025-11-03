@@ -1,0 +1,96 @@
+# ============================================
+# ProtomForms - Production Docker Compose
+# Domain: pov.protom.com
+# IP: 93.63.117.104
+# ============================================
+version: '3.8'
+
+services:
+  # PostgreSQL Database for ProtomForms
+  protomforms-postgres:
+    image: postgres:15-alpine
+    container_name: protomforms-postgres
+    environment:
+      POSTGRES_DB: protomforms
+      POSTGRES_USER: protomforms_user
+      POSTGRES_PASSWORD: ${PROTOMFORMS_DB_PASSWORD:-protomforms_password_change_me}
+    volumes:
+      - protomforms_postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5433:5432"  # Different port to avoid conflict with AGO Explorer (5432)
+    restart: unless-stopped
+    networks:
+      - protomforms-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U protomforms_user -d protomforms"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ProtomForms Backend (Next.js API)
+  protomforms-backend:
+    build:
+      context: ./protomforms-backend
+      dockerfile: Dockerfile
+    container_name: protomforms-backend
+    env_file:
+      - ./env.production.protomforms
+    environment:
+      NODE_ENV: production
+      PORT: 3001
+      DATABASE_URL: postgresql://protomforms_user:${PROTOMFORMS_DB_PASSWORD:-protomforms_password_change_me}@protomforms-postgres:5432/protomforms
+      NEXTAUTH_SECRET: ${PROTOMFORMS_NEXTAUTH_SECRET:-change-me-in-production}
+      # FORZA pov.protom.com - NON usare variabili d'ambiente dal file se sono sbagliate
+      NEXTAUTH_URL: "https://pov.protom.com"
+      FRONTEND_URL: "https://pov.protom.com"
+      PUBLIC_URL: "https://pov.protom.com"
+    volumes:
+      - ./protomforms-backend/prisma:/app/prisma
+    ports:
+      - "3001:3001"
+    depends_on:
+      protomforms-postgres:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - protomforms-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3001/api/test"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+  # ProtomForms Frontend (React Vite Build)
+  protomforms-frontend:
+    build:
+      context: ./protomforms-frontend
+      dockerfile: Dockerfile
+      args:
+        - VITE_API_URL=/api
+        - VITE_PUBLIC_URL=https://pov.protom.com
+    container_name: protomforms-frontend
+    environment:
+      NODE_ENV: production
+    ports:
+      - "4004:80"  # Different port from AGO Explorer (4003)
+    depends_on:
+      - protomforms-backend
+    restart: unless-stopped
+    networks:
+      - protomforms-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+volumes:
+  protomforms_postgres_data:
+    driver: local
+
+networks:
+  protomforms-network:
+    driver: bridge
+

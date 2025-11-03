@@ -1,0 +1,6 @@
+{
+  "dependencies": {
+    "@types/snoowrap": "^1.16.1",
+    "snoowrap": "^1.23.0"
+  }
+}

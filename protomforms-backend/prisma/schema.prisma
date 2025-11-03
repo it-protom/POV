@@ -1,0 +1,147 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model User {
+  id        String     @id @default(cuid())
+  email     String     @unique
+  name      String?
+  password  String?
+  role      Role       @default(USER)
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+  accounts  Account[]
+  forms     Form[]     @relation("Creator")
+  responses Response[]
+  sessions  Session[]
+}
+
+model Form {
+  id                      String     @id @default(cuid())
+  title                   String
+  slug                    String?    @unique
+  description             String?
+  type                    FormType
+  theme                   Json?
+  ownerId                 String
+  opensAt                 DateTime?
+  closesAt                DateTime?
+  isPublic                Boolean    @default(false)
+  isAnonymous             Boolean    @default(false)
+  allowEdit               Boolean    @default(false)
+  showResults             Boolean    @default(false)
+  thankYouMessage         String?
+  teamsNotificationSent   Boolean    @default(false)
+  teamsNotificationSentAt DateTime?
+  createdAt               DateTime   @default(now())
+  updatedAt               DateTime   @updatedAt
+  status                  FormStatus @default(DRAFT)
+  owner                   User       @relation("Creator", fields: [ownerId], references: [id])
+  questions               Question[]
+  responses               Response[]
+}
+
+model Question {
+  id            String       @id @default(cuid())
+  formId        String
+  text          String
+  type          QuestionType
+  required      Boolean      @default(false)
+  options       Json?
+  correctAnswer Json?
+  order         Int
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+  answers       Answer[]
+  form          Form         @relation(fields: [formId], references: [id], onDelete: Cascade)
+}
+
+model Response {
+  id                    String   @id @default(cuid())
+  formId                String
+  progressiveNumber     Int?
+  userId                String?
+  score                 Int?
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+  answers               Answer[]
+  form                  Form     @relation(fields: [formId], references: [id], onDelete: Cascade)
+  user                  User?    @relation(fields: [userId], references: [id])
+}
+
+model Answer {
+  id         String   @id @default(cuid())
+  responseId String
+  questionId String
+  value      Json
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  question   Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  response   Response @relation(fields: [responseId], references: [id], onDelete: Cascade)
+}
+
+model SystemSettings {
+  id        Int      @id @default(1)
+  settings  Json
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+enum Role {
+  ADMIN
+  USER
+}
+
+enum FormType {
+  SURVEY
+  QUIZ
+}
+
+enum FormStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+}
+
+enum QuestionType {
+  MULTIPLE_CHOICE
+  TEXT
+  RATING
+  DATE
+  RANKING
+  LIKERT
+  FILE_UPLOAD
+  NPS
+  BRANCHING
+}

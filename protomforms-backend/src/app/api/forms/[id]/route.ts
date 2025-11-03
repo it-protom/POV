@@ -1,0 +1,243 @@
+import { NextRequest, NextResponse } from 'next/server';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth';
+import { prisma } from '@/lib/prisma';
+
+// GET /api/forms/[id] - Get a single form
+export async function GET(
+  request: NextRequest,
+  { params }: { params: { id: string } }
+) {
+  try {
+    const session = await getServerSession(authOptions);
+
+    if (!session) {
+      return new NextResponse('Unauthorized', { status: 401 });
+    }
+
+    // Fetch form details first to check permissions
+    const form = await prisma.form.findUnique({
+      where: { id: params.id },
+      include: {
+        questions: {
+          orderBy: { order: 'asc' }
+        },
+        owner: true
+      }
+    });
+
+    if (!form) {
+      return new NextResponse('Form not found', { status: 404 });
+    }
+
+    // Check permissions: admin can see all forms, users can see their own forms
+    if (session.user.role !== 'ADMIN' && form.ownerId !== session.user.id) {
+      return new NextResponse('Forbidden', { status: 403 });
+    }
+
+    // Fetch responses separately based on anonymity
+    const responsesRaw = await prisma.response.findMany({
+      where: { formId: params.id },
+      include: {
+        user: !form.isAnonymous ? {
+          select: {
+            id: true,
+            name: true,
+            email: true
+          }
+        } : false,
+        answers: {
+          include: {
+            question: {
+              select: {
+                id: true,
+                text: true,
+                type: true
+              }
+            }
+          }
+        }
+      },
+      orderBy: {
+        progressiveNumber: 'desc'
+      }
+    });
+
+    // Per form anonimi, rimuoviamo le informazioni utente MA manteniamo tutte le risposte individuali
+    // Ogni risposta è identificata dal progressiveNumber per permettere all'admin di vedere risposte singole
+    const responses = form.isAnonymous
+      ? responsesRaw.map(r => ({
+          id: r.id,
+          formId: r.formId,
+          progressiveNumber: r.progressiveNumber, // Usato come identificatore per risposte anonime
+          createdAt: r.createdAt,
+          user: null, // Nessuna informazione utente per form anonimi
+          answers: r.answers // Manteniamo tutte le risposte individuali
+        }))
+      : responsesRaw;
+
+    // Arricchisci i dati con lo status e le risposte
+    const enrichedForm = {
+      ...form,
+      responses,
+      status: form.status.toLowerCase()
+    };
+
+    return NextResponse.json(enrichedForm);
+  } catch (error) {
+    console.error('Error fetching form:', error);
+    return new NextResponse('Internal Server Error', { status: 500 });
+  }
+}
+
+// PUT /api/forms/[id] - Update a form
+export async function PUT(
+  request: NextRequest,
+  { params }: { params: { id: string } }
+) {
+  try {
+    // Verifica l'autenticazione
+    const session = await getServerSession(authOptions);
+    
+    if (!session) {
+      return NextResponse.json(
+        { error: 'Unauthorized' },
+        { status: 401 }
+      );
+    }
+    
+    // Verifica che l'utente sia un admin
+    if (session.user.role !== 'ADMIN') {
+      return NextResponse.json(
+        { error: 'Forbidden' },
+        { status: 403 }
+      );
+    }
+    
+    const { id } = params;
+    
+    // Verifica che il form esista
+    const existingForm = await prisma.form.findUnique({
+      where: { id }
+    });
+    
+    if (!existingForm) {
+      return NextResponse.json(
+        { error: 'Form not found' },
+        { status: 404 }
+      );
+    }
+    
+    // Verifica che l'utente sia il proprietario del form
+    if (existingForm.ownerId !== session.user.id) {
+      return NextResponse.json(
+        { error: 'Forbidden' },
+        { status: 403 }
+      );
+    }
+    
+    // Parsing del body della richiesta
+    const body = await request.json();
+    
+    const { 
+      title, 
+      description, 
+      type, 
+      isAnonymous, 
+      allowEdit, 
+      showResults, 
+      thankYouMessage,
+      questions 
+    } = body;
+    
+    // Validazione dei dati
+    if (!title) {
+      return NextResponse.json(
+        { error: 'Title is required' },
+        { status: 400 }
+      );
+    }
+    
+    // Aggiornamento del form nel database
+    const updatedForm = await prisma.form.update({
+      where: { id },
+      data: {
+        title,
+        description,
+        type,
+        isAnonymous,
+        allowEdit,
+        showResults,
+        thankYouMessage,
+        theme: body.theme || undefined, // Aggiorna il tema se fornito
+        // Aggiorniamo le domande solo se sono state fornite
+        ...(questions && {
+          questions: {
+            deleteMany: {},
+            create: questions.map((q: any, index: number) => ({
+              text: q.text,
+              type: q.type,
+              required: q.required,
+              options: q.options ? JSON.stringify(q.options) : null,
+              order: index
+            }))
+          }
+        })
+      },
+      include: {
+        questions: {
+          orderBy: {
+            order: 'asc'
+          }
+        }
+      }
+    });
+    
+    return NextResponse.json(updatedForm);
+  } catch (error) {
+    console.error('Error updating form:', error);
+    return NextResponse.json(
+      { error: 'Internal server error' },
+      { status: 500 }
+    );
+  }
+}
+
+// DELETE /api/forms/[id] - Delete a form
+export async function DELETE(
+  request: NextRequest,
+  { params }: { params: { id: string } }
+) {
+  try {
+    const session = await getServerSession(authOptions);
+    
+    if (!session || session.user.role !== 'ADMIN') {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const formId = params.id;
+
+    // Check if form exists
+    const existingForm = await prisma.form.findUnique({
+      where: { id: formId }
+    });
+
+    if (!existingForm) {
+      return NextResponse.json({ error: 'Form not found' }, { status: 404 });
+    }
+
+    // Delete the form (cascade will delete questions and responses)
+    await prisma.form.delete({
+      where: { id: formId }
+    });
+
+    return NextResponse.json({ 
+      success: true,
+      message: 'Form eliminato con successo'
+    });
+
+  } catch (error) {
+    console.error('Error deleting form:', error);
+    return NextResponse.json({ error: 'Error deleting form' }, { status: 500 });
+  }
+} 
