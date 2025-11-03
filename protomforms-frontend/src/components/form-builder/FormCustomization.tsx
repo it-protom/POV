@@ -245,6 +245,14 @@ export function FormCustomization({
   const [openPopovers, setOpenPopovers] = useState<Record<string, boolean>>({});
   const [isEditMode, setIsEditMode] = useState(false);
 
+  // Debug: log delle domande ricevute
+  useEffect(() => {
+    console.log('📋 FormCustomization - Domande ricevute:', {
+      count: questions?.length || 0,
+      questions: questions?.map(q => ({ id: q.id, text: q.text?.substring(0, 30), type: q.type }))
+    });
+  }, [questions]);
+
   // Sensori per drag & drop
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -1205,7 +1213,8 @@ export function FormCustomization({
                
                {/* Questions - domande reali del form */}
                {questions && questions.length > 0 ? (
-                 questions.slice(0, 3).map((question, idx) => (
+                 questions.filter(q => q.text && q.text.trim() !== '').slice(0, 3).length > 0 ? (
+                   questions.filter(q => q.text && q.text.trim() !== '').slice(0, 3).map((question, idx) => (
                    <Popover key={question.id} open={isEditMode && openPopovers[`question-${idx}`]} onOpenChange={(open) => isEditMode && setOpenPopovers(prev => ({ ...prev, [`question-${idx}`]: open }))}>
                      <PopoverTrigger asChild>
                        <div
@@ -1388,6 +1397,16 @@ export function FormCustomization({
                      </PopoverContent>
                    </Popover>
                  ))
+                 ) : (
+                   /* Mostra messaggio se le domande esistono ma non hanno testo */
+                   <div className="p-6 rounded-md border-2 border-dashed border-amber-300 bg-amber-50 text-center">
+                     <FileText className="h-12 w-12 text-amber-500 mx-auto mb-2" />
+                     <p className="text-sm text-amber-700 font-medium">
+                       {questions.length} {questions.length === 1 ? 'domanda creata' : 'domande create'}
+                     </p>
+                     <p className="text-xs text-amber-600 mt-1">Compila il testo delle domande per vederle qui nell'anteprima</p>
+                   </div>
+                 )
                ) : (
                  /* Mostra placeholder se non ci sono domande */
                  <div className="p-6 rounded-md border-2 border-dashed border-gray-300 text-center">
