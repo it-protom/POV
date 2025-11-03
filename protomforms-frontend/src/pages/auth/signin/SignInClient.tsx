@@ -10,9 +10,9 @@ export default function SignInClient() {
     <div className="flex min-h-screen items-center justify-center">
       <Card className="w-[400px]">
         <CardHeader>
-          <CardTitle>Welcome to Protom Forms</CardTitle>
+          <CardTitle>Benvenuto su Protom Forms</CardTitle>
           <CardDescription>
-            Sign in with your Protom account to continue
+            Accedi con il tuo account Protom per continuare
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -23,7 +23,7 @@ export default function SignInClient() {
               onClick={() => signIn("azure-ad", { callbackUrl: `${getBaseUrl()}/` })}
             >
               <Icons.microsoft className="mr-2 h-4 w-4" />
-              Sign in with Microsoft
+              Accedi con Microsoft
             </Button>
           </div>
         </CardContent>

@@ -4,14 +4,12 @@ import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 const words = [
-  'soddisfazione clienti',
-  'feedback dipendenti',
-  'valutazioni performance',
-  'survey aziendali',
-  'ricerche di mercato',
-  'analisi qualità',
-  'engagement team',
-  'customer experience'
+  'ascoltare la tua voce',
+  'dare valore alle tue idee',
+  'raccogliere esperienze reali',
+  'migliorare grazie a te',
+  'costruire insieme qualcosa di migliore',
+  'capire ciò che conta davvero'
 ];
 
 export default function TypingAnimation() {
@@ -56,24 +54,22 @@ export default function TypingAnimation() {
   }, [displayedText, isDeleting, isWaiting, currentWordIndex]);
 
   return (
-    <div className="flex items-center h-full">
-      <motion.span 
-        className="text-5xl lg:text-6xl font-bold text-[#FFCD00] min-h-[1.2em] inline-block"
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ duration: 0.5 }}
-      >
-        {displayedText}
-        <motion.span
-          className="inline-block w-1 h-[0.9em] bg-[#FFCD00] ml-1"
-          animate={{ opacity: [1, 0] }}
-          transition={{
-            duration: 0.8,
-            repeat: Infinity,
-            repeatType: "reverse"
-          }}
-        />
-      </motion.span>
-    </div>
+    <motion.span 
+      className="text-5xl lg:text-6xl font-bold text-[#FFCD00] min-h-[1.2em] inline-block"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{ duration: 0.5 }}
+    >
+      {displayedText}
+      <motion.span
+        className="inline-block w-1 h-[0.9em] bg-[#FFCD00] ml-1"
+        animate={{ opacity: [1, 0] }}
+        transition={{
+          duration: 0.8,
+          repeat: Infinity,
+          repeatType: "reverse"
+        }}
+      />
+    </motion.span>
   );
 } 

@@ -21,7 +21,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Calendar as CalendarComponent } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { format } from "date-fns";
-import { cn, getPublicUrl } from "@/lib/utils";
+import { cn, getPublicUrl, authenticatedFetch } from "@/lib/utils";
 
 interface Form {
   id: string;
@@ -64,7 +64,7 @@ export default function ShareFormPage() {
   useEffect(() => {
     const fetchForm = async () => {
       try {
-        const response = await fetch(`/api/forms/${params.id}`);
+        const response = await authenticatedFetch(`/api/forms/${params.id}`);
         if (!response.ok) {
           throw new Error("Failed to fetch form");
         }

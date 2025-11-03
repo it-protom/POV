@@ -30,6 +30,7 @@ import AdminAnalytics from './pages/admin/analytics/page';
 
 // User Pages
 import UserForms from './pages/user/forms/page';
+import UserResponses from './pages/user/responses/page';
 
 // Auth Pages
 import AuthSignIn from './pages/auth/signin/page';
@@ -266,6 +267,19 @@ function App() {
                     <Navbar />
                     <div className="pt-16">
                       <UserForms />
+                    </div>
+                  </div>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/user/responses"
+              element={
+                <ProtectedRoute>
+                  <div className="min-h-screen">
+                    <Navbar />
+                    <div className="pt-16">
+                      <UserResponses />
                     </div>
                   </div>
                 </ProtectedRoute>

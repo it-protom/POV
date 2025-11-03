@@ -28,6 +28,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { authenticatedFetch } from '@/lib/utils';
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -100,8 +101,8 @@ export default function FormResponsesPage() {
       try {
         // Carica i dati del form e le risposte in parallelo
         const [formResponse, responsesResponse] = await Promise.all([
-          fetch(`/api/forms/${params.id}`),
-          fetch(`/api/forms/${params.id}/responses`)
+          authenticatedFetch(`/api/forms/${params.id}`),
+          authenticatedFetch(`/api/forms/${params.id}/responses`)
         ]);
 
         if (!formResponse.ok) {

@@ -13,7 +13,13 @@ import {
   Zap, 
   FileText, 
   Target, 
-  TrendingUp 
+  TrendingUp, 
+  EyeOff, 
+  Heart,
+  MessageSquare,
+  Clock,
+  Play,
+  CheckCircle2
 } from 'lucide-react';
 import TypingAnimation from '../components/TypingAnimation';
 import FormPreviewCard from '../components/FormPreviewCard';
@@ -50,11 +56,13 @@ const LandingPage: React.FC = () => {
         <div className="max-w-7xl mx-auto px-6 py-4">
           <div className="flex justify-between items-center">
             <div className="flex items-center space-x-3">
-              <div className="w-10 h-10 bg-gradient-to-br from-[#FFCD00] to-[#FFD700] rounded-xl flex items-center justify-center shadow-lg">
-                <Sparkles className="w-6 h-6 text-black" />
-              </div>
+              <img
+                src="/logo_pov.png"
+                alt="POV Logo"
+                className="w-10 h-10 object-contain"
+              />
               <span className="text-2xl font-bold text-gray-900">
-                ProtomForms
+                pov
               </span>
             </div>
             <div className="flex items-center space-x-4">
@@ -81,24 +89,14 @@ const LandingPage: React.FC = () => {
             {/* Left Content */}
             <div className="space-y-8">
               <div className="space-y-6">
-                <Badge className="bg-[#FFCD00]/10 text-[#FFCD00] border-[#FFCD00]/20 font-medium px-4 py-2">
-                  <Zap className="w-4 h-4 mr-2" />
-                  Powered by Protom Group
-                </Badge>
-                
                 <div className="space-y-4">
                   <h1 className="text-5xl lg:text-6xl font-bold text-gray-900 leading-tight">
-                    Crea, gestisci,
+                    I nostri form nascono per
                     <br />
-                    visualizza form
-                    <br />
-                    <span className="text-gray-600">riguardo</span>
+                    <span className="text-[#FFCD00]">
+                      <TypingAnimation />
+                    </span>
                   </h1>
-                  
-                  {/* Typing Animation */}
-                  <div className="h-20 flex items-center">
-                    <TypingAnimation />
-                  </div>
                 </div>
                 
                 <p className="text-xl text-gray-600 leading-relaxed max-w-lg">
@@ -128,17 +126,17 @@ const LandingPage: React.FC = () => {
               
               {/* Trust indicators */}
               <div className="flex items-center gap-8 pt-4">
-                <div className="flex items-center gap-2 text-sm text-gray-500">
-                  <CheckCircle className="w-4 h-4 text-green-500" />
-                  Setup immediato
+                <div className="flex items-center gap-2 text-sm text-gray-600">
+                  <EyeOff className="w-4 h-4 text-gray-700" />
+                  Sondaggi anonimi
                 </div>
-                <div className="flex items-center gap-2 text-sm text-gray-500">
-                  <CheckCircle className="w-4 h-4 text-green-500" />
-                  Sicurezza enterprise
+                <div className="flex items-center gap-2 text-sm text-gray-600">
+                  <Heart className="w-4 h-4 text-red-500" />
+                  La tua opinione conta
                 </div>
-                <div className="flex items-center gap-2 text-sm text-gray-500">
-                  <CheckCircle className="w-4 h-4 text-green-500" />
-                  Supporto dedicato
+                <div className="flex items-center gap-2 text-sm text-gray-600">
+                  <Shield className="w-4 h-4 text-blue-600" />
+                  Risposte protette
                 </div>
               </div>
             </div>
@@ -163,10 +161,10 @@ const LandingPage: React.FC = () => {
           {/* Section Header */}
           <div className="text-center mb-16">
             <h2 className="text-4xl lg:text-5xl font-bold text-gray-900 mb-6">
-              Come iniziare
+              Come partecipare
             </h2>
             <p className="text-xl text-gray-600 max-w-3xl mx-auto">
-              Tre semplici passaggi per trasformare la raccolta dati della tua azienda
+              Tre semplici passaggi per condividere la tua opinione e contribuire al miglioramento
             </p>
           </div>
 
@@ -174,45 +172,45 @@ const LandingPage: React.FC = () => {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-20">
             <StepCard
               number="1"
-              title="Crea un account"
-              description="Registrati con il tuo account Microsoft aziendale e accedi immediatamente alla piattaforma"
-              icon={<Target className="w-8 h-8" />}
+              title="Accedi con Microsoft"
+              description="Usa il tuo account aziendale Microsoft per accedere rapidamente e in sicurezza"
+              icon={<Shield className="w-8 h-8" />}
             />
             <StepCard
               number="2"
-              title="Scegli un template"
-              description="Parti da template professionali o crea da zero il tuo questionario personalizzato"
+              title="Scegli un form"
+              description="Esplora i form disponibili e trova quelli a cui vuoi contribuire con la tua opinione"
               icon={<FileText className="w-8 h-8" />}
             />
             <StepCard
               number="3"
-              title="Pubblica e analizza"
-              description="Condividi il form e monitora le risposte in tempo reale con dashboard avanzate"
-              icon={<TrendingUp className="w-8 h-8" />}
+              title="Rispondi e condividi"
+              description="Compila il form in pochi minuti: ogni tua risposta è preziosa e aiuta a migliorare"
+              icon={<MessageSquare className="w-8 h-8" />}
             />
           </div>
 
           {/* Features Grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             <FeatureCard
-              icon={<BarChart3 className="w-6 h-6" />}
-              title="Analytics Avanzate"
-              description="Dashboard in tempo reale con grafici interattivi e report esportabili"
+              icon={<Clock className="w-6 h-6" />}
+              title="Compilazione rapida"
+              description="Rispondi in pochi minuti, senza registrazioni complicate o passaggi lunghi"
             />
             <FeatureCard
-              icon={<Users className="w-6 h-6" />}
-              title="Gestione Team"
-              description="Collabora con il team, assegna ruoli e gestisci permessi granulari"
+              icon={<EyeOff className="w-6 h-6" />}
+              title="Risposte anonime"
+              description="I tuoi feedback sono protetti e anonimi, puoi esprimerti liberamente"
             />
             <FeatureCard
-              icon={<Shield className="w-6 h-6" />}
-              title="Sicurezza Enterprise"
-              description="Crittografia end-to-end, backup automatici e conformità GDPR"
+              icon={<Heart className="w-6 h-6" />}
+              title="Il tuo contributo conta"
+              description="Ogni risposta è importante e aiuta a prendere decisioni migliori"
             />
             <FeatureCard
-              icon={<Zap className="w-6 h-6" />}
-              title="Integrazione API"
-              description="Connetti con i tuoi sistemi esistenti tramite API REST complete"
+              icon={<CheckCircle2 className="w-6 h-6" />}
+              title="Semplice e intuitivo"
+              description="Interfaccia chiara e user-friendly per una compilazione piacevole"
             />
           </div>
         </div>
@@ -222,10 +220,10 @@ const LandingPage: React.FC = () => {
       <section className="bg-white py-20">
         <div className="max-w-4xl mx-auto px-6 text-center">
           <h2 className="text-4xl font-bold text-gray-900 mb-6">
-            Pronto a trasformare la tua raccolta dati?
+            Pronto a condividere la tua opinione?
           </h2>
           <p className="text-xl text-gray-600 mb-8 max-w-2xl mx-auto">
-            Unisciti alle aziende che hanno già scelto ProtomForms per i loro questionari professionali
+            Accedi e inizia a partecipare ai form disponibili. La tua voce è importante e fa la differenza!
           </p>
           
           <Button 
@@ -233,7 +231,7 @@ const LandingPage: React.FC = () => {
             size="lg"
             className="bg-gradient-to-r from-[#FFCD00] to-[#FFD700] hover:from-[#FFD700] hover:to-[#FFCD00] text-black font-semibold px-12 py-4 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105"
           >
-            Accedi alla Piattaforma
+            Vai ai Form Disponibili
             <ArrowRight className="w-5 h-5 ml-2" />
           </Button>
         </div>
@@ -244,10 +242,12 @@ const LandingPage: React.FC = () => {
         <div className="max-w-7xl mx-auto px-6 py-12">
           <div className="text-center">
             <div className="flex items-center justify-center space-x-3 mb-4">
-              <div className="w-8 h-8 bg-gradient-to-br from-[#FFCD00] to-[#FFD700] rounded-lg flex items-center justify-center">
-                <Sparkles className="w-5 h-5 text-black" />
-              </div>
-              <span className="text-xl font-bold text-gray-900">ProtomForms</span>
+              <img
+                src="/logo_pov.png"
+                alt="POV Logo"
+                className="w-8 h-8 object-contain"
+              />
+              <span className="text-xl font-bold text-gray-900">pov</span>
             </div>
             <p className="text-gray-600">
               © 2024 ProtomForms by Protom Group. Piattaforma professionale per questionari aziendali.

@@ -25,16 +25,15 @@ async function createAdmin() {
       console.log('✅ Admin creato:', user.email, user.role);
     } else {
       console.log('ℹ️ Admin già esistente:', existing.email, existing.role);
-      if (!existing.password) {
-        const hashed = await bcrypt.hash(password, 10);
-        await prisma.user.update({
-          where: { email },
-          data: { password: hashed }
-        });
-        console.log('✅ Password aggiunta');
-      } else {
-        console.log('ℹ️ Admin ha già una password');
-      }
+      // Forza sempre il reset della password per assicurarsi che sia corretta
+      const hashed = await bcrypt.hash(password, 10);
+      await prisma.user.update({
+        where: { email },
+        data: { password: hashed }
+      });
+      console.log('✅ Password resettata con successo');
+      console.log('   Email:', email);
+      console.log('   Password:', password);
     }
     
     await prisma.$disconnect();

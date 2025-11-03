@@ -62,6 +62,29 @@ export function getApiUrl() {
 }
 
 /**
+ * Helper per fetch che aggiunge automaticamente l'header x-user-id se disponibile
+ * @param url URL da chiamare
+ * @param options Opzioni fetch standard
+ * @returns Promise<Response>
+ */
+export async function authenticatedFetch(url: string, options: RequestInit = {}): Promise<Response> {
+  const userId = localStorage.getItem('user_id');
+  const headers = new Headers(options.headers);
+  
+  // Aggiungi x-user-id se disponibile e non già presente
+  if (userId && !headers.has('x-user-id')) {
+    headers.set('x-user-id', userId);
+  }
+  
+  // Assicurati che credentials sia sempre 'include' per i cookie
+  return fetch(url, {
+    ...options,
+    credentials: 'include',
+    headers,
+  });
+}
+
+/**
  * Ottiene l'URL pubblico dell'applicazione (per condivisione link)
  * In produzione usa pov.protom.com, in sviluppo usa localhost
  * @returns L'URL pubblico dell'applicazione

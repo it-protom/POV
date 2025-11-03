@@ -8,11 +8,12 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { authenticatedFetch } from '@/lib/utils';
 
 interface Answer {
   id: string;
   questionId: string;
-  value: string;
+  value: string | number | string[] | Date | null | any;
 }
 
 interface Response {
@@ -56,7 +57,12 @@ export default function ResponsesPage() {
 
   const fetchResponses = async () => {
     try {
-      const res = await fetch('/api/responses');
+      const res = await authenticatedFetch('/api/responses', {
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
       if (!res.ok) {
         throw new Error('Failed to fetch responses');
       }
@@ -144,34 +150,76 @@ export default function ResponsesPage() {
     return '?';
   };
 
-  const getResponsePreview = (answers: Answer[]) => {
-    console.log('getResponsePreview called with:', answers);
+  const formatAnswerPreview = (value: any): string => {
+    // Controlla null/undefined
+    if (value === null || value === undefined) {
+      return '';
+    }
     
+    // Se è una stringa vuota o solo spazi
+    if (typeof value === 'string' && value.trim() === '') {
+      return '';
+    }
+    
+    // Se è un array, mostra i primi valori separati da virgola
+    if (Array.isArray(value)) {
+      if (value.length === 0) return '';
+      // Filtra valori vuoti
+      const nonEmptyValues = value.filter(v => v !== null && v !== undefined && String(v).trim() !== '');
+      if (nonEmptyValues.length === 0) return '';
+      const preview = nonEmptyValues.slice(0, 3).map(v => String(v)).join(', ');
+      return nonEmptyValues.length > 3 ? `${preview}... (+${nonEmptyValues.length - 3})` : preview;
+    }
+    
+    // Se è un oggetto, prova a estrarre valori utili
+    if (typeof value === 'object' && !Array.isArray(value) && !(value instanceof Date)) {
+      const values = Object.values(value).filter(v => {
+        if (v === null || v === undefined) return false;
+        if (typeof v === 'string' && v.trim() === '') return false;
+        return true;
+      });
+      if (values.length === 0) return '';
+      return values.slice(0, 3).map(v => String(v)).join(', ');
+    }
+    
+    // Se è una data
+    if (value instanceof Date) {
+      return value.toLocaleDateString('it-IT');
+    }
+    
+    // Per numeri, converti in stringa
+    if (typeof value === 'number') {
+      return value.toString();
+    }
+    
+    // Converti in stringa e controlla che non sia vuota
+    const stringValue = String(value);
+    return stringValue.trim() === '' ? '' : stringValue;
+  };
+
+  const getResponsePreview = (answers: Answer[]): string => {
     if (!Array.isArray(answers) || answers.length === 0) {
       return 'Nessuna risposta fornita';
     }
     
-    // Prendi la prima risposta non vuota
-    const firstAnswer = answers.find(answer => {
-      console.log('Checking answer:', answer);
-      const value = answer.value;
-      console.log('Answer value:', value, 'Type:', typeof value);
-      return value && String(value).trim() !== '';
-    });
-    
-    if (!firstAnswer) {
-      return 'Risposte vuote';
+    // Prova a trovare la prima risposta con valore non vuoto
+    for (const answer of answers) {
+      if (!answer || !answer.hasOwnProperty('value')) {
+        continue;
+      }
+      
+      const preview = formatAnswerPreview(answer.value);
+      
+      if (preview && preview.trim() !== '') {
+        // Se è troppo lunga, troncala
+        if (preview.length > 100) {
+          return preview.slice(0, 100) + '...';
+        }
+        return preview;
+      }
     }
     
-    const value = String(firstAnswer.value);
-    console.log('Selected value:', value);
-    
-    // Se è una risposta lunga, troncala
-    if (value.length > 100) {
-      return value.slice(0, 100) + '...';
-    }
-    
-    return value;
+    return 'Nessuna risposta fornita';
   };
 
   if (loading) {

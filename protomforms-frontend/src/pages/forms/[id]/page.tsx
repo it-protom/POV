@@ -53,6 +53,8 @@ interface Form {
     backgroundPosition?: 'center' | 'top' | 'bottom' | 'left' | 'right';
     backgroundSize?: 'cover' | 'contain' | 'auto';
     backgroundOpacity?: number;
+    headerImageHeight?: number;
+    logoSize?: number;
   };
 }
 
@@ -300,7 +302,7 @@ export default function FormPage() {
 
   if (loading) {
     return (
-      <div className="container mx-auto py-8">
+      <div className="min-h-screen w-full flex items-center justify-center">
         <div className="bg-white p-6 rounded-lg shadow text-center">
           <p className="text-gray-500">Caricamento in corso...</p>
         </div>
@@ -353,7 +355,7 @@ export default function FormPage() {
 
   return (
     <div 
-      className="container mx-auto py-8 min-h-screen relative"
+      className="min-h-screen w-full relative"
       style={{
         fontFamily: `"${theme.fontFamily}", sans-serif`,
         backgroundColor: theme.backgroundColor,
@@ -375,23 +377,27 @@ export default function FormPage() {
         />
       )}
       
-      <div className="relative z-10">
+      <div className="relative z-10 min-h-screen flex flex-col">
         <Card 
-          className="max-w-3xl mx-auto"
+          className="flex-1 flex flex-col m-0 border-0 shadow-none rounded-none"
           style={{
             backgroundColor: theme.backgroundColor,
-            borderRadius: `${theme.borderRadius}px`,
+            borderRadius: '0',
             backdropFilter: theme.backgroundImage ? 'blur(0.5px)' : undefined,
           }}
         >
-        <CardHeader>
+        <CardHeader className="px-6 py-8">
           {theme.headerImage && (
-            <div className="mb-4 -mx-6 -mt-6">
+            <div className="mb-4 -mx-6 -mt-8">
               <img
                 src={theme.headerImage}
                 alt="Header"
-                className="w-full h-48 object-cover"
-                style={{ borderTopLeftRadius: `${theme.borderRadius}px`, borderTopRightRadius: `${theme.borderRadius}px` }}
+                className="w-full object-cover"
+                style={{ 
+                  borderTopLeftRadius: `${theme.borderRadius}px`, 
+                  borderTopRightRadius: `${theme.borderRadius}px`,
+                  height: theme.headerImageHeight ? `${theme.headerImageHeight}px` : '256px'
+                }}
               />
             </div>
           )}
@@ -400,25 +406,28 @@ export default function FormPage() {
               <img
                 src={theme.logo}
                 alt="Logo"
-                className="h-16 w-auto object-contain"
+                className="w-auto object-contain"
+                style={{ 
+                  height: theme.logoSize ? `${(theme.logoSize / 100) * 64}px` : '64px'
+                }}
               />
             </div>
           )}
-          <CardTitle style={{ color: theme.primaryColor }}>{form.title}</CardTitle>
-          <CardDescription style={{ color: theme.textColor }}>{form.description}</CardDescription>
+          <CardTitle className="text-3xl mb-2" style={{ color: theme.primaryColor }}>{form.title}</CardTitle>
+          <CardDescription className="text-lg mb-4" style={{ color: theme.textColor }}>{form.description}</CardDescription>
           <div 
-            className="w-full rounded-full h-2.5 mt-4"
+            className="w-full rounded-full h-3 mt-4"
             style={{ backgroundColor: `${theme.accentColor}20` }}
           >
             <div 
-              className="h-2.5 rounded-full transition-all duration-300" 
+              className="h-3 rounded-full transition-all duration-300" 
               style={{ 
                 width: `${progress}%`,
                 backgroundColor: theme.primaryColor
               }}
             ></div>
           </div>
-          <div className="flex justify-between text-sm text-gray-500 mt-2">
+          <div className="flex justify-between text-sm text-gray-500 mt-3">
             <span>Domanda {currentStep + 1} di {form.questions.length}</span>
             <button 
               type="button" 
@@ -429,25 +438,25 @@ export default function FormPage() {
             </button>
           </div>
         </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-6">
+        <CardContent className="flex-1 flex flex-col px-6 py-8">
+          <form onSubmit={handleSubmit} className="flex-1 flex flex-col space-y-6 max-w-4xl mx-auto w-full">
             {showProgress ? (
               <div className="space-y-4 mb-6">
                 {form.questions.map((q, index) => (
                   <div 
                     key={q.id} 
                     className={cn(
-                      "p-3 rounded-md cursor-pointer transition-colors",
+                      "p-4 rounded-md cursor-pointer transition-colors",
                       index === currentStep ? "bg-blue-50 border border-blue-200" : "hover:bg-gray-50",
                       answers[q.id] ? "border-l-4 border-green-500" : "border-l-4 border-gray-200"
                     )}
                     onClick={() => setCurrentStep(index)}
                   >
                     <div className="flex items-center">
-                      <span className="w-6 h-6 flex items-center justify-center rounded-full bg-gray-200 mr-2">
+                      <span className="w-8 h-8 flex items-center justify-center rounded-full bg-gray-200 mr-3">
                         {index + 1}
                       </span>
-                      <span className="font-medium">{q.text}</span>
+                      <span className="font-medium text-lg">{q.text}</span>
                       {q.required && <span className="text-red-500 ml-1">*</span>}
                       {answers[q.id] && (
                         <span className="ml-auto text-green-500 text-sm">Risposto</span>
@@ -457,12 +466,12 @@ export default function FormPage() {
                 ))}
               </div>
             ) : (
-              <div key={currentQuestion.id} className="space-y-4">
-                <div className="flex items-center">
-                  <span className="w-8 h-8 flex items-center justify-center rounded-full bg-blue-100 text-blue-600 mr-3">
+              <div key={currentQuestion.id} className="space-y-6 flex-1">
+                <div className="flex items-center mb-6">
+                  <span className="w-10 h-10 flex items-center justify-center rounded-full bg-blue-100 text-blue-600 mr-4 text-lg font-semibold">
                     {currentStep + 1}
                   </span>
-                  <Label className="text-lg font-medium">
+                  <Label className="text-xl font-semibold">
                     {currentQuestion.text}
                     {currentQuestion.required && <span className="text-red-500 ml-1">*</span>}
                   </Label>
@@ -758,13 +767,14 @@ export default function FormPage() {
               </div>
             )}
 
-            <div className="flex justify-between space-x-4 mt-8">
+            <div className="flex justify-between space-x-4 mt-auto pt-8">
               <Button
                 type="button"
                 variant="outline"
                 onClick={prevStep}
                 disabled={currentStep === 0}
                 style={getButtonStyle('outline')}
+                className="px-6 py-2 min-w-[120px]"
               >
                 Precedente
               </Button>
@@ -775,6 +785,7 @@ export default function FormPage() {
                   onClick={nextStep}
                   disabled={currentQuestion.required && !answers[currentQuestion.id]}
                   style={getButtonStyle('primary')}
+                  className="px-6 py-2"
                 >
                   Successiva
                 </Button>
@@ -783,6 +794,7 @@ export default function FormPage() {
                   type="submit" 
                   disabled={submitting}
                   style={getButtonStyle('primary')}
+                  className="px-6 py-2"
                 >
                   {submitting ? 'Invio in corso...' : 'Invia Risposte'}
                 </Button>
@@ -790,12 +802,13 @@ export default function FormPage() {
             </div>
           </form>
         </CardContent>
-        <CardFooter className="flex justify-between">
+        <CardFooter className="px-6 py-6 border-t flex justify-between max-w-4xl mx-auto w-full">
           <Button
             type="button"
             variant="outline"
             onClick={() => navigate('/user/forms')}
             style={getButtonStyle('outline')}
+            className="px-6 py-2 min-w-[120px]"
           >
             Annulla
           </Button>
@@ -805,6 +818,7 @@ export default function FormPage() {
               form="form"
               disabled={submitting}
               style={getButtonStyle('primary')}
+              className="px-6 py-2"
             >
               {submitting ? 'Invio in corso...' : 'Invia Risposte'}
             </Button>

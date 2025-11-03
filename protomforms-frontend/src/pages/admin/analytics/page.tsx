@@ -60,6 +60,7 @@ import {
 } from 'lucide-react';
 import { addDays, format, subDays } from 'date-fns';
 import { it } from 'date-fns/locale';
+import { authenticatedFetch } from '@/lib/utils';
 
 // Tipi per i dati analytics
 interface AnalyticsData {
@@ -150,7 +151,11 @@ export default function AnalyticsPage() {
           search: filters.searchTerm
         });
 
-        const response = await fetch(`/api/analytics?${params}`);
+        const response = await authenticatedFetch(`/api/analytics?${params}`, {
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        });
         if (response.ok) {
           const data = await response.json();
           setAnalyticsData(data);

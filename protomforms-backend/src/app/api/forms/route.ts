@@ -196,7 +196,40 @@ export async function POST(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
     
-    if (!session) {
+    let userId: string | null = null;
+    let userRole: string | null = null;
+    
+    // Try to get user from session first
+    if (session?.user?.id) {
+      userId = session.user.id;
+      userRole = (session.user as any).role;
+    } else {
+      // Fallback: try to get userId from header (for custom auth flow)
+      const userIdHeader = request.headers.get('x-user-id');
+      if (userIdHeader) {
+        userId = userIdHeader;
+        // Fetch user role from database
+        const user = await prisma.user.findUnique({
+          where: { id: userId },
+          select: { role: true }
+        });
+        if (user) {
+          userRole = user.role;
+        }
+      }
+    }
+    
+    console.log('📝 POST /api/forms - Session check:', {
+      hasSession: !!session,
+      hasUser: !!session?.user,
+      userId,
+      userEmail: session?.user?.email,
+      userRole,
+      fromHeader: !!request.headers.get('x-user-id'),
+    });
+    
+    if (!userId) {
+      console.error('❌ POST /api/forms - No user ID found in session or header');
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
@@ -238,7 +271,7 @@ export async function POST(request: NextRequest) {
         opensAt: opensAt ? new Date(opensAt) : null,
         closesAt: closesAt ? new Date(closesAt) : null,
         theme: theme || undefined,
-        ownerId: session.user.id,
+        ownerId: userId,
         questions: {
           create: questions.map((q: any, index: number) => ({
             text: q.text,

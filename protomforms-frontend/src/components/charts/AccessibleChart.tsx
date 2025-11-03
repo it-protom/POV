@@ -145,11 +145,70 @@ export function AccessibleChart({
     return () => document.removeEventListener('keydown', handleKeyDown);
   }, []);
 
+  // Mappatura colonne inglese -> italiano per admin
+  const translateColumnHeader = (header: string): string => {
+    const translations: Record<string, string> = {
+      'name': 'Periodo',
+      'responses': 'Risposte',
+      'forms': 'Form',
+      'device': 'Dispositivo',
+      'percentage': 'Percentuale',
+      'value': 'Valore',
+      'count': 'Conteggio',
+      'date': 'Data',
+      'hour': 'Ora',
+      'day': 'Giorno',
+      'completions': 'Completamenti',
+      'avgScore': 'Punteggio Medio',
+      'questionId': 'ID Domanda',
+      'questionText': 'Testo Domanda',
+      'questionType': 'Tipo Domanda',
+      'completed': 'Completate',
+      'partial': 'Parziali',
+      'abandoned': 'Abbandonate',
+      'total': 'Totale',
+      'mean': 'Media',
+      'median': 'Mediana',
+      'mode': 'Moda',
+      'min': 'Minimo',
+      'max': 'Massimo',
+    };
+    
+    // Prima controlla traduzione esatta
+    if (translations[header.toLowerCase()]) {
+      return translations[header.toLowerCase()];
+    }
+    
+    // Se contiene parole chiave, traduci parti
+    let translated = header;
+    Object.entries(translations).forEach(([en, it]) => {
+      if (translated.toLowerCase().includes(en)) {
+        translated = translated.replace(new RegExp(en, 'gi'), it);
+      }
+    });
+    
+    // Se è un mese o nome già in italiano, lascialo così
+    const italianMonths = ['gennaio', 'febbraio', 'marzo', 'aprile', 'maggio', 'giugno', 
+                           'luglio', 'agosto', 'settembre', 'ottobre', 'novembre', 'dicembre',
+                           'gen', 'feb', 'mar', 'apr', 'mag', 'giu', 'lug', 'ago', 'set', 'ott', 'nov', 'dic'];
+    if (italianMonths.some(month => translated.toLowerCase().includes(month))) {
+      return translated;
+    }
+    
+    // Capitalizza prima lettera se tutto minuscolo
+    if (translated === translated.toLowerCase() && translated.length > 0) {
+      return translated.charAt(0).toUpperCase() + translated.slice(1);
+    }
+    
+    return translated;
+  };
+
   // Generate table from data
   const generateTable = () => {
     if (!data || data.length === 0) return null;
     
-    const headers = Object.keys(data[0]);
+    // Filtra le colonne - escludi 'color' che non è utile nella tabella
+    const headers = Object.keys(data[0]).filter(header => header.toLowerCase() !== 'color');
     
     return (
       <div className="overflow-x-auto">
@@ -158,7 +217,7 @@ export function AccessibleChart({
             <tr className="bg-gray-50">
               {headers.map(header => (
                 <th key={header} className="border border-gray-300 px-4 py-2 text-left font-semibold">
-                  {header}
+                  {translateColumnHeader(header)}
                 </th>
               ))}
             </tr>
@@ -166,14 +225,36 @@ export function AccessibleChart({
           <tbody>
             {data.map((row, index) => (
               <tr key={index} className={index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
-                {headers.map(header => (
-                  <td key={header} className="border border-gray-300 px-4 py-2">
-                    {typeof row[header] === 'number' 
-                      ? row[header].toLocaleString('it-IT')
-                      : row[header]
+                {headers.map(header => {
+                  let cellValue = row[header];
+                  
+                  // Formatta valori numerici
+                  if (typeof cellValue === 'number') {
+                    // Se è una percentuale, aggiungi il simbolo %
+                    if (header.toLowerCase().includes('percentage') || header.toLowerCase().includes('percentuale')) {
+                      cellValue = `${cellValue.toLocaleString('it-IT')}%`;
+                    } else {
+                      cellValue = cellValue.toLocaleString('it-IT');
                     }
-                  </td>
-                ))}
+                  }
+                  
+                  // Traduci valori speciali
+                  if (typeof cellValue === 'string') {
+                    const lowerValue = cellValue.toLowerCase();
+                    if (lowerValue === 'desktop') cellValue = 'Desktop';
+                    else if (lowerValue === 'mobile') cellValue = 'Mobile';
+                    else if (lowerValue === 'tablet') cellValue = 'Tablet';
+                    else if (lowerValue === 'completed' || lowerValue === 'completate') cellValue = 'Completate';
+                    else if (lowerValue === 'partial' || lowerValue === 'parziali') cellValue = 'Parziali';
+                    else if (lowerValue === 'abandoned' || lowerValue === 'abbandonate') cellValue = 'Abbandonate';
+                  }
+                  
+                  return (
+                    <td key={header} className="border border-gray-300 px-4 py-2">
+                      {cellValue}
+                    </td>
+                  );
+                })}
               </tr>
             ))}
           </tbody>

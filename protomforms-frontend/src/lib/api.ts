@@ -14,7 +14,12 @@ const api = axios.create({
 // Request interceptor to add auth token if available
 api.interceptors.request.use(
   (config) => {
-    // Add any auth headers here if needed
+    // Add x-user-id header if user is logged in (for custom auth flow)
+    // Try to get from localStorage first (set by AuthContext)
+    const userId = localStorage.getItem('user_id');
+    if (userId && !config.headers['x-user-id']) {
+      config.headers['x-user-id'] = userId;
+    }
     return config;
   },
   (error) => {

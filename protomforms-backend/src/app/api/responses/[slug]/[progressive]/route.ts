@@ -1,16 +1,44 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 
 export async function GET(
-  request: Request,
+  request: NextRequest,
   { params }: { params: { slug: string; progressive: string } }
 ) {
   try {
     const session = await getServerSession(authOptions);
-
-    if (!session || session.user.role !== 'ADMIN') {
+    
+    let userId: string | null = null;
+    let userRole: string | null = null;
+    
+    // Try to get user from session first
+    if (session?.user?.id) {
+      userId = session.user.id;
+      userRole = (session.user as any).role;
+    } else {
+      // Fallback: try to get userId from header (for custom auth flow)
+      const userIdHeader = request.headers.get('x-user-id');
+      if (userIdHeader) {
+        userId = userIdHeader;
+        // Fetch user role from database
+        const user = await prisma.user.findUnique({
+          where: { id: userId },
+          select: { role: true }
+        });
+        if (user) {
+          userRole = user.role;
+        }
+      }
+    }
+    
+    if (!userId || userRole !== 'ADMIN') {
+      console.log('⚠️ /api/responses/[slug]/[progressive] - Unauthorized:', {
+        hasUserId: !!userId,
+        userRole,
+        hasSession: !!session
+      });
       return new NextResponse('Unauthorized', { status: 401 });
     }
 

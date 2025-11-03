@@ -25,6 +25,7 @@ import {
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useParams } from "react-router-dom";
+import { authenticatedFetch } from '@/lib/utils';
 
 interface Question {
   id: string;
@@ -82,7 +83,7 @@ export default function FormDetailPage() {
   useEffect(() => {
     const fetchForm = async () => {
       try {
-        const response = await fetch(`/api/forms/${params.id}`);
+        const response = await authenticatedFetch(`/api/forms/${params.id}`);
         if (response.ok) {
           const data = await response.json();
           setForm(data);

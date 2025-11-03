@@ -1,13 +1,16 @@
 import React from 'react';
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { ChevronLeft } from 'lucide-react';
+import { ChevronLeft, MessageSquare, Calendar, FileText } from 'lucide-react';
 import { useParams } from "react-router-dom";
+import { authenticatedFetch } from '@/lib/utils';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
 
 interface Answer {
   id: string;
   questionId: string;
-  value: string;
+  value: string | number | string[] | Date | null | any;
   question: {
     text: string;
     type: string;
@@ -39,7 +42,11 @@ export default function ResponseDetailsPage() {
 
   const fetchResponse = async () => {
     try {
-      const res = await fetch(`/api/responses/${params.slug}/${params.progressive}`);
+      const res = await authenticatedFetch(`/api/responses/${params.slug}/${params.progressive}`, {
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
       if (!res.ok) {
         throw new Error('Failed to fetch response');
       }
@@ -47,7 +54,7 @@ export default function ResponseDetailsPage() {
       setResponse(data);
       setError(null);
     } catch (err) {
-      setError('Error loading response');
+      setError('Errore nel caricamento della risposta');
       console.error(err);
     } finally {
       setLoading(false);
@@ -82,49 +89,123 @@ export default function ResponseDetailsPage() {
     );
   }
 
+  const formatAnswerValue = (value: any, questionType: string): string => {
+    if (value === null || value === undefined || value === '') {
+      return 'Nessuna risposta fornita';
+    }
+    
+    // Se è un array, mostra i valori separati da virgola
+    if (Array.isArray(value)) {
+      return value.length > 0 ? value.join(', ') : 'Nessuna risposta fornita';
+    }
+    
+    // Se è un oggetto, prova a estrarre valori utili
+    if (typeof value === 'object') {
+      const values = Object.values(value).filter(v => v !== null && v !== undefined && v !== '');
+      return values.length > 0 ? values.join(', ') : 'Nessuna risposta fornita';
+    }
+    
+    // Formatta numeri per scale (1-5, ecc.)
+    if (questionType === 'SCALE' && typeof value === 'number') {
+      return value.toString();
+    }
+    
+    // Per date
+    if (questionType === 'DATE' && (typeof value === 'string' || value instanceof Date)) {
+      try {
+        const date = new Date(value);
+        return date.toLocaleDateString('it-IT', {
+          day: '2-digit',
+          month: '2-digit',
+          year: 'numeric'
+        });
+      } catch {
+        return String(value);
+      }
+    }
+    
+    return String(value);
+  };
+
   return (
-    <div className="min-h-screen bg-[#F8F9FA] p-8">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-white p-4 sm:p-6 lg:p-8">
       <div className="max-w-4xl mx-auto">
-        <div className="mb-8">
+        <div className="mb-6">
           <Link 
             to="/admin/responses"
-            className="inline-flex items-center text-[#868789] hover:text-black transition-colors"
+            className="inline-flex items-center text-gray-600 hover:text-gray-900 transition-colors"
           >
             <ChevronLeft className="w-5 h-5 mr-1" />
             Torna alle Risposte
           </Link>
         </div>
 
-        <div className="bg-white rounded-lg shadow p-6 mb-8">
-          <h1 className="text-2xl font-bold text-[#868789] mb-2">
-            {response.form.title}
-          </h1>
-          <div className="text-sm text-[#868789] mb-2">
-            Risposta #{response.progressiveNumber} del {formatDate(response.createdAt)}
-            {response.form.isAnonymous && (
-              <span className="ml-2 px-2 py-1 bg-gray-100 text-gray-600 rounded text-xs">
-                Anonima
-              </span>
-            )}
-          </div>
-          <div className="h-1.5 w-20 bg-[#FFCD00] rounded"></div>
-        </div>
-
-        <div className="space-y-6">
-          {response.answers.map((answer) => (
-            <div key={answer.id} className="bg-white rounded-lg shadow p-6 hover:shadow-lg transition-shadow">
-              <div className="text-sm text-[#868789] mb-1">Domanda</div>
-              <div className="text-lg font-medium text-[#868789] mb-4">
-                {answer.question.text}
-              </div>
-              
-              <div className="text-sm text-[#868789] mb-1">Risposta</div>
-              <div className="text-lg text-[#868789]">
-                {answer.value}
+        <Card className="mb-6 border-0 shadow-md">
+          <CardHeader>
+            <div className="flex items-start justify-between">
+              <div className="flex-1">
+                <CardTitle className="text-2xl font-bold text-gray-900 mb-3">
+                  {response.form.title}
+                </CardTitle>
+                <div className="flex flex-wrap items-center gap-4 text-sm text-gray-600">
+                  <div className="flex items-center gap-2">
+                    <MessageSquare className="h-4 w-4 text-[#FFCD00]" />
+                    <span>Risposta #{response.progressiveNumber}</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Calendar className="h-4 w-4 text-[#FFCD00]" />
+                    <span>{formatDate(response.createdAt)}</span>
+                  </div>
+                  {response.form.isAnonymous && (
+                    <Badge variant="secondary" className="bg-gray-100 text-gray-700">
+                      Anonimo
+                    </Badge>
+                  )}
+                </div>
               </div>
             </div>
-          ))}
-        </div>
+            <div className="h-1.5 w-20 bg-[#FFCD00] rounded mt-4"></div>
+          </CardHeader>
+        </Card>
+
+        {response.answers.length === 0 ? (
+          <Card className="border-0 shadow-md">
+            <CardContent className="p-8 text-center">
+              <FileText className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+              <p className="text-gray-600">Nessuna risposta disponibile per questa risposta.</p>
+            </CardContent>
+          </Card>
+        ) : (
+          <div className="space-y-4">
+            {response.answers.map((answer, index) => (
+              <Card key={answer.id} className="border-0 shadow-sm hover:shadow-md transition-shadow">
+                <CardHeader className="pb-3">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Badge variant="outline" className="bg-[#FFCD00]/10 text-[#FFCD00] border-[#FFCD00]">
+                      Domanda {index + 1}
+                    </Badge>
+                    {answer.question.type && (
+                      <Badge variant="secondary" className="text-xs">
+                        {answer.question.type}
+                      </Badge>
+                    )}
+                  </div>
+                  <CardTitle className="text-lg font-semibold text-gray-900">
+                    {answer.question.text || 'Domanda senza testo'}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
+                    <div className="text-sm text-gray-600 mb-1">Risposta:</div>
+                    <div className="text-base text-gray-900 font-medium whitespace-pre-wrap break-words">
+                      {formatAnswerValue(answer.value, answer.question.type)}
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );

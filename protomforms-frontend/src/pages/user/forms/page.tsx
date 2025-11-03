@@ -342,16 +342,12 @@ export default function UserFormsPage() {
       >
         {/* Hero Section */}
         <motion.div variants={itemVariants} className="text-center mb-12">
-          <div className="inline-flex items-center space-x-2 bg-[#FFCD00] text-black px-4 py-2 rounded-full text-sm font-medium mb-4 shadow-sm">
-            <Sparkles className="h-4 w-4 text-black" />
-            <span>Form Pubblici Disponibili</span>
-          </div>
           <h1 className="text-4xl md:text-5xl font-bold text-gray-900 mb-4">
             Partecipa ai nostri{' '}
             <span className="text-[#FFCD00]">sondaggi</span>
           </h1>
           <p className="text-xl text-gray-700 max-w-2xl mx-auto">
-            Contribuisci con la tua opinione e aiuta a migliorare i nostri servizi.<br/>Ogni risposta � preziosa per noi!
+            Contribuisci con la tua opinione e aiuta a migliorare i nostri servizi.<br/>Ogni risposta è preziosa per noi!
           </p>
         </motion.div>
 
@@ -432,7 +428,7 @@ export default function UserFormsPage() {
                       <SelectValue placeholder="Ordina per" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="updated">Pi� recenti</SelectItem>
+                      <SelectItem value="updated">Più recenti</SelectItem>
                       <SelectItem value="created">Data creazione</SelectItem>
                       <SelectItem value="title">Nome</SelectItem>
                     </SelectContent>
@@ -441,18 +437,18 @@ export default function UserFormsPage() {
                   {/* View Mode Toggle */}
                   <div className="flex items-center border border-gray-200 rounded-lg p-1 bg-white">
                     <Button
-                      variant={viewMode === 'grid' ? 'default' : 'ghost'}
+                      variant="ghost"
                       size="sm"
                       onClick={() => setViewMode('grid')}
-                      className="h-8 w-8 p-0 text-black"
+                      className={`h-8 w-8 p-0 rounded-md ${viewMode === 'grid' ? 'bg-[#FFCD00] text-black shadow-sm' : 'text-gray-600 hover:bg-gray-100'}`}
                     >
                       <Grid3X3 className="h-4 w-4" />
                     </Button>
                     <Button
-                      variant={viewMode === 'list' ? 'default' : 'ghost'}
+                      variant="ghost"
                       size="sm"
                       onClick={() => setViewMode('list')}
-                      className="h-8 w-8 p-0 text-black"
+                      className={`h-8 w-8 p-0 rounded-md ${viewMode === 'list' ? 'bg-[#FFCD00] text-black shadow-sm' : 'text-gray-600 hover:bg-gray-100'}`}
                     >
                       <List className="h-4 w-4" />
                     </Button>
@@ -497,7 +493,7 @@ export default function UserFormsPage() {
                   <p className="text-gray-600 mb-6">
                     {searchQuery ? 
                       'Nessun form corrisponde ai criteri di ricerca.' : 
-                      'Al momento non ci sono form disponibili. Torna pi� tardi!'
+                      'Al momento non ci sono form disponibili. Torna più tardi!'
                     }
                   </p>
                   {searchQuery && (
@@ -529,8 +525,9 @@ export default function UserFormsPage() {
                     variants={itemVariants}
                     whileHover={{ scale: 1.02, y: -5 }}
                     layout
+                    className="h-full"
                   >
-                    <Card className="border-0 shadow-lg hover:shadow-xl transition-all duration-300 group relative overflow-hidden bg-white hover:border-b-4 hover:border-[#FFCD00]">
+                    <Card className="border-0 shadow-lg hover:shadow-xl transition-all duration-300 group relative overflow-hidden bg-white hover:border-b-4 hover:border-[#FFCD00] h-full flex flex-col">
                       {/* Status indicator */}
                       {isExpired && (
                         <div className="absolute top-4 right-4 z-10">
@@ -565,10 +562,10 @@ export default function UserFormsPage() {
                         </CardDescription>
                       </CardHeader>
 
-                      <CardContent className="pt-0 relative z-10">
-                        <div className="space-y-4">
+                      <CardContent className="pt-0 relative z-10 flex-1 flex flex-col">
+                        <div className="flex-1 flex flex-col">
                           {/* Stats */}
-                          <div className="grid grid-cols-2 gap-4 text-sm">
+                          <div className="grid grid-cols-2 gap-4 text-sm mb-4">
                             <div className="flex items-center space-x-2">
                               <MessageSquare className="h-4 w-4 text-[#FFCD00]" />
                               <span className="text-gray-600">{form.responses.length} risposte</span>
@@ -581,14 +578,17 @@ export default function UserFormsPage() {
 
                           {/* Time remaining */}
                           {timeRemaining && !isExpired && (
-                            <div className="flex items-center space-x-2 text-xs text-orange-600 bg-orange-50 px-3 py-2 rounded-lg">
+                            <div className="flex items-center space-x-2 text-xs text-orange-600 bg-orange-50 px-3 py-2 rounded-lg mb-4">
                               <Clock className="h-3 w-3" />
                               <span>{timeRemaining}</span>
                             </div>
                           )}
 
+                          {/* Spacer to push content down */}
+                          <div className="flex-1"></div>
+
                           {/* Author */}
-                          <div className="flex items-center space-x-2 text-xs text-gray-500 pt-2 border-t border-gray-100">
+                          <div className="flex items-center space-x-2 text-xs text-gray-500 pt-2 border-t border-gray-100 mb-4">
                             <Avatar className="h-5 w-5">
                               <AvatarFallback className="text-xs bg-[#FFCD00] text-black">
                                 {form.owner.name?.split(' ').map((n: string) => n[0]).join('') || 'A'}
@@ -597,7 +597,7 @@ export default function UserFormsPage() {
                             <span>Creato da {form.owner.name}</span>
                           </div>
 
-                          {/* Action Button */}
+                          {/* Action Button - Always at bottom */}
                           <Button 
                             asChild
                             className="w-full bg-white border-2 border-black text-black hover:bg-[#FFCD00] hover:border-[#FFCD00] hover:text-black font-medium transition-all duration-300"
@@ -671,13 +671,13 @@ export default function UserFormsPage() {
                               </p>
                               <div className="flex items-center space-x-4 text-xs text-gray-500">
                                 <span>Creato da {form.owner.name}</span>
-                                <span>�</span>
+                                <span>•</span>
                                 <span>{form.questions.length} domande</span>
-                                <span>�</span>
+                                <span>•</span>
                                 <span>{form.responses.length} risposte</span>
                                 {timeRemaining && !isExpired && (
                                   <>
-                                    <span>�</span>
+                                    <span>•</span>
                                     <span className="text-orange-600">{timeRemaining}</span>
                                   </>
                                 )}

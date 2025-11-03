@@ -53,8 +53,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       const response = await api.get(endpoints.auth.session);
       if (response.data?.isAuthenticated && response.data?.user) {
         setUser(response.data.user);
+        // Store user ID in localStorage for axios interceptor
+        localStorage.setItem('user_id', response.data.user.id);
       } else {
         setUser(null);
+        localStorage.removeItem('user_id');
       }
     } catch (error: any) {
       // Only log if it's not a network error or 401/404 (expected when not authenticated)
@@ -63,6 +66,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       }
       // Session doesn't exist or is invalid - this is expected when not logged in
       setUser(null);
+      localStorage.removeItem('user_id');
     } finally {
       setLoading(false);
     }
@@ -84,6 +88,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
       if (response.data?.user) {
         setUser(response.data.user);
+        // Store user ID in localStorage for axios interceptor and authenticatedFetch
+        // This allows backend endpoints to authenticate via x-user-id header fallback
+        localStorage.setItem('user_id', response.data.user.id);
       } else {
         throw new Error('Invalid credentials');
       }
@@ -101,6 +108,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       
       // Clear user state immediately
       setUser(null);
+      localStorage.removeItem('user_id');
       
       // Call logout endpoint to clear server-side session and cookies
       await api.post(endpoints.auth.signout);

@@ -9,7 +9,6 @@ import {
   ChevronDown, 
   LogOut, 
   User, 
-  HelpCircle, 
   FileText, 
   BarChart2, 
   Settings, 
@@ -20,10 +19,10 @@ import {
   X,
   Plus,
   TrendingUp,
-  Zap,
   ChevronRight
 } from 'lucide-react';
 import { Badge } from './ui/badge';
+import { authenticatedFetch } from '../lib/utils';
 
 interface NavItem {
   title: string;
@@ -60,7 +59,6 @@ const adminNavigation: NavItem[] = [
     title: "Risposte",
     href: "/admin/responses",
     icon: BarChart2,
-    badge: "3",
   },
   {
     title: "Analytics",
@@ -83,6 +81,7 @@ function AdminSidebar({ isOpen, onClose }: { isOpen: boolean; onClose: () => voi
   const location = useLocation();
   const pathname = location.pathname;
   const [expandedItems, setExpandedItems] = useState<string[]>([]);
+  const [responsesCount, setResponsesCount] = useState<number | null>(null);
 
   // Auto-expand Forms if we're on a forms page
   useEffect(() => {
@@ -90,6 +89,30 @@ function AdminSidebar({ isOpen, onClose }: { isOpen: boolean; onClose: () => voi
       setExpandedItems(prev => prev.includes('/admin/forms') ? prev : [...prev, '/admin/forms']);
     }
   }, [pathname]);
+
+  // Fetch responses count
+  useEffect(() => {
+    const fetchResponsesCount = async () => {
+      try {
+        const response = await authenticatedFetch('/api/analytics', {
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        });
+        if (response.ok) {
+          const data = await response.json();
+          setResponsesCount(data.overview?.totalResponses || 0);
+        }
+      } catch (error) {
+        console.error('Error fetching responses count:', error);
+      }
+    };
+    
+    fetchResponsesCount();
+    // Refresh every 30 seconds
+    const interval = setInterval(fetchResponsesCount, 30000);
+    return () => clearInterval(interval);
+  }, []);
 
   const toggleExpanded = (href: string) => {
     setExpandedItems(prev => 
@@ -127,14 +150,9 @@ function AdminSidebar({ isOpen, onClose }: { isOpen: boolean; onClose: () => voi
           >
             {/* Header */}
             <div className="p-6 border-b border-gray-200/50">
-              <div className="flex items-center space-x-3">
-                <div className="w-12 h-12 bg-gradient-to-br from-yellow-400 to-orange-500 rounded-2xl flex items-center justify-center shadow-lg">
-                  <Zap className="h-7 w-7 text-white" />
-                </div>
-                <div>
-                  <div className="text-xl font-bold text-gray-800">Admin Panel</div>
-                  <div className="text-sm text-gray-500">Gestione Sistema</div>
-                </div>
+              <div>
+                <div className="text-xl font-bold text-gray-800">Admin Panel</div>
+                <div className="text-sm text-gray-500">Gestione Sistema</div>
               </div>
             </div>
 
@@ -157,7 +175,12 @@ function AdminSidebar({ isOpen, onClose }: { isOpen: boolean; onClose: () => voi
                         <item.icon className="h-5 w-5 flex-shrink-0" />
                         <span className="flex-1 ml-3">{item.title}</span>
                         <div className="flex items-center space-x-2">
-                          {item.badge && (
+                          {item.href === '/admin/responses' && responsesCount !== null && (
+                            <Badge variant="secondary" className="h-5 px-2 text-xs bg-yellow-400 text-black font-medium">
+                              {responsesCount}
+                            </Badge>
+                          )}
+                          {item.badge && item.href !== '/admin/responses' && (
                             <Badge variant="secondary" className="h-5 px-2 text-xs bg-yellow-400 text-black font-medium">
                               {item.badge}
                             </Badge>
@@ -380,13 +403,13 @@ function NavbarContent() {
                 className="flex items-center gap-3 group"
               >
                 <img
-                  src="/images/protom-logo.png"
-                  alt="Protom Logo"
+                  src="/logo_pov.png"
+                  alt="POV Logo"
                   className="h-10 w-10 transition-transform group-hover:scale-105 object-contain"
                 />
                 <div className="flex flex-col">
                   <span className="text-lg font-bold text-gray-800 group-hover:text-[#FFCD00] transition-colors">
-                    ProtomForms
+                    pov
                   </span>
                   <span className="text-xs text-gray-500 -mt-1">
                     by Protom Group
@@ -415,14 +438,6 @@ function NavbarContent() {
             <div className="flex items-center gap-4">
               {user ? (
                 <>
-                  {/* Help button */}
-                  <button 
-                    className="hidden md:flex text-gray-400 hover:text-gray-700 transition-colors p-2 rounded-full hover:bg-gray-100" 
-                    title="Aiuto"
-                  >
-              <HelpCircle className="w-5 h-5" />
-            </button>
-
                   {/* User menu */}
                   <div className="relative">
             <button
@@ -444,7 +459,7 @@ function NavbarContent() {
                           animate={{ opacity: 1, scale: 1, y: 0 }}
                           exit={{ opacity: 0, scale: 0.95, y: -10 }}
                           transition={{ duration: 0.2 }}
-                          className="absolute right-0 mt-2 w-64 bg-white/95 backdrop-blur-xl rounded-xl shadow-2xl border border-white/20 py-2"
+                          className="absolute right-0 mt-2 w-64 max-w-[calc(100vw-2rem)] bg-white/95 backdrop-blur-xl rounded-xl shadow-2xl border border-white/20 py-2 overflow-hidden"
                           style={{
                             backdropFilter: 'blur(20px) saturate(180%)',
                             WebkitBackdropFilter: 'blur(20px) saturate(180%)',
@@ -452,13 +467,13 @@ function NavbarContent() {
                         >
                           {/* User info */}
                           <div className="px-4 py-3 border-b border-gray-100">
-                  <div className="flex items-center gap-3">
-                              <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#FFCD00] to-[#FFD700] flex items-center justify-center text-black font-bold">
+                  <div className="flex items-center gap-3 min-w-0">
+                              <div className="w-10 h-10 aspect-square flex-shrink-0 rounded-full bg-gradient-to-br from-[#FFCD00] to-[#FFD700] flex items-center justify-center text-black font-bold">
                       {getInitials(userName)}
                               </div>
-                    <div>
-                                <div className="font-medium text-gray-800">{userName}</div>
-                                <div className="text-sm text-gray-500">{userEmail}</div>
+                    <div className="min-w-0 flex-1">
+                                <div className="font-medium text-gray-800 truncate">{userName}</div>
+                                <div className="text-sm text-gray-500 truncate">{userEmail}</div>
                                 {isAdmin && (
                                   <div className="text-xs text-blue-600 font-medium">Amministratore</div>
                                 )}
@@ -468,14 +483,16 @@ function NavbarContent() {
 
                           {/* Menu items */}
                           <div className="py-2">
-                            <Link
-                              to="/user/profile"
+                            <a
+                              href="https://myaccount.microsoft.com/"
+                              target="_blank"
+                              rel="noopener noreferrer"
                               className="flex items-center gap-3 px-4 py-2 text-gray-700 hover:bg-gray-50 transition-colors"
                               onClick={() => setDropdownOpen(false)}
                             >
                               <User className="w-4 h-4" />
                               Profilo
-                            </Link>
+                            </a>
                             
                             {isAdmin && (
                               <Link

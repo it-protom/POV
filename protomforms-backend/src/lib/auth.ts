@@ -28,15 +28,23 @@ if (process.env.NODE_ENV === 'production') {
   if (!process.env.NEXTAUTH_SECRET) throw new Error("NEXTAUTH_SECRET is required");
 }
 
+// Usa sempre il tenant ID specifico perché l'app Azure AD è configurata come single-tenant
+// e non supporta l'endpoint /common per applicazioni create dopo il 15/10/2018
+const ACTIVE_TENANT_ID = AZURE_AD_TENANT_ID;
+
 // Log per debug (sempre attivo per troubleshooting)
 console.log('🔐 Azure AD Configuration:', {
   clientId: `${AZURE_AD_CLIENT_ID.substring(0, 10)}...${AZURE_AD_CLIENT_ID.substring(AZURE_AD_CLIENT_ID.length - 4)}`,
-  tenantId: AZURE_AD_TENANT_ID,
+  tenantId: ACTIVE_TENANT_ID,
+  originalTenantId: AZURE_AD_TENANT_ID,
   redirectUri: AZURE_AD_REDIRECT_URI,
   nextAuthUrl: NEXTAUTH_URL,
   frontendUrl: FRONTEND_URL,
-  status: '✅ Configured with hardcoded credentials',
-  expectedRedirectUri: 'http://localhost:3001/api/auth/callback/azure-ad'
+  nodeEnv: process.env.NODE_ENV,
+  status: '✅ Using specific tenant ID (single-tenant application)',
+  expectedRedirectUriLocal: 'http://localhost:3001/api/auth/callback/azure-ad',
+  expectedRedirectUriProd: 'https://pov.protom.com/api/auth/callback/azure-ad',
+  note: '⚠️ IMPORTANTE: Verifica che il redirect URI sopra corrisponda ESATTAMENTE a quello configurato in Azure AD Portal'
 });
 
 export const authOptions: NextAuthOptions = {
@@ -54,9 +62,15 @@ export const authOptions: NextAuthOptions = {
   providers: [
     // Azure AD Provider
     AzureADProvider({
+      name: "Microsoft",
       clientId: AZURE_AD_CLIENT_ID,
       clientSecret: AZURE_AD_CLIENT_SECRET,
-      tenantId: AZURE_AD_TENANT_ID,
+      // Usa sempre il tenant ID specifico perché l'app Azure AD è single-tenant
+      // e non supporta l'endpoint /common
+      tenantId: ACTIVE_TENANT_ID,
+      // Specifica esplicitamente il redirect URI per assicurarsi che corrisponda a quello in Azure AD
+      // In sviluppo locale deve essere: http://localhost:3001/api/auth/callback/azure-ad
+      // In produzione deve essere: https://pov.protom.com/api/auth/callback/azure-ad
       authorization: {
         params: {
           scope: "openid profile email",
@@ -86,7 +100,7 @@ export const authOptions: NextAuthOptions = {
     
     // Credentials Provider per login email/password
     CredentialsProvider({
-      name: "credentials",
+      name: "Credenziali",
       credentials: {
         email: { label: "Email", type: "email" },
         password: { label: "Password", type: "password" },
@@ -401,9 +415,12 @@ export const authOptions: NextAuthOptions = {
   },
 
   pages: {
-    // NON configuriamo signIn qui - NextAuth deve reindirizzare direttamente ad Azure AD
-    // Se configuriamo signIn, NextAuth reindirizza alla pagina invece che al provider
-    error: `${FRONTEND_URL}/auth/error`,
+    // Pagina di sign-in personalizzata (italiano) per l'accesso generico
+    // NOTA: Non impostiamo signIn qui perché vogliamo che NextAuth reindirizzi direttamente
+    // al provider quando viene chiamato /api/auth/signin/azure-ad
+    // Se impostiamo signIn, NextAuth mostrerà una pagina di selezione invece di reindirizzare direttamente
+    // signIn: `${FRONTEND_URL}/auth/signin`,  // Commentato per permettere redirect diretto ad Azure AD
+    error: `${FRONTEND_URL}/auth/signin?error=azure-ad`,
   },
   
   // Callback per gestire gli errori e reindirizzare correttamente

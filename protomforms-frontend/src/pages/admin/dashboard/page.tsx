@@ -39,6 +39,7 @@ import {
   Tablet
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { authenticatedFetch } from '../../../lib/utils';
 import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels';
 import { MetricCard } from '../../../components/dashboard/MetricCard';
 import { ChartCard } from '../../../components/dashboard/ChartCard';
@@ -96,7 +97,11 @@ export default function DashboardPage() {
   useEffect(() => {
     const fetchDashboardData = async () => {
       try {
-        const response = await fetch('/api/dashboard/stats');
+        const response = await authenticatedFetch('/api/dashboard/stats', {
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        });
         if (response.ok) {
           const data = await response.json();
           setDashboardData(data);

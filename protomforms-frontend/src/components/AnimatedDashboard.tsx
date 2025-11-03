@@ -43,7 +43,7 @@ export default function AnimatedDashboard() {
   // Hook per gestione loading progressivo
   const { pageReady, dataLoaded, markDataLoaded } = usePageLoading();
   const { isLoading, error, executeWithLoading } = useApiLoading({
-    timeout: 3000, // Ridotto perch� ora � veloce
+    timeout: 3000, // Ridotto perché ora è veloce
     loadingMessage: 'Caricamento dashboard...',
     retryCount: 2
   });
@@ -71,10 +71,10 @@ export default function AnimatedDashboard() {
     }
   };
 
-  // Carica i dati dopo che la pagina � pronta
+  // Carica i dati dopo che la pagina è pronta
   useEffect(() => {
     if (pageReady) {
-      // Ridotto delay perch� ora � veloce
+      // Ridotto delay perché ora è veloce
       setTimeout(() => {
         fetchForms();
       }, 50);
@@ -469,7 +469,7 @@ export default function AnimatedDashboard() {
           <AlertDialogHeader>
             <AlertDialogTitle>Elimina Form</AlertDialogTitle>
             <AlertDialogDescription>
-              Sei sicuro di voler eliminare questo form? Questa azione non pu� essere annullata.
+              Sei sicuro di voler eliminare questo form? Questa azione non può essere annullata.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

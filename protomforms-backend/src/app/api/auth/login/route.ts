@@ -3,8 +3,7 @@ import { prisma } from '@/lib/prisma';
 import bcrypt from 'bcryptjs';
 
 // POST /api/auth/login - Custom login endpoint for credentials
-// This endpoint validates credentials and returns user info
-// The frontend should then call NextAuth's signIn separately if needed
+// This endpoint validates credentials and creates a NextAuth session
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
@@ -62,8 +61,8 @@ export async function POST(request: NextRequest) {
     }
 
     // Return user data without password
-    const { password: _, ...userWithoutPassword } = user;
-
+    // Note: NextAuth session will be created by the frontend calling NextAuth signIn
+    // The frontend should call: signIn('credentials', { email, password, redirect: false })
     return NextResponse.json({
       success: true,
       user: {
@@ -72,6 +71,8 @@ export async function POST(request: NextRequest) {
         name: user.name,
         role: user.role,
       },
+      // Indicate that frontend should call NextAuth signIn
+      requiresNextAuthSignIn: true,
     });
   } catch (error) {
     console.error('Login error:', error);

@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { useState, useEffect } from "react"
 import { useNavigate, useLocation, useSearchParams } from "react-router-dom"
-import { Loader2, ArrowRight, Shield, Sparkles } from "lucide-react"
+import { Loader2, ArrowRight, Shield } from "lucide-react"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 // next-auth removed - needs custom auth
@@ -38,7 +38,11 @@ export default function SignInPage() {
       let errorMessage = "Errore durante l'autenticazione."
       
       if (errorParam === "azure-ad") {
-        errorMessage = "Errore di configurazione Azure AD. Verifica che:\n- Il redirect URI in Azure AD sia esattamente: https://pov.protom.com/api/auth/callback/azure-ad\n- Le credenziali (CLIENT_ID, CLIENT_SECRET, TENANT_ID) siano corrette\n- L'App Registration in Azure AD sia configurata correttamente"
+        const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+        const redirectUri = isLocalhost 
+          ? 'http://localhost:3001/api/auth/callback/azure-ad'
+          : 'https://pov.protom.com/api/auth/callback/azure-ad'
+        errorMessage = `Errore di configurazione Azure AD. Verifica che:\n- Il redirect URI in Azure AD sia esattamente: ${redirectUri}\n- Le credenziali (CLIENT_ID, CLIENT_SECRET, TENANT_ID) siano corrette\n- L'App Registration in Azure AD sia configurata correttamente\n- L'account appartenga al tenant corretto`
       } else if (errorParam === "OAuthCallback") {
         errorMessage = "Errore durante il callback OAuth. Riprova o contatta l'amministratore."
       } else if (errorParam === "OAuthSignin") {
@@ -67,13 +71,13 @@ export default function SignInPage() {
     const errors: Record<string, string> = {}
     
     if (!formData.email) {
-      errors.email = "Email � richiesta"
+      errors.email = "Email è richiesta"
     } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
       errors.email = "Email non valida"
     }
 
     if (!formData.password) {
-      errors.password = "Password � richiesta"
+      errors.password = "Password è richiesta"
     }
 
     setValidationErrors(errors)
@@ -157,30 +161,28 @@ export default function SignInPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 relative overflow-hidden">
-      {/* Background decorative elements */}
-      <div className="absolute inset-0 overflow-hidden">
-        <div className="absolute -top-40 -right-40 w-80 h-80 bg-gradient-to-br from-yellow-200 to-orange-300 rounded-full mix-blend-multiply filter blur-xl opacity-30 animate-pulse"></div>
-        <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-gradient-to-br from-purple-200 to-pink-300 rounded-full mix-blend-multiply filter blur-xl opacity-30 animate-pulse delay-1000"></div>
-        <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-gradient-to-br from-blue-200 to-cyan-300 rounded-full mix-blend-multiply filter blur-xl opacity-20 animate-pulse delay-500"></div>
-      </div>
+    <div className="min-h-screen bg-white relative overflow-hidden">
+      {/* Background subtle pattern */}
+      <div className="absolute inset-0 bg-gradient-to-br from-gray-50/50 to-transparent"></div>
 
       {/* Main content */}
       <div className="relative z-10 min-h-screen flex items-center justify-center p-4">
         <div className="w-full max-w-md space-y-8">
           {/* Logo and title section */}
           <div className="text-center space-y-6">
-            <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-yellow-400 to-orange-500 rounded-2xl shadow-lg">
-              <Sparkles className="w-8 h-8 text-white" />
-            </div>
-            <div className="space-y-2">
-              <h1 className="text-4xl font-bold bg-gradient-to-r from-gray-900 to-gray-600 bg-clip-text text-transparent">
-                Protom Forms
+            <div className="flex items-center justify-center space-x-3 mb-4">
+              <img
+                src="/logo_pov.png"
+                alt="POV Logo"
+                className="w-12 h-12 object-contain"
+              />
+              <h1 className="text-4xl font-bold text-gray-900">
+                pov
               </h1>
-              <p className="text-gray-600 text-lg">
-                Benvenuto nella piattaforma di gestione form
-              </p>
             </div>
+            <p className="text-gray-600 text-lg">
+              Benvenuto nella piattaforma di gestione form
+            </p>
           </div>
 
           {/* Success message for registration */}
@@ -196,7 +198,7 @@ export default function SignInPage() {
           )}
 
           {/* Main card */}
-          <Card className="border-0 shadow-2xl bg-white/80 backdrop-blur-xl animate-fade-in">
+          <Card className="border border-gray-200 shadow-lg bg-white animate-fade-in">
             <CardHeader className="space-y-2 pb-6">
               <CardTitle className="text-2xl font-semibold text-center text-gray-800">
                 Accedi al tuo account
@@ -297,7 +299,7 @@ export default function SignInPage() {
                             ? "border-red-300 focus:border-red-500" 
                             : "border-gray-200 focus:border-blue-500"
                         }`}
-                        placeholder="��������"
+                        placeholder="••••••••"
                       />
                       {validationErrors.password && (
                         <p className="text-sm text-red-500 mt-1">{validationErrors.password}</p>
@@ -351,7 +353,7 @@ export default function SignInPage() {
           
           {/* Footer */}
           <div className="text-center text-sm text-gray-500">
-            <p>� 2024 Protom Forms. Tutti i diritti riservati.</p>
+            <p>© 2024 pov. Tutti i diritti riservati.</p>
           </div>
         </div>
       </div>

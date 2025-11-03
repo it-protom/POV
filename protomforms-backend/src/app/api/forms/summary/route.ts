@@ -10,9 +10,49 @@ export async function GET(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
     
-    if (!session || session.user.role !== 'ADMIN') {
+    let userId: string | null = null;
+    let userRole: string | null = null;
+    
+    // Try to get user from session first
+    if (session?.user?.id) {
+      userId = session.user.id;
+      userRole = (session.user as any).role;
+    } else {
+      // Fallback: try to get userId from header (for custom auth flow)
+      const userIdHeader = request.headers.get('x-user-id');
+      if (userIdHeader) {
+        userId = userIdHeader;
+        // Fetch user role from database
+        const user = await prisma.user.findUnique({
+          where: { id: userId },
+          select: { role: true }
+        });
+        if (user) {
+          userRole = user.role;
+        }
+      }
+    }
+    
+    // Log per debug
+    if (!userId) {
+      console.log('⚠️ /api/forms/summary - No user ID found in session or header');
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
+    
+    if (userRole !== 'ADMIN') {
+      console.log('⚠️ /api/forms/summary - User is not ADMIN:', {
+        userId,
+        userRole,
+        hasSession: !!session
+      });
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+    
+    console.log('✅ /api/forms/summary - Authorized:', {
+      userId,
+      userRole,
+      hasSession: !!session
+    });
 
     const { searchParams } = new URL(request.url);
     const search = searchParams.get('search');

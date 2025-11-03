@@ -7,7 +7,7 @@ import { Badge } from './ui/badge';
 import { RadioGroup, RadioGroupItem } from './ui/radio-group';
 import { Label } from './ui/label';
 import { Textarea } from './ui/textarea';
-import { Star, Clock, Users, BarChart3 } from 'lucide-react';
+import { Clock, Users, BarChart3 } from 'lucide-react';
 
 export default function FormPreviewCard() {
   return (
@@ -17,23 +17,6 @@ export default function FormPreviewCard() {
       transition={{ duration: 0.8, delay: 0.2 }}
       className="relative"
     >
-      {/* Floating elements */}
-      <motion.div
-        className="absolute -top-6 -right-6 w-12 h-12 bg-[#FFCD00] rounded-full flex items-center justify-center shadow-lg z-10"
-        animate={{ y: [0, -10, 0] }}
-        transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
-      >
-        <Star className="w-6 h-6 text-black" />
-      </motion.div>
-      
-      <motion.div
-        className="absolute -bottom-4 -left-4 w-16 h-16 bg-gradient-to-br from-[#FFCD00] to-[#FFD700] rounded-2xl flex items-center justify-center shadow-lg z-10"
-        animate={{ y: [0, 10, 0], rotate: [0, 5, 0] }}
-        transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
-      >
-        <BarChart3 className="w-8 h-8 text-black" />
-      </motion.div>
-
       {/* Main Card */}
       <Card className="w-full max-w-md mx-auto bg-white shadow-2xl border-0 overflow-hidden">
         {/* Header */}

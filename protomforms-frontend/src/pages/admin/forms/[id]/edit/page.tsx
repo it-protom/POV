@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
-import { ArrowLeft, Plus, Trash2, Save, Eye, Copy, Palette, Type, Layout, FileText, CheckCircle, Clock, AlertCircle } from "lucide-react";
+import { ArrowLeft, Plus, Trash2, Save, Eye, Copy, Palette, Type, Layout, FileText, CheckCircle, Clock, AlertCircle, CalendarIcon } from "lucide-react";
 import { FormCustomization, Theme } from '@/components/form-builder/FormCustomization';
 import { Link } from "react-router-dom";
 import { toast } from "sonner";
@@ -17,6 +17,13 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Slider } from "@/components/ui/slider";
 import { motion } from "framer-motion";
+import { authenticatedFetch } from '@/lib/utils';
+import { Calendar } from '@/components/ui/calendar';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { format } from 'date-fns';
+import { it } from 'date-fns/locale';
+import { cn } from '@/lib/utils';
+import { Separator } from '@/components/ui/separator';
 
 // Tipi per le domande
 type QuestionType = "MULTIPLE_CHOICE" | "TEXT" | "RATING" | "DATE" | "RANKING" | "LIKERT" | "FILE_UPLOAD" | "NPS" | "BRANCHING";
@@ -98,7 +105,7 @@ export default function EditFormPage() {
   useEffect(() => {
     const fetchForm = async () => {
       try {
-        const response = await fetch(`/api/forms/${params.id}`);
+        const response = await authenticatedFetch(`/api/forms/${params.id}`);
         if (!response.ok) {
           throw new Error('Errore durante il caricamento del form');
         }
@@ -125,6 +132,16 @@ export default function EditFormPage() {
           description: data.description,
           type: data.type
         });
+        
+        // Carica le date se presenti
+        if (data.opensAt) {
+          const opensAtDate = new Date(data.opensAt);
+          setForm(prev => prev ? { ...prev, opensAt: opensAtDate } : null);
+        }
+        if (data.closesAt) {
+          const closesAtDate = new Date(data.closesAt);
+          setForm(prev => prev ? { ...prev, closesAt: closesAtDate } : null);
+        }
       } catch (error) {
         console.error('Errore durante il caricamento del form:', error);
         toast.error('Impossibile caricare il form. Riprova.');
@@ -331,7 +348,7 @@ export default function EditFormPage() {
     
     setSaving(true);
     try {
-      const response = await fetch(`/api/forms/${params.id}`, {
+      const response = await authenticatedFetch(`/api/forms/${params.id}`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
@@ -339,6 +356,8 @@ export default function EditFormPage() {
         body: JSON.stringify({
           ...formData,
           theme,
+          opensAt: form.opensAt?.toISOString(),
+          closesAt: form.closesAt?.toISOString(),
           questions: form.questions.map(q => ({
             text: q.text,
             type: q.type,
@@ -367,9 +386,9 @@ export default function EditFormPage() {
   const handleDuplicate = async () => {
     if (!form) return;
     
-    setSaving(true);
+      setSaving(true);
     try {
-      const response = await fetch(`/api/forms/${params.id}/duplicate`, {
+      const response = await authenticatedFetch(`/api/forms/${params.id}/duplicate`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -670,6 +689,70 @@ export default function EditFormPage() {
                     />
                     <span className="text-sm text-gray-700">Quiz</span>
                   </label>
+                </div>
+              </div>
+              
+              <Separator />
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="text-sm font-medium text-gray-700 mb-2 block">
+                    Data di Apertura
+                  </label>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        className={cn(
+                          "w-full justify-start text-left font-normal",
+                          !form.opensAt && "text-muted-foreground"
+                        )}
+                      >
+                        <CalendarIcon className="mr-2 h-4 w-4" />
+                        {form.opensAt ? format(new Date(form.opensAt), "PPP", { locale: it }) : "Seleziona data"}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <Calendar
+                        mode="single"
+                        selected={form.opensAt ? new Date(form.opensAt) : undefined}
+                        onSelect={(date) => setForm(prev => prev ? { ...prev, opensAt: date || undefined } : null)}
+                        disabled={(date) => date < new Date()}
+                        initialFocus
+                        locale={it}
+                      />
+                    </PopoverContent>
+                  </Popover>
+                </div>
+                
+                <div>
+                  <label className="text-sm font-medium text-gray-700 mb-2 block">
+                    Data di Chiusura
+                  </label>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        className={cn(
+                          "w-full justify-start text-left font-normal",
+                          !form.closesAt && "text-muted-foreground"
+                        )}
+                      >
+                        <CalendarIcon className="mr-2 h-4 w-4" />
+                        {form.closesAt ? format(new Date(form.closesAt), "PPP", { locale: it }) : "Seleziona data"}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <Calendar
+                        mode="single"
+                        selected={form.closesAt ? new Date(form.closesAt) : undefined}
+                        onSelect={(date) => setForm(prev => prev ? { ...prev, closesAt: date || undefined } : null)}
+                        disabled={(date) => date < new Date()}
+                        initialFocus
+                        locale={it}
+                      />
+                    </PopoverContent>
+                  </Popover>
                 </div>
               </div>
             </CardContent>

@@ -9,7 +9,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
-import { PlusCircle, Save, ArrowLeft, Type, Check, FileText, Settings, Users, Upload, FileText as FileTextIcon, Palette } from 'lucide-react';
+import { PlusCircle, Save, ArrowLeft, Type, Check, FileText, Settings, Users, Upload, FileText as FileTextIcon, Palette, CalendarIcon } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { QuestionBuilder } from '@/components/form-builder/QuestionBuilder';
 import { toast } from 'sonner';
@@ -19,6 +19,12 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { QuestionFormData, QuestionType } from "@/types/question";
 import { v4 as uuidv4 } from 'uuid';
 import { FormCustomization, Theme } from '@/components/form-builder/FormCustomization';
+import { authenticatedFetch } from '@/lib/utils';
+import { Calendar } from '@/components/ui/calendar';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { format } from 'date-fns';
+import { it } from 'date-fns/locale';
+import { cn } from '@/lib/utils';
 
 const steps = [
   { id: 'details', title: 'Dettagli Base', icon: FileText, description: 'Informazioni principali' },
@@ -37,6 +43,8 @@ export default function NewFormPage() {
   const [allowEdit, setAllowEdit] = useState(false);
   const [showResults, setShowResults] = useState(false);
   const [thankYouMessage, setThankYouMessage] = useState('Grazie per la tua risposta!');
+  const [opensAt, setOpensAt] = useState<Date | undefined>(undefined);
+  const [closesAt, setClosesAt] = useState<Date | undefined>(undefined);
   const [questions, setQuestions] = useState<QuestionFormData[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isImporting, setIsImporting] = useState(false);
@@ -88,7 +96,7 @@ export default function NewFormPage() {
       formData.append('file', file);
 
       console.log('Invio richiesta al server...');
-      const response = await fetch('/api/forms/parse-docx', {
+      const response = await authenticatedFetch('/api/forms/parse-docx', {
         method: 'POST',
         body: formData,
       });
@@ -168,10 +176,16 @@ export default function NewFormPage() {
       return;
     }
     
+    // Validazione date
+    if (opensAt && closesAt && opensAt > closesAt) {
+      toast.error('La data di apertura deve essere precedente alla data di chiusura');
+      return;
+    }
+    
     setIsSubmitting(true);
     
     try {
-      const response = await fetch('/api/forms', {
+      const response = await authenticatedFetch('/api/forms', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -184,6 +198,8 @@ export default function NewFormPage() {
           allowEdit,
           showResults,
           thankYouMessage,
+          opensAt: opensAt?.toISOString(),
+          closesAt: closesAt?.toISOString(),
           questions: questions.map(q => ({
             text: q.text,
             type: q.type,
@@ -284,15 +300,15 @@ export default function NewFormPage() {
         >
           <Card className="border-0 shadow-sm">
             <CardContent className="p-6">
-              <div className="flex flex-col sm:flex-row gap-4">
+              <div className="flex flex-col sm:flex-row gap-4 items-stretch">
                 {steps.map((step, index) => {
                   const status = getStepStatus(step.id);
                   const isCurrent = step.id === currentStep;
                   
                   return (
-                    <div key={step.id} className="flex-1">
+                    <div key={step.id} className="flex-1 flex">
                       <div 
-                        className={`flex items-center gap-3 p-4 rounded-lg cursor-pointer transition-all duration-200 ${
+                        className={`flex items-center gap-3 p-4 rounded-lg cursor-pointer transition-all duration-200 w-full h-full min-h-[100px] ${
                           isCurrent 
                             ? 'bg-[#FFCD00]/10 border-2 border-[#FFCD00]' 
                             : status === 'completed'
@@ -433,6 +449,76 @@ export default function NewFormPage() {
                         rows={2}
                         />
                       </div>
+                    
+                    <Separator />
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <div className="space-y-2">
+                        <Label htmlFor="opensAt" className="text-sm font-medium">
+                          Data di Apertura
+                        </Label>
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <Button
+                              variant="outline"
+                              className={cn(
+                                "w-full justify-start text-left font-normal h-12",
+                                !opensAt && "text-muted-foreground"
+                              )}
+                            >
+                              <CalendarIcon className="mr-2 h-4 w-4" />
+                              {opensAt ? format(opensAt, "PPP", { locale: it }) : "Seleziona data"}
+                            </Button>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-auto p-0" align="start">
+                            <Calendar
+                              mode="single"
+                              selected={opensAt}
+                              onSelect={setOpensAt}
+                              disabled={(date) => date < new Date()}
+                              initialFocus
+                              locale={it}
+                            />
+                          </PopoverContent>
+                        </Popover>
+                        <p className="text-xs text-gray-500">
+                          Data e ora di apertura del form
+                        </p>
+                      </div>
+                      
+                      <div className="space-y-2">
+                        <Label htmlFor="closesAt" className="text-sm font-medium">
+                          Data di Chiusura
+                        </Label>
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <Button
+                              variant="outline"
+                              className={cn(
+                                "w-full justify-start text-left font-normal h-12",
+                                !closesAt && "text-muted-foreground"
+                              )}
+                            >
+                              <CalendarIcon className="mr-2 h-4 w-4" />
+                              {closesAt ? format(closesAt, "PPP", { locale: it }) : "Seleziona data"}
+                            </Button>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-auto p-0" align="start">
+                            <Calendar
+                              mode="single"
+                              selected={closesAt}
+                              onSelect={setClosesAt}
+                              disabled={(date) => date < new Date()}
+                              initialFocus
+                              locale={it}
+                            />
+                          </PopoverContent>
+                        </Popover>
+                        <p className="text-xs text-gray-500">
+                          Data e ora di chiusura del form
+                        </p>
+                      </div>
+                    </div>
                   </CardContent>
                 </Card>
               </motion.div>
