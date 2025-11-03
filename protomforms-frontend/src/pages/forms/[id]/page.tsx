@@ -19,6 +19,7 @@ import { it } from 'date-fns/locale';
 import { CalendarIcon, Upload, Star, ThumbsUp, ThumbsDown, GripVertical, CheckCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
+import { authenticatedFetch } from '@/lib/utils';
 
 interface Question {
   id: string;
@@ -76,42 +77,76 @@ export default function FormPage() {
   const [visibleQuestions, setVisibleQuestions] = useState<string[]>([]);
 
   useEffect(() => {
+    const checkSubmissionStatus = async () => {
+      // Controlla se il form è già stato compilato
+      const storageKey = `form_submitted_${params.id}`;
+      const cookieName = `form_submitted_${params.id}`;
+      
+      // Prima controlla localStorage (per form anonimi e cache locale)
+      const submittedData = localStorage.getItem(storageKey);
+      if (submittedData) {
+        try {
+          const data = JSON.parse(submittedData);
+          setSubmitted(true);
+          setSubmittedResponse(data);
+          return; // Se trovato in localStorage, non controllare altro
+        } catch (e) {
+          // Ignora errori di parsing
+        }
+      }
+      
+      // Se non trovato in localStorage, controlla cookie (per form anonimi)
+      const cookies = document.cookie.split(';');
+      const cookie = cookies.find(c => c.trim().startsWith(`${cookieName}=`));
+      if (cookie) {
+        try {
+          const cookieValue = cookie.split('=')[1];
+          const data = JSON.parse(decodeURIComponent(cookieValue));
+          setSubmitted(true);
+          setSubmittedResponse(data);
+          // Sincronizza anche in localStorage
+          localStorage.setItem(storageKey, JSON.stringify(data));
+          return;
+        } catch (e) {
+          // Ignora errori di parsing
+        }
+      }
+      
+      // Per utenti autenticati, verifica anche sul server se hanno già compilato
+      if (user?.id) {
+        try {
+          const response = await authenticatedFetch(`/api/forms/${params.id}/user-response`, {
+            method: 'GET',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+          });
+          
+          if (response.ok) {
+            const data = await response.json();
+            if (data.hasSubmitted) {
+              setSubmitted(true);
+              setSubmittedResponse({
+                responseId: data.responseId,
+                progressiveNumber: data.progressiveNumber
+              });
+              // Salva anche in localStorage per cache
+              localStorage.setItem(storageKey, JSON.stringify({
+                responseId: data.responseId,
+                progressiveNumber: data.progressiveNumber,
+                submittedAt: data.submittedAt || new Date().toISOString()
+              }));
+            }
+          }
+        } catch (e) {
+          console.log('Impossibile verificare lo stato di invio sul server');
+        }
+      }
+    };
+    
     fetchForm();
-    
-    // Controlla se il form è già stato compilato (per form anonimi)
-    // Controlla sia localStorage che cookie
-    const storageKey = `form_submitted_${params.id}`;
-    const cookieName = `form_submitted_${params.id}`;
-    
-    // Prima controlla localStorage
-    const submittedData = localStorage.getItem(storageKey);
-    if (submittedData) {
-      try {
-        const data = JSON.parse(submittedData);
-        setSubmitted(true);
-        setSubmittedResponse(data);
-        return; // Se trovato in localStorage, non controllare cookie
-      } catch (e) {
-        // Ignora errori di parsing
-      }
-    }
-    
-    // Se non trovato in localStorage, controlla cookie
-    const cookies = document.cookie.split(';');
-    const cookie = cookies.find(c => c.trim().startsWith(`${cookieName}=`));
-    if (cookie) {
-      try {
-        const cookieValue = cookie.split('=')[1];
-        const data = JSON.parse(decodeURIComponent(cookieValue));
-        setSubmitted(true);
-        setSubmittedResponse(data);
-        // Sincronizza anche in localStorage
-        localStorage.setItem(storageKey, JSON.stringify(data));
-      } catch (e) {
-        // Ignora errori di parsing
-      }
-    }
-  }, [params.id]);
+    checkSubmissionStatus();
+  }, [params.id, user]);
 
   // Carica il font se il form ha un tema personalizzato
   useEffect(() => {
@@ -209,6 +244,13 @@ export default function FormPage() {
       if (data.theme?.backgroundImage) {
         console.log('📏 Background image length:', data.theme.backgroundImage.length);
         console.log('📸 Background image preview:', data.theme.backgroundImage.substring(0, 100));
+        console.log('🎨 Tutte le proprietà background:', {
+          backgroundPosition: data.theme.backgroundPosition,
+          backgroundSize: data.theme.backgroundSize,
+          backgroundOpacity: data.theme.backgroundOpacity,
+          backgroundRepeat: data.theme.backgroundRepeat,
+          backgroundAttachment: data.theme.backgroundAttachment
+        });
       }
       setForm(data);
     } catch (error) {
@@ -255,14 +297,13 @@ export default function FormPage() {
 
     try {
       setSubmitting(true);
-      // Usa sempre il percorso relativo /api/... per passare attraverso il proxy Vite
-      const response = await fetch(`/api/forms/${params.id}/responses`, {
+      // Usa authenticatedFetch per includere automaticamente le credenziali
+      const response = await authenticatedFetch(`/api/forms/${params.id}/responses`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Accept': 'application/json'
         },
-        credentials: 'include',
         body: JSON.stringify({ answers }),
       });
 
@@ -591,8 +632,22 @@ export default function FormPage() {
     accentColor: '#000000',
     fontFamily: 'Inter',
     borderRadius: 8,
-    buttonStyle: 'filled' as const
+    buttonStyle: 'filled' as const,
+    backgroundImage: '',
+    backgroundPosition: 'center' as const,
+    backgroundSize: 'cover' as const,
+    backgroundOpacity: 100
   };
+  
+  // Log del tema per debug
+  if (form.theme?.backgroundImage) {
+    console.log('🎨 Applicando sfondo al form durante la compilazione:', {
+      backgroundImage: form.theme.backgroundImage.substring(0, 50) + '...',
+      backgroundPosition: theme.backgroundPosition,
+      backgroundSize: theme.backgroundSize,
+      backgroundOpacity: theme.backgroundOpacity
+    });
+  }
 
   // Helper per ottenere lo stile del bottone
   const getButtonStyle = (variant: 'primary' | 'outline' = 'primary') => {
@@ -640,9 +695,8 @@ export default function FormPage() {
         <Card 
           className="flex-1 flex flex-col m-0 border-0 shadow-none rounded-none"
           style={{
-            backgroundColor: theme.backgroundColor,
+            backgroundColor: theme.backgroundImage ? 'transparent' : theme.backgroundColor,
             borderRadius: '0',
-            backdropFilter: theme.backgroundImage ? 'blur(0.5px)' : undefined,
           }}
         >
         <CardHeader className="px-6 py-8">

@@ -12,6 +12,18 @@ export async function POST(
   try {
     const session = await getServerSession(authOptions);
     
+    // Fallback: controlla anche l'header x-user-id se la sessione non esiste
+    const userIdHeader = req.headers.get('x-user-id');
+    const userId = session?.user?.id || userIdHeader;
+    
+    console.log('🔐 Form submission auth check:', {
+      hasSession: !!session,
+      sessionUserId: session?.user?.id,
+      headerUserId: userIdHeader,
+      finalUserId: userId,
+      formId: params.id
+    });
+    
     // Recupera il form con le domande per validazione
     const form = await prisma.form.findUnique({
       where: { id: params.id },
@@ -40,9 +52,12 @@ export async function POST(
       return NextResponse.json({ error: 'Form scaduto' }, { status: 403 });
     }
 
-    // Per form non anonimi, richiedi autenticazione
-    if (!form.isAnonymous && !session) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    // Per form non anonimi, richiedi autenticazione (sessione O header x-user-id)
+    if (!form.isAnonymous && !userId) {
+      console.log('❌ Form non anonimo richiede autenticazione');
+      return NextResponse.json({ 
+        error: 'Autenticazione richiesta. Effettua il login per compilare questo form.' 
+      }, { status: 401 });
     }
 
     const body = await req.json();
@@ -83,15 +98,16 @@ export async function POST(
     }
 
     // Per form non anonimi, verifica che l'utente non abbia già inviato una risposta
-    if (!form.isAnonymous && session?.user?.id) {
+    if (!form.isAnonymous && userId) {
       const existingResponse = await prisma.response.findFirst({
         where: {
           formId: params.id,
-          userId: session.user.id,
+          userId: userId,
         },
       });
 
       if (existingResponse) {
+        console.log('⚠️ Utente ha già inviato una risposta:', { userId, formId: params.id });
         return NextResponse.json(
           { error: 'Hai già inviato una risposta a questo form' },
           { status: 403 }
@@ -141,8 +157,8 @@ export async function POST(
       data: {
         formId: params.id,
         progressiveNumber: nextProgressive,
-        // Per form anonimi, non salviamo userId
-        userId: form.isAnonymous ? null : (session?.user?.id || null),
+        // Per form anonimi, non salviamo userId. Per form non anonimi usa session o header
+        userId: form.isAnonymous ? null : (userId || null),
         answers: {
           create: Object.entries(answers).map(([questionId, value]) => ({
             questionId,
@@ -150,6 +166,13 @@ export async function POST(
           })),
         },
       },
+    });
+    
+    console.log('✅ Response created successfully:', {
+      responseId: response.id,
+      progressiveNumber: nextProgressive,
+      userId: response.userId,
+      formId: params.id
     });
     
     // Crea la risposta
