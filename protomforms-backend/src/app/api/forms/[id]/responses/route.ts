@@ -99,6 +99,36 @@ export async function POST(
       }
     }
 
+    // Per form anonimi, verifica tramite cookie se il form è già stato compilato
+    if (form.isAnonymous) {
+      const cookieName = `form_submitted_${params.id}`;
+      const submittedCookie = req.cookies.get(cookieName);
+      
+      if (submittedCookie) {
+        // Verifica anche nel database usando il progressiveNumber dal cookie
+        try {
+          const cookieData = JSON.parse(submittedCookie.value);
+          if (cookieData.progressiveNumber) {
+            const existingResponse = await prisma.response.findFirst({
+              where: {
+                formId: params.id,
+                progressiveNumber: cookieData.progressiveNumber,
+              },
+            });
+            
+            if (existingResponse) {
+              return NextResponse.json(
+                { error: 'Hai già inviato una risposta a questo form' },
+                { status: 403 }
+              );
+            }
+          }
+        } catch (e) {
+          // Se il cookie è malformato, continua comunque
+        }
+      }
+    }
+
     // Calcola il prossimo progressiveNumber per il form usando SQL raw
     const result = await prisma.$queryRaw<[{ max: bigint | null }]>`
       SELECT MAX("progressiveNumber") as max 
@@ -121,7 +151,34 @@ export async function POST(
         },
       },
     });
-    return NextResponse.json({ success: true, responseId: response.id, progressiveNumber: nextProgressive });
+    
+    // Crea la risposta
+    const responseJson = NextResponse.json({ 
+      success: true, 
+      responseId: response.id, 
+      progressiveNumber: nextProgressive 
+    });
+    
+    // Per form anonimi, imposta un cookie per prevenire doppi invii
+    if (form.isAnonymous) {
+      const cookieName = `form_submitted_${params.id}`;
+      const cookieValue = JSON.stringify({
+        responseId: response.id,
+        progressiveNumber: nextProgressive,
+        submittedAt: new Date().toISOString()
+      });
+      
+      // Cookie valido per 1 anno
+      responseJson.cookies.set(cookieName, cookieValue, {
+        httpOnly: false, // Deve essere leggibile da JavaScript per localStorage sync
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax',
+        maxAge: 60 * 60 * 24 * 365, // 1 anno
+        path: '/'
+      });
+    }
+    
+    return responseJson;
   } catch (error) {
     console.error('Error submitting response:', error);
     return NextResponse.json({ error: 'Errore nel salvataggio' }, { status: 500 });

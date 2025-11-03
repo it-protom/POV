@@ -16,7 +16,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { cn } from "@/lib/utils";
 import { format } from 'date-fns';
 import { it } from 'date-fns/locale';
-import { CalendarIcon, Upload, Star, ThumbsUp, ThumbsDown, GripVertical } from 'lucide-react';
+import { CalendarIcon, Upload, Star, ThumbsUp, ThumbsDown, GripVertical, CheckCircle } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface Question {
@@ -64,6 +64,8 @@ export default function FormPage() {
   const [form, setForm] = useState<Form | null>(null);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+  const [submitted, setSubmitted] = useState(false);
+  const [submittedResponse, setSubmittedResponse] = useState<{ responseId: string; progressiveNumber: number } | null>(null);
   const [answers, setAnswers] = useState<Record<string, string | string[] | number | Date | null>>({});
   const [currentStep, setCurrentStep] = useState(0);
   const [showProgress, setShowProgress] = useState(false);
@@ -72,6 +74,40 @@ export default function FormPage() {
 
   useEffect(() => {
     fetchForm();
+    
+    // Controlla se il form è già stato compilato (per form anonimi)
+    // Controlla sia localStorage che cookie
+    const storageKey = `form_submitted_${params.id}`;
+    const cookieName = `form_submitted_${params.id}`;
+    
+    // Prima controlla localStorage
+    const submittedData = localStorage.getItem(storageKey);
+    if (submittedData) {
+      try {
+        const data = JSON.parse(submittedData);
+        setSubmitted(true);
+        setSubmittedResponse(data);
+        return; // Se trovato in localStorage, non controllare cookie
+      } catch (e) {
+        // Ignora errori di parsing
+      }
+    }
+    
+    // Se non trovato in localStorage, controlla cookie
+    const cookies = document.cookie.split(';');
+    const cookie = cookies.find(c => c.trim().startsWith(`${cookieName}=`));
+    if (cookie) {
+      try {
+        const cookieValue = cookie.split('=')[1];
+        const data = JSON.parse(decodeURIComponent(cookieValue));
+        setSubmitted(true);
+        setSubmittedResponse(data);
+        // Sincronizza anche in localStorage
+        localStorage.setItem(storageKey, JSON.stringify(data));
+      } catch (e) {
+        // Ignora errori di parsing
+      }
+    }
   }, [params.id]);
 
   // Carica il font se il form ha un tema personalizzato
@@ -233,18 +269,23 @@ export default function FormPage() {
       }
 
       const result = await response.json();
-      toast.success('Risposte inviate con successo! Grazie per il tuo contributo.');
       
-      // Reindirizza alla dashboard utente dopo il successo
-      setTimeout(() => {
-        navigate('/user/forms', { 
-          state: { 
-            submitted: true, 
-            formId: params.id,
-            progressiveNumber: result.progressiveNumber 
-          } 
-        });
-      }, 1500);
+      // Salva nello stato e in localStorage che il form è stato compilato
+      setSubmitted(true);
+      setSubmittedResponse({
+        responseId: result.responseId,
+        progressiveNumber: result.progressiveNumber
+      });
+      
+      // Salva in localStorage per form anonimi (per prevenire doppi invii)
+      const storageKey = `form_submitted_${params.id}`;
+      localStorage.setItem(storageKey, JSON.stringify({
+        responseId: result.responseId,
+        progressiveNumber: result.progressiveNumber,
+        submittedAt: new Date().toISOString()
+      }));
+      
+      toast.success('Risposte inviate con successo! Grazie per il tuo contributo.');
     } catch (error: any) {
       console.error('Errore nell\'invio delle risposte:', error);
       toast.error(error.message || 'Impossibile inviare le risposte');
@@ -332,6 +373,99 @@ export default function FormPage() {
 
   if (!form) {
     return null;
+  }
+
+  // Mostra messaggio di ringraziamento se il form è stato già compilato
+  if (submitted) {
+    const theme = form.theme || {
+      primaryColor: '#000000',
+      backgroundColor: '#ffffff',
+      textColor: '#000000',
+      accentColor: '#000000',
+      fontFamily: 'Inter',
+      borderRadius: 8,
+      buttonStyle: 'filled' as const
+    };
+
+    return (
+      <div 
+        className="min-h-screen w-full relative flex items-center justify-center"
+        style={{
+          fontFamily: `"${theme.fontFamily}", sans-serif`,
+          backgroundColor: theme.backgroundColor,
+          color: theme.textColor,
+          backgroundImage: theme.backgroundImage ? `url(${theme.backgroundImage})` : undefined,
+          backgroundPosition: theme.backgroundPosition || 'center',
+          backgroundSize: theme.backgroundSize || 'cover',
+          backgroundRepeat: theme.backgroundRepeat || 'no-repeat',
+          backgroundAttachment: theme.backgroundAttachment || 'fixed'
+        }}
+      >
+        {theme.backgroundImage && (
+          <div
+            className="absolute inset-0 pointer-events-none z-0"
+            style={{
+              backgroundColor: `rgba(255, 255, 255, ${1 - ((theme.backgroundOpacity || 100) / 100)})`,
+            }}
+          />
+        )}
+        <div className="relative z-10 max-w-2xl mx-auto p-6">
+          <Card className="shadow-xl" style={{ backgroundColor: theme.backgroundColor }}>
+            <CardHeader className="text-center">
+              <div className="mx-auto mb-4 w-16 h-16 rounded-full bg-green-100 flex items-center justify-center">
+                <CheckCircle className="w-8 h-8 text-green-600" />
+              </div>
+              <CardTitle className="text-3xl mb-2" style={{ color: theme.primaryColor }}>
+                Grazie per la tua risposta!
+              </CardTitle>
+              {form.thankYouMessage ? (
+                <CardDescription className="text-lg" style={{ color: theme.textColor }}>
+                  {form.thankYouMessage}
+                </CardDescription>
+              ) : (
+                <CardDescription className="text-lg" style={{ color: theme.textColor }}>
+                  Le tue risposte sono state inviate con successo.
+                  {submittedResponse && (
+                    <span className="block mt-2 text-sm">
+                      Numero risposta: #{submittedResponse.progressiveNumber}
+                    </span>
+                  )}
+                </CardDescription>
+              )}
+            </CardHeader>
+            <CardContent className="text-center space-y-4">
+              {submittedResponse && (
+                <div className="bg-gray-50 p-4 rounded-lg">
+                  <p className="text-sm text-gray-600">
+                    Numero di riferimento: <strong>#{submittedResponse.progressiveNumber}</strong>
+                  </p>
+                  <p className="text-xs text-gray-500 mt-2">
+                    Conserva questo numero per eventuali riferimenti futuri
+                  </p>
+                </div>
+              )}
+              {form.showResults && (
+                <div className="mt-6">
+                  <Button
+                    onClick={() => {
+                      // Mostra le risposte dell'utente se disponibili
+                      navigate(`/forms/${params.id}/responses/${submittedResponse?.progressiveNumber || ''}`);
+                    }}
+                    style={{
+                      backgroundColor: theme.primaryColor,
+                      color: '#ffffff'
+                    }}
+                    className="w-full"
+                  >
+                    Visualizza le mie risposte
+                  </Button>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    );
   }
 
   const currentQuestion = form.questions[currentStep];
