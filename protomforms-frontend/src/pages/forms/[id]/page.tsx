@@ -18,6 +18,7 @@ import { format } from 'date-fns';
 import { it } from 'date-fns/locale';
 import { CalendarIcon, Upload, Star, ThumbsUp, ThumbsDown, GripVertical, CheckCircle } from 'lucide-react';
 import { toast } from 'sonner';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface Question {
   id: string;
@@ -61,11 +62,13 @@ interface Form {
 export default function FormPage() {
   const params = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [form, setForm] = useState<Form | null>(null);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [submittedResponse, setSubmittedResponse] = useState<{ responseId: string; progressiveNumber: number } | null>(null);
+  const [submittedAnswers, setSubmittedAnswers] = useState<Record<string, string | string[] | number | Date | null>>({});
   const [answers, setAnswers] = useState<Record<string, string | string[] | number | Date | null>>({});
   const [currentStep, setCurrentStep] = useState(0);
   const [showProgress, setShowProgress] = useState(false);
@@ -270,6 +273,9 @@ export default function FormPage() {
 
       const result = await response.json();
       
+      // Salva le risposte prima di settare submitted=true
+      setSubmittedAnswers({ ...answers });
+      
       // Salva nello stato e in localStorage che il form è stato compilato
       setSubmitted(true);
       setSubmittedResponse({
@@ -375,6 +381,25 @@ export default function FormPage() {
     return null;
   }
 
+  // Helper per formattare il valore della risposta
+  const formatAnswerValue = (value: any, questionType: string): string => {
+    if (value === null || value === undefined) return 'Non risposto';
+    
+    if (Array.isArray(value)) {
+      return value.join(', ');
+    }
+    
+    if (questionType === 'DATE' && value instanceof Date) {
+      return format(value, 'dd/MM/yyyy', { locale: it });
+    }
+    
+    if (typeof value === 'object') {
+      return JSON.stringify(value);
+    }
+    
+    return String(value);
+  };
+
   // Mostra messaggio di ringraziamento se il form è stato già compilato
   if (submitted) {
     const theme = form.theme || {
@@ -389,7 +414,7 @@ export default function FormPage() {
 
     return (
       <div 
-        className="min-h-screen w-full relative flex items-center justify-center"
+        className="min-h-screen w-full relative"
         style={{
           fontFamily: `"${theme.fontFamily}", sans-serif`,
           backgroundColor: theme.backgroundColor,
@@ -409,58 +434,138 @@ export default function FormPage() {
             }}
           />
         )}
-        <div className="relative z-10 max-w-2xl mx-auto p-6">
-          <Card className="shadow-xl" style={{ backgroundColor: theme.backgroundColor }}>
-            <CardHeader className="text-center">
-              <div className="mx-auto mb-4 w-16 h-16 rounded-full bg-green-100 flex items-center justify-center">
-                <CheckCircle className="w-8 h-8 text-green-600" />
+        <div className="relative z-10 max-w-4xl mx-auto p-6 py-12">
+          {/* Success Header */}
+          <Card className="shadow-xl mb-6" style={{ backgroundColor: theme.backgroundColor, borderRadius: `${theme.borderRadius}px` }}>
+            <CardHeader className="text-center pb-6">
+              <div className="mx-auto mb-4 w-20 h-20 rounded-full bg-green-100 flex items-center justify-center">
+                <CheckCircle className="w-12 h-12 text-green-600" />
               </div>
-              <CardTitle className="text-3xl mb-2" style={{ color: theme.primaryColor }}>
-                Grazie per la tua risposta!
+              <CardTitle className="text-4xl mb-3 font-bold" style={{ color: theme.primaryColor }}>
+                ✅ Risposta Inviata con Successo!
               </CardTitle>
               {form.thankYouMessage ? (
-                <CardDescription className="text-lg" style={{ color: theme.textColor }}>
+                <CardDescription className="text-lg mb-2" style={{ color: theme.textColor }}>
                   {form.thankYouMessage}
                 </CardDescription>
               ) : (
-                <CardDescription className="text-lg" style={{ color: theme.textColor }}>
-                  Le tue risposte sono state inviate con successo.
-                  {submittedResponse && (
-                    <span className="block mt-2 text-sm">
-                      Numero risposta: #{submittedResponse.progressiveNumber}
-                    </span>
-                  )}
+                <CardDescription className="text-lg mb-2" style={{ color: theme.textColor }}>
+                  Grazie per aver completato il questionario. Le tue risposte sono state registrate.
                 </CardDescription>
               )}
-            </CardHeader>
-            <CardContent className="text-center space-y-4">
               {submittedResponse && (
-                <div className="bg-gray-50 p-4 rounded-lg">
-                  <p className="text-sm text-gray-600">
-                    Numero di riferimento: <strong>#{submittedResponse.progressiveNumber}</strong>
-                  </p>
-                  <p className="text-xs text-gray-500 mt-2">
-                    Conserva questo numero per eventuali riferimenti futuri
+                <div className="mt-4 inline-block bg-gradient-to-r from-green-50 to-blue-50 px-6 py-3 rounded-full">
+                  <p className="text-sm font-medium text-gray-700">
+                    🎯 Numero di riferimento: <strong className="text-xl" style={{ color: theme.primaryColor }}>#{submittedResponse.progressiveNumber}</strong>
                   </p>
                 </div>
               )}
-              {form.showResults && (
-                <div className="mt-6">
-                  <Button
-                    onClick={() => {
-                      // Mostra le risposte dell'utente se disponibili
-                      navigate(`/forms/${params.id}/responses/${submittedResponse?.progressiveNumber || ''}`);
+            </CardHeader>
+          </Card>
+
+          {/* Answers Summary */}
+          <Card className="shadow-xl mb-6" style={{ backgroundColor: theme.backgroundColor, borderRadius: `${theme.borderRadius}px` }}>
+            <CardHeader>
+              <CardTitle className="text-2xl flex items-center gap-2" style={{ color: theme.primaryColor }}>
+                📋 Le Tue Risposte
+              </CardTitle>
+              <CardDescription style={{ color: theme.textColor }}>
+                Ecco un riepilogo delle risposte che hai fornito
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {form.questions.map((question, index) => {
+                const answer = submittedAnswers[question.id];
+                return (
+                  <div 
+                    key={question.id} 
+                    className="p-4 rounded-lg border-l-4 hover:shadow-md transition-shadow"
+                    style={{ 
+                      backgroundColor: index % 2 === 0 ? 'rgba(0,0,0,0.02)' : 'transparent',
+                      borderLeftColor: theme.accentColor
                     }}
+                  >
+                    <div className="flex items-start gap-3">
+                      <div 
+                        className="flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center text-white font-semibold text-sm"
+                        style={{ backgroundColor: theme.primaryColor }}
+                      >
+                        {index + 1}
+                      </div>
+                      <div className="flex-1">
+                        <h4 className="font-semibold text-lg mb-2" style={{ color: theme.textColor }}>
+                          {question.text}
+                        </h4>
+                        <div 
+                          className="p-3 rounded-md font-medium"
+                          style={{ 
+                            backgroundColor: 'rgba(0,0,0,0.05)',
+                            color: theme.textColor
+                          }}
+                        >
+                          {formatAnswerValue(answer, question.type)}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </CardContent>
+          </Card>
+
+          {/* Action Buttons */}
+          <Card className="shadow-xl" style={{ backgroundColor: theme.backgroundColor, borderRadius: `${theme.borderRadius}px` }}>
+            <CardContent className="pt-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {user ? (
+                  <Button
+                    onClick={() => navigate('/user/forms')}
+                    size="lg"
+                    className="w-full h-14 text-lg font-semibold"
                     style={{
                       backgroundColor: theme.primaryColor,
-                      color: '#ffffff'
+                      color: '#ffffff',
+                      borderRadius: `${theme.borderRadius}px`
                     }}
-                    className="w-full"
                   >
-                    Visualizza le mie risposte
+                    🏠 Torna alla Dashboard
                   </Button>
-                </div>
-              )}
+                ) : (
+                  <Button
+                    onClick={() => navigate('/')}
+                    size="lg"
+                    className="w-full h-14 text-lg font-semibold"
+                    style={{
+                      backgroundColor: theme.primaryColor,
+                      color: '#ffffff',
+                      borderRadius: `${theme.borderRadius}px`
+                    }}
+                  >
+                    🏠 Torna alla Home
+                  </Button>
+                )}
+                {form.showResults && form.slug && user && (
+                  <Button
+                    onClick={() => {
+                      // Naviga alla pagina dei dettagli della risposta
+                      navigate(`/user/responses/${form.slug}/${submittedResponse?.progressiveNumber || ''}`);
+                    }}
+                    size="lg"
+                    variant="outline"
+                    className="w-full h-14 text-lg font-semibold"
+                    style={{
+                      borderColor: theme.primaryColor,
+                      color: theme.primaryColor,
+                      borderRadius: `${theme.borderRadius}px`
+                    }}
+                  >
+                    📊 Visualizza Dettagli
+                  </Button>
+                )}
+              </div>
+              <p className="text-center text-sm text-gray-500 mt-4">
+                💡 Conserva il numero di riferimento per eventuali comunicazioni future
+              </p>
             </CardContent>
           </Card>
         </div>
