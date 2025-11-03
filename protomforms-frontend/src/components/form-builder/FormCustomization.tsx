@@ -30,31 +30,78 @@ import {
   ArrowLeft,
   ArrowRight,
   Plus,
-  FileText
+  FileText,
+  CheckCircle,
+  MousePointer2,
+  Maximize2
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 
 export interface Theme {
+  // Colori base
   primaryColor: string;
   backgroundColor: string;
-  fontFamily: string;
-  borderRadius: number;
-  buttonStyle: 'filled' | 'outlined';
   textColor: string;
   accentColor: string;
+  
+  // Tipografia
+  fontFamily: string;
+  questionFontSize?: number; // Dimensione font domanda (default 20)
+  optionFontSize?: number; // Dimensione font opzioni (default 16)
+  questionFontWeight?: 'normal' | 'medium' | 'semibold' | 'bold';
+  counterFontSize?: number; // Dimensione font contatore (default 14)
+  
+  // Stile domanda
+  questionNumberBgColor?: string; // Colore sfondo numero domanda
+  questionNumberTextColor?: string; // Colore testo numero domanda  
+  questionTextColor?: string; // Colore testo domanda
+  questionBorderColor?: string; // Colore bordo card domanda
+  questionBackgroundColor?: string; // Colore sfondo card domanda
+  
+  // Stile opzioni
+  optionTextColor?: string; // Colore testo opzioni
+  optionHoverColor?: string; // Colore hover opzioni
+  optionSelectedColor?: string; // Colore opzione selezionata
+  optionBorderColor?: string; // Colore bordo opzioni
+  radioCheckColor?: string; // Colore radio/checkbox
+  
+  // Bottoni
+  buttonStyle: 'filled' | 'outlined';
+  buttonTextColor?: string; // Colore testo bottone principale
+  buttonHoverColor?: string; // Colore hover bottone principale
+  navigationButtonBgColor?: string; // Colore sfondo bottoni navigazione
+  navigationButtonTextColor?: string; // Colore testo bottoni navigazione
+  navigationButtonBorderColor?: string; // Colore bordo bottoni navigazione
+  disabledButtonColor?: string; // Colore bottone disabilitato
+  
+  // Bordi e spacing
+  borderRadius: number;
+  cardPadding?: number; // Padding card domanda (default 24)
+  optionSpacing?: number; // Spazio tra opzioni (default 12)
+  borderWidth?: number; // Spessore bordi (default 1)
+  
+  // Immagini e layout
   headerImage: string;
   logo: string;
   backgroundImage: string;
   backgroundPosition?: 'center' | 'top' | 'bottom' | 'left' | 'right' | 'top left' | 'top right' | 'bottom left' | 'bottom right';
   backgroundSize?: 'cover' | 'contain' | 'auto' | 'repeat';
-  backgroundAttachment?: 'fixed' | 'scroll'; // fixed = immagine ferma quando si scrolla
+  backgroundAttachment?: 'fixed' | 'scroll';
   backgroundRepeat?: 'no-repeat' | 'repeat' | 'repeat-x' | 'repeat-y';
   backgroundOpacity?: number;
-  headerImageHeight?: number; // Altezza header in px o percentuale
-  logoSize?: number; // Dimensione logo in percentuale (100 = normale)
-  logoPosition?: 'left' | 'center' | 'right' | 'above-title' | 'below-title'; // Posizione logo
-  layoutOrder?: string[]; // Ordine elementi: ['logo', 'title', 'description']
+  headerImageHeight?: number;
+  logoSize?: number;
+  logoPosition?: 'left' | 'center' | 'right' | 'above-title' | 'below-title';
+  layoutOrder?: string[];
+  
+  // Contatore domande
+  counterTextColor?: string; // Colore contatore "Domanda X di Y"
+  counterBgColor?: string; // Colore sfondo contatore
+  
+  // Effetti
+  shadowIntensity?: number; // Intensità ombra card (0-10, default 2)
+  hoverEffect?: boolean; // Abilita effetto hover su opzioni
 }
 
 interface Question {
@@ -241,7 +288,7 @@ export function FormCustomization({
   questions = [] 
 }: FormCustomizationProps) {
   const [showPreview, setShowPreview] = useState(true);
-  const [activeTab, setActiveTab] = useState<'colors' | 'typography' | 'images' | 'layout'>('colors');
+  const [activeTab, setActiveTab] = useState<'colors' | 'typography' | 'images' | 'layout' | 'questions' | 'options' | 'buttons' | 'spacing'>('colors');
   const [editingElement, setEditingElement] = useState<'title' | 'font' | 'primaryColor' | 'backgroundColor' | 'textColor' | 'button' | null>(null);
   const [openPopovers, setOpenPopovers] = useState<Record<string, boolean>>({});
   const [isEditMode, setIsEditMode] = useState(false);
@@ -600,8 +647,12 @@ export function FormCustomization({
   };
 
   const tabs = [
-    { id: 'colors', label: 'Colori', icon: Palette },
+    { id: 'colors', label: 'Colori Base', icon: Palette },
+    { id: 'questions', label: 'Domande', icon: FileText },
+    { id: 'options', label: 'Opzioni', icon: CheckCircle },
+    { id: 'buttons', label: 'Bottoni', icon: MousePointer2 },
     { id: 'typography', label: 'Tipografia', icon: Type },
+    { id: 'spacing', label: 'Spaziatura', icon: Maximize2 },
     { id: 'images', label: 'Immagini', icon: ImageIcon },
     { id: 'layout', label: 'Layout', icon: Layout },
   ] as const;
@@ -1219,20 +1270,44 @@ export function FormCustomization({
                
                {/* Questions - domanda corrente con navigazione */}
                {validQuestions.length > 0 && currentQuestion ? (
-                 <div className="space-y-6 min-h-[400px] flex flex-col">
+                 <div className="space-y-6 min-h-[400px] flex flex-col" style={{ 
+                   padding: `${theme.cardPadding || 24}px`,
+                   backgroundColor: theme.questionBackgroundColor || 'transparent',
+                   borderRadius: `${theme.borderRadius}px`,
+                   border: theme.questionBorderColor ? `${theme.borderWidth || 1}px solid ${theme.questionBorderColor}` : 'none',
+                   boxShadow: `0 ${theme.shadowIntensity || 2}px ${(theme.shadowIntensity || 2) * 4}px rgba(0,0,0,0.1)`
+                 }}>
                    {/* Domanda corrente */}
                    <div className="flex-1">
                      <div className="flex items-center mb-6">
-                       <span className="w-10 h-10 flex items-center justify-center rounded-full text-white mr-4 text-lg font-semibold" style={{ backgroundColor: theme.primaryColor }}>
+                       <span 
+                         className="w-10 h-10 flex items-center justify-center rounded-full mr-4 font-semibold" 
+                         style={{ 
+                           backgroundColor: theme.questionNumberBgColor || theme.primaryColor,
+                           color: theme.questionNumberTextColor || '#ffffff',
+                           fontSize: `${theme.questionFontSize || 20}px`,
+                           fontWeight: theme.questionFontWeight || 'semibold'
+                         }}
+                       >
                          {currentPreviewStep + 1}
                        </span>
-                       <Label className="text-xl font-semibold" style={{ color: theme.textColor }}>
+                       <Label 
+                         className="font-semibold flex-1" 
+                         style={{ 
+                           color: theme.questionTextColor || theme.textColor,
+                           fontSize: `${theme.questionFontSize || 20}px`,
+                           fontWeight: theme.questionFontWeight || 'semibold'
+                         }}
+                       >
                          {currentQuestion.text}
                          {currentQuestion.required && <span className="text-red-500 ml-1">*</span>}
                        </Label>
                      </div>
 
-                     <div className="pl-14">
+                     <div className="pl-14" style={{ 
+                       fontSize: `${theme.optionFontSize || 16}px`,
+                       color: theme.optionTextColor || theme.textColor
+                     }}>
                        {/* TEXT */}
                        {currentQuestion.type === 'TEXT' && (
                          <Input placeholder="Inserisci la tua risposta..." className="w-full" readOnly />
@@ -1240,13 +1315,31 @@ export function FormCustomization({
 
                        {/* MULTIPLE_CHOICE */}
                        {currentQuestion.type === 'MULTIPLE_CHOICE' && (
-                         <div className="space-y-3">
+                         <div style={{ marginTop: `${theme.optionSpacing || 12}px` }}>
                            {(() => {
                              const choices = Array.isArray(currentQuestion.options) ? currentQuestion.options : currentQuestion.options?.choices || [];
                              return choices.map((option: string, index: number) => (
-                               <div key={index} className="flex items-center space-x-2">
-                                 <input type="radio" name={`preview-${currentQuestion.id}`} className="accent-current" style={{ accentColor: theme.primaryColor }} readOnly />
-                                 <Label>{option}</Label>
+                               <div 
+                                 key={index} 
+                                 className="flex items-center space-x-2 p-3 rounded transition-colors" 
+                                 style={{ 
+                                   marginBottom: `${theme.optionSpacing || 12}px`,
+                                   border: `${theme.borderWidth || 1}px solid ${theme.optionBorderColor || theme.accentColor}`,
+                                   borderRadius: `${theme.borderRadius}px`,
+                                   cursor: 'pointer',
+                                   ...(theme.hoverEffect && {
+                                     ':hover': { backgroundColor: theme.optionHoverColor || `${theme.primaryColor}10` }
+                                   })
+                                 }}
+                               >
+                                 <input 
+                                   type="radio" 
+                                   name={`preview-${currentQuestion.id}`} 
+                                   className="w-5 h-5" 
+                                   style={{ accentColor: theme.radioCheckColor || theme.primaryColor }} 
+                                   readOnly 
+                                 />
+                                 <Label style={{ color: theme.optionTextColor || theme.textColor, fontSize: `${theme.optionFontSize || 16}px` }}>{option}</Label>
                                </div>
                              ));
                            })()}
@@ -1255,13 +1348,22 @@ export function FormCustomization({
 
                        {/* CHECKBOX */}
                        {currentQuestion.type === 'CHECKBOX' && (
-                         <div className="space-y-3">
+                         <div style={{ marginTop: `${theme.optionSpacing || 12}px` }}>
                            {(() => {
                              const choices = Array.isArray(currentQuestion.options) ? currentQuestion.options : currentQuestion.options?.choices || [];
                              return choices.map((option: string, index: number) => (
-                               <div key={index} className="flex items-center space-x-2">
-                                 <Checkbox disabled />
-                                 <Label>{option}</Label>
+                               <div 
+                                 key={index} 
+                                 className="flex items-center space-x-2 p-3 rounded transition-colors"
+                                 style={{ 
+                                   marginBottom: `${theme.optionSpacing || 12}px`,
+                                   border: `${theme.borderWidth || 1}px solid ${theme.optionBorderColor || theme.accentColor}`,
+                                   borderRadius: `${theme.borderRadius}px`,
+                                   cursor: 'pointer'
+                                 }}
+                               >
+                                 <Checkbox disabled style={{ accentColor: theme.radioCheckColor || theme.primaryColor } as any} />
+                                 <Label style={{ color: theme.optionTextColor || theme.textColor, fontSize: `${theme.optionFontSize || 16}px` }}>{option}</Label>
                                </div>
                              ));
                            })()}
@@ -1358,23 +1460,58 @@ export function FormCustomization({
                        variant="outline"
                        onClick={() => setCurrentPreviewStep(Math.max(0, currentPreviewStep - 1))}
                        disabled={currentPreviewStep === 0}
-                       className="px-6 py-2"
+                       className="px-6 py-2 transition-all"
+                       style={{
+                         backgroundColor: currentPreviewStep === 0 
+                           ? (theme.disabledButtonColor || '#e5e7eb')
+                           : (theme.navigationButtonBgColor || 'transparent'),
+                         color: currentPreviewStep === 0
+                           ? '#9ca3af'
+                           : (theme.navigationButtonTextColor || theme.textColor),
+                         border: `${theme.borderWidth || 1}px solid ${theme.navigationButtonBorderColor || theme.primaryColor}`,
+                         borderRadius: `${theme.borderRadius}px`,
+                         cursor: currentPreviewStep === 0 ? 'not-allowed' : 'pointer'
+                       }}
                      >
                        Precedente
                      </Button>
-                     <span className="text-sm text-gray-500">
+                     <div 
+                       className="px-4 py-2 rounded"
+                       style={{
+                         color: theme.counterTextColor || theme.textColor,
+                         fontSize: `${theme.counterFontSize || 14}px`,
+                         backgroundColor: theme.counterBgColor || 'transparent',
+                         fontWeight: 'medium'
+                       }}
+                     >
                        Domanda {currentPreviewStep + 1} di {validQuestions.length}
-                     </span>
+                     </div>
                      {currentPreviewStep === validQuestions.length - 1 ? (
-                       <Button type="button" className="px-6 py-2" style={{ backgroundColor: theme.primaryColor, color: '#fff', borderRadius: `${theme.borderRadius}px` }}>
+                       <Button 
+                         type="button" 
+                         className="px-6 py-2 transition-all" 
+                         style={{ 
+                           backgroundColor: theme.buttonStyle === 'filled' ? theme.primaryColor : 'transparent',
+                           color: theme.buttonTextColor || (theme.buttonStyle === 'filled' ? '#fff' : theme.primaryColor),
+                           border: theme.buttonStyle === 'outlined' ? `${theme.borderWidth || 2}px solid ${theme.primaryColor}` : 'none',
+                           borderRadius: `${theme.borderRadius}px`,
+                           fontWeight: '600'
+                         }}
+                       >
                          Invia Risposte
                        </Button>
                      ) : (
                        <Button
                          type="button"
                          onClick={() => setCurrentPreviewStep(Math.min(validQuestions.length - 1, currentPreviewStep + 1))}
-                         className="px-6 py-2"
-                         style={{ backgroundColor: theme.primaryColor, color: '#fff', borderRadius: `${theme.borderRadius}px` }}
+                         className="px-6 py-2 transition-all"
+                         style={{ 
+                           backgroundColor: theme.buttonStyle === 'filled' ? theme.primaryColor : 'transparent',
+                           color: theme.buttonTextColor || (theme.buttonStyle === 'filled' ? '#fff' : theme.primaryColor),
+                           border: theme.buttonStyle === 'outlined' ? `${theme.borderWidth || 2}px solid ${theme.primaryColor}` : 'none',
+                           borderRadius: `${theme.borderRadius}px`,
+                           fontWeight: '600'
+                         }}
                        >
                          Successiva
                        </Button>
