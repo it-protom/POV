@@ -1854,6 +1854,606 @@ export function FormCustomization({
           </CardContent>
         )}
       </Card>
+
+      {/* Pannello Personalizzazione Completa */}
+      <Card className="border-0 shadow-lg">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Sparkles className="h-5 w-5 text-[#FFCD00]" />
+            Personalizzazione Completa
+          </CardTitle>
+          <CardDescription>
+            Modifica ogni elemento del form: domande, opzioni, bottoni, colori e molto altro
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          {/* Tab Navigation */}
+          <div className="flex gap-2 mb-6 overflow-x-auto pb-2">
+            {tabs.map((tab) => (
+              <Button
+                key={tab.id}
+                variant={activeTab === tab.id ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => setActiveTab(tab.id as any)}
+                className={activeTab === tab.id ? 'bg-[#FFCD00] hover:bg-[#FFCD00]/90 text-black' : ''}
+              >
+                <tab.icon className="h-4 w-4 mr-2" />
+                {tab.label}
+              </Button>
+            ))}
+          </div>
+
+          {/* Tab Content */}
+          <div className="space-y-6">
+            {/* TAB: Colori Base */}
+            {activeTab === 'colors' && (
+              <div className="space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label>Colore Principale</Label>
+                    <div className="flex gap-2">
+                      <Input
+                        type="color"
+                        value={theme.primaryColor}
+                        onChange={(e) => updateTheme({ primaryColor: e.target.value })}
+                        className="w-16 h-10 cursor-pointer"
+                      />
+                      <Input
+                        type="text"
+                        value={theme.primaryColor}
+                        onChange={(e) => updateTheme({ primaryColor: e.target.value })}
+                        className="flex-1"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label>Colore Sfondo</Label>
+                    <div className="flex gap-2">
+                      <Input
+                        type="color"
+                        value={theme.backgroundColor}
+                        onChange={(e) => updateTheme({ backgroundColor: e.target.value })}
+                        className="w-16 h-10 cursor-pointer"
+                      />
+                      <Input
+                        type="text"
+                        value={theme.backgroundColor}
+                        onChange={(e) => updateTheme({ backgroundColor: e.target.value })}
+                        className="flex-1"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label>Colore Testo</Label>
+                    <div className="flex gap-2">
+                      <Input
+                        type="color"
+                        value={theme.textColor}
+                        onChange={(e) => updateTheme({ textColor: e.target.value })}
+                        className="w-16 h-10 cursor-pointer"
+                      />
+                      <Input
+                        type="text"
+                        value={theme.textColor}
+                        onChange={(e) => updateTheme({ textColor: e.target.value })}
+                        className="flex-1"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label>Colore Accento</Label>
+                    <div className="flex gap-2">
+                      <Input
+                        type="color"
+                        value={theme.accentColor}
+                        onChange={(e) => updateTheme({ accentColor: e.target.value })}
+                        className="w-16 h-10 cursor-pointer"
+                      />
+                      <Input
+                        type="text"
+                        value={theme.accentColor}
+                        onChange={(e) => updateTheme({ accentColor: e.target.value })}
+                        className="flex-1"
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* TAB: Domande */}
+            {activeTab === 'questions' && (
+              <div className="space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label>Colore Sfondo Numero</Label>
+                    <div className="flex gap-2">
+                      <Input
+                        type="color"
+                        value={theme.questionNumberBgColor || theme.primaryColor}
+                        onChange={(e) => updateTheme({ questionNumberBgColor: e.target.value })}
+                        className="w-16 h-10 cursor-pointer"
+                      />
+                      <Input
+                        type="text"
+                        value={theme.questionNumberBgColor || theme.primaryColor}
+                        onChange={(e) => updateTheme({ questionNumberBgColor: e.target.value })}
+                        className="flex-1"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label>Colore Testo Numero</Label>
+                    <div className="flex gap-2">
+                      <Input
+                        type="color"
+                        value={theme.questionNumberTextColor || '#ffffff'}
+                        onChange={(e) => updateTheme({ questionNumberTextColor: e.target.value })}
+                        className="w-16 h-10 cursor-pointer"
+                      />
+                      <Input
+                        type="text"
+                        value={theme.questionNumberTextColor || '#ffffff'}
+                        onChange={(e) => updateTheme({ questionNumberTextColor: e.target.value })}
+                        className="flex-1"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label>Colore Testo Domanda</Label>
+                    <div className="flex gap-2">
+                      <Input
+                        type="color"
+                        value={theme.questionTextColor || theme.textColor}
+                        onChange={(e) => updateTheme({ questionTextColor: e.target.value })}
+                        className="w-16 h-10 cursor-pointer"
+                      />
+                      <Input
+                        type="text"
+                        value={theme.questionTextColor || theme.textColor}
+                        onChange={(e) => updateTheme({ questionTextColor: e.target.value })}
+                        className="flex-1"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label>Colore Bordo Domanda</Label>
+                    <div className="flex gap-2">
+                      <Input
+                        type="color"
+                        value={theme.questionBorderColor || theme.accentColor}
+                        onChange={(e) => updateTheme({ questionBorderColor: e.target.value })}
+                        className="w-16 h-10 cursor-pointer"
+                      />
+                      <Input
+                        type="text"
+                        value={theme.questionBorderColor || theme.accentColor}
+                        onChange={(e) => updateTheme({ questionBorderColor: e.target.value })}
+                        className="flex-1"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label>Colore Sfondo Domanda</Label>
+                    <div className="flex gap-2">
+                      <Input
+                        type="color"
+                        value={theme.questionBackgroundColor || 'transparent'}
+                        onChange={(e) => updateTheme({ questionBackgroundColor: e.target.value })}
+                        className="w-16 h-10 cursor-pointer"
+                      />
+                      <Input
+                        type="text"
+                        value={theme.questionBackgroundColor || 'transparent'}
+                        onChange={(e) => updateTheme({ questionBackgroundColor: e.target.value })}
+                        className="flex-1"
+                        placeholder="transparent"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label>Dimensione Font Domanda: {theme.questionFontSize || 20}px</Label>
+                    <Slider
+                      value={[theme.questionFontSize || 20]}
+                      onValueChange={([value]) => updateTheme({ questionFontSize: value })}
+                      min={14}
+                      max={32}
+                      step={1}
+                      className="w-full"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label>Peso Font Domanda</Label>
+                    <Select
+                      value={theme.questionFontWeight || 'semibold'}
+                      onValueChange={(value: any) => updateTheme({ questionFontWeight: value })}
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="normal">Normal</SelectItem>
+                        <SelectItem value="medium">Medium</SelectItem>
+                        <SelectItem value="semibold">Semibold</SelectItem>
+                        <SelectItem value="bold">Bold</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label>Intensità Ombra: {theme.shadowIntensity || 2}</Label>
+                    <Slider
+                      value={[theme.shadowIntensity || 2]}
+                      onValueChange={([value]) => updateTheme({ shadowIntensity: value })}
+                      min={0}
+                      max={10}
+                      step={1}
+                      className="w-full"
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* TAB: Opzioni */}
+            {activeTab === 'options' && (
+              <div className="space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label>Colore Testo Opzioni</Label>
+                    <div className="flex gap-2">
+                      <Input
+                        type="color"
+                        value={theme.optionTextColor || theme.textColor}
+                        onChange={(e) => updateTheme({ optionTextColor: e.target.value })}
+                        className="w-16 h-10 cursor-pointer"
+                      />
+                      <Input
+                        type="text"
+                        value={theme.optionTextColor || theme.textColor}
+                        onChange={(e) => updateTheme({ optionTextColor: e.target.value })}
+                        className="flex-1"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label>Colore Bordo Opzioni</Label>
+                    <div className="flex gap-2">
+                      <Input
+                        type="color"
+                        value={theme.optionBorderColor || theme.accentColor}
+                        onChange={(e) => updateTheme({ optionBorderColor: e.target.value })}
+                        className="w-16 h-10 cursor-pointer"
+                      />
+                      <Input
+                        type="text"
+                        value={theme.optionBorderColor || theme.accentColor}
+                        onChange={(e) => updateTheme({ optionBorderColor: e.target.value })}
+                        className="flex-1"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label>Colore Radio/Checkbox</Label>
+                    <div className="flex gap-2">
+                      <Input
+                        type="color"
+                        value={theme.radioCheckColor || theme.primaryColor}
+                        onChange={(e) => updateTheme({ radioCheckColor: e.target.value })}
+                        className="w-16 h-10 cursor-pointer"
+                      />
+                      <Input
+                        type="text"
+                        value={theme.radioCheckColor || theme.primaryColor}
+                        onChange={(e) => updateTheme({ radioCheckColor: e.target.value })}
+                        className="flex-1"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label>Dimensione Font Opzioni: {theme.optionFontSize || 16}px</Label>
+                    <Slider
+                      value={[theme.optionFontSize || 16]}
+                      onValueChange={([value]) => updateTheme({ optionFontSize: value })}
+                      min={12}
+                      max={24}
+                      step={1}
+                      className="w-full"
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* TAB: Bottoni */}
+            {activeTab === 'buttons' && (
+              <div className="space-y-6">
+                <h3 className="text-sm font-semibold mb-4">Bottone Principale (Invia/Successiva)</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                  <div className="space-y-2">
+                    <Label>Stile Bottone</Label>
+                    <Select
+                      value={theme.buttonStyle}
+                      onValueChange={(value: 'filled' | 'outlined') => updateTheme({ buttonStyle: value })}
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="filled">Riempito</SelectItem>
+                        <SelectItem value="outlined">Solo Bordo</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label>Colore Testo Bottone</Label>
+                    <div className="flex gap-2">
+                      <Input
+                        type="color"
+                        value={theme.buttonTextColor || '#ffffff'}
+                        onChange={(e) => updateTheme({ buttonTextColor: e.target.value })}
+                        className="w-16 h-10 cursor-pointer"
+                      />
+                      <Input
+                        type="text"
+                        value={theme.buttonTextColor || '#ffffff'}
+                        onChange={(e) => updateTheme({ buttonTextColor: e.target.value })}
+                        className="flex-1"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <Separator />
+
+                <h3 className="text-sm font-semibold mb-4">Bottoni Navigazione (Precedente)</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                  <div className="space-y-2">
+                    <Label>Colore Sfondo Navigazione</Label>
+                    <div className="flex gap-2">
+                      <Input
+                        type="color"
+                        value={theme.navigationButtonBgColor || 'transparent'}
+                        onChange={(e) => updateTheme({ navigationButtonBgColor: e.target.value })}
+                        className="w-16 h-10 cursor-pointer"
+                      />
+                      <Input
+                        type="text"
+                        value={theme.navigationButtonBgColor || 'transparent'}
+                        onChange={(e) => updateTheme({ navigationButtonBgColor: e.target.value })}
+                        className="flex-1"
+                        placeholder="transparent"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label>Colore Testo Navigazione</Label>
+                    <div className="flex gap-2">
+                      <Input
+                        type="color"
+                        value={theme.navigationButtonTextColor || theme.textColor}
+                        onChange={(e) => updateTheme({ navigationButtonTextColor: e.target.value })}
+                        className="w-16 h-10 cursor-pointer"
+                      />
+                      <Input
+                        type="text"
+                        value={theme.navigationButtonTextColor || theme.textColor}
+                        onChange={(e) => updateTheme({ navigationButtonTextColor: e.target.value })}
+                        className="flex-1"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label>Colore Bordo Navigazione</Label>
+                    <div className="flex gap-2">
+                      <Input
+                        type="color"
+                        value={theme.navigationButtonBorderColor || theme.primaryColor}
+                        onChange={(e) => updateTheme({ navigationButtonBorderColor: e.target.value })}
+                        className="w-16 h-10 cursor-pointer"
+                      />
+                      <Input
+                        type="text"
+                        value={theme.navigationButtonBorderColor || theme.primaryColor}
+                        onChange={(e) => updateTheme({ navigationButtonBorderColor: e.target.value })}
+                        className="flex-1"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label>Colore Bottone Disabilitato</Label>
+                    <div className="flex gap-2">
+                      <Input
+                        type="color"
+                        value={theme.disabledButtonColor || '#e5e7eb'}
+                        onChange={(e) => updateTheme({ disabledButtonColor: e.target.value })}
+                        className="w-16 h-10 cursor-pointer"
+                      />
+                      <Input
+                        type="text"
+                        value={theme.disabledButtonColor || '#e5e7eb'}
+                        onChange={(e) => updateTheme({ disabledButtonColor: e.target.value })}
+                        className="flex-1"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <Separator />
+
+                <h3 className="text-sm font-semibold mb-4">Contatore "Domanda X di Y"</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label>Colore Testo Contatore</Label>
+                    <div className="flex gap-2">
+                      <Input
+                        type="color"
+                        value={theme.counterTextColor || theme.textColor}
+                        onChange={(e) => updateTheme({ counterTextColor: e.target.value })}
+                        className="w-16 h-10 cursor-pointer"
+                      />
+                      <Input
+                        type="text"
+                        value={theme.counterTextColor || theme.textColor}
+                        onChange={(e) => updateTheme({ counterTextColor: e.target.value })}
+                        className="flex-1"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label>Colore Sfondo Contatore</Label>
+                    <div className="flex gap-2">
+                      <Input
+                        type="color"
+                        value={theme.counterBgColor || 'transparent'}
+                        onChange={(e) => updateTheme({ counterBgColor: e.target.value })}
+                        className="w-16 h-10 cursor-pointer"
+                      />
+                      <Input
+                        type="text"
+                        value={theme.counterBgColor || 'transparent'}
+                        onChange={(e) => updateTheme({ counterBgColor: e.target.value })}
+                        className="flex-1"
+                        placeholder="transparent"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label>Dimensione Font Contatore: {theme.counterFontSize || 14}px</Label>
+                    <Slider
+                      value={[theme.counterFontSize || 14]}
+                      onValueChange={([value]) => updateTheme({ counterFontSize: value })}
+                      min={10}
+                      max={20}
+                      step={1}
+                      className="w-full"
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* TAB: Spaziatura */}
+            {activeTab === 'spacing' && (
+              <div className="space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label>Raggio Bordi: {theme.borderRadius}px</Label>
+                    <Slider
+                      value={[theme.borderRadius]}
+                      onValueChange={([value]) => updateTheme({ borderRadius: value })}
+                      min={0}
+                      max={30}
+                      step={1}
+                      className="w-full"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label>Spessore Bordi: {theme.borderWidth || 1}px</Label>
+                    <Slider
+                      value={[theme.borderWidth || 1]}
+                      onValueChange={([value]) => updateTheme({ borderWidth: value })}
+                      min={0}
+                      max={5}
+                      step={1}
+                      className="w-full"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label>Padding Card: {theme.cardPadding || 24}px</Label>
+                    <Slider
+                      value={[theme.cardPadding || 24]}
+                      onValueChange={([value]) => updateTheme({ cardPadding: value })}
+                      min={8}
+                      max={48}
+                      step={4}
+                      className="w-full"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label>Spazio Opzioni: {theme.optionSpacing || 12}px</Label>
+                    <Slider
+                      value={[theme.optionSpacing || 12]}
+                      onValueChange={([value]) => updateTheme({ optionSpacing: value })}
+                      min={4}
+                      max={24}
+                      step={2}
+                      className="w-full"
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* TAB: Tipografia (mantieni quello esistente) */}
+            {activeTab === 'typography' && (
+              <div className="space-y-6">
+                <div className="space-y-2">
+                  <Label>Font Famiglia</Label>
+                  <Select
+                    value={theme.fontFamily}
+                    onValueChange={(value) => updateTheme({ fontFamily: value })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Inter">Inter</SelectItem>
+                      <SelectItem value="Roboto">Roboto</SelectItem>
+                      <SelectItem value="Open Sans">Open Sans</SelectItem>
+                      <SelectItem value="Lato">Lato</SelectItem>
+                      <SelectItem value="Montserrat">Montserrat</SelectItem>
+                      <SelectItem value="Poppins">Poppins</SelectItem>
+                      <SelectItem value="Arial">Arial</SelectItem>
+                      <SelectItem value="Georgia">Georgia</SelectItem>
+                      <SelectItem value="Times New Roman">Times New Roman</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+            )}
+
+            {/* TAB: Immagini (rimanda al codice esistente nell'anteprima) */}
+            {activeTab === 'images' && (
+              <div className="space-y-4">
+                <p className="text-sm text-gray-500">
+                  Per modificare le immagini (logo, header, sfondo), usa i controlli direttamente nell'anteprima sopra cliccando sugli elementi.
+                </p>
+              </div>
+            )}
+
+            {/* TAB: Layout (rimanda al codice esistente) */}
+            {activeTab === 'layout' && (
+              <div className="space-y-4">
+                <p className="text-sm text-gray-500">
+                  Per modificare il layout, usa i controlli direttamente nell'anteprima sopra cliccando sugli elementi.
+                </p>
+              </div>
+            )}
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 }
