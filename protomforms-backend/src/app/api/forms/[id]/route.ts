@@ -205,6 +205,12 @@ export async function PUT(
     }
     
     // Aggiornamento del form nel database
+    console.log('🎨 PUT /api/forms/[id] - Tema ricevuto:', body.theme);
+    console.log('🖼️ Background image:', body.theme?.backgroundImage ? 'PRESENTE' : 'ASSENTE');
+    if (body.theme?.backgroundImage) {
+      console.log('📏 Background image length:', body.theme.backgroundImage.length);
+    }
+
     const updatedForm = await prisma.form.update({
       where: { id },
       data: {
@@ -238,6 +244,8 @@ export async function PUT(
         }
       }
     });
+    
+    console.log('✅ PUT /api/forms/[id] - Form aggiornato con tema');
     
     return NextResponse.json(updatedForm);
   } catch (error) {

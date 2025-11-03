@@ -40,9 +40,17 @@ export default defineConfig({
         ws: false,
         configure: (proxy, _options) => {
           proxy.on('proxyReq', (proxyReq, req, res) => {
+            // Assicurati che i cookie vengano passati
+            const cookie = req.headers.cookie;
+            if (cookie) {
+              proxyReq.setHeader('Cookie', cookie);
+            }
             // Log per debugging
-            if (req.url?.includes('/auth/signin')) {
-              console.log('🔄 Proxying auth request:', req.url);
+            if (req.url?.includes('/publish') || req.url?.includes('/auth/signin')) {
+              console.log('🔄 Proxying request:', req.url, {
+                hasCookie: !!cookie,
+                method: req.method
+              });
             }
           });
           proxy.on('error', (err, req, res) => {

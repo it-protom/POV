@@ -37,19 +37,6 @@ interface Question {
   order: number;
 }
 
-// Definisco l'interfaccia per il tema
-interface Theme {
-  primaryColor: string;
-  backgroundColor: string;
-  fontFamily: string;
-  borderRadius: number;
-  buttonStyle: 'filled' | 'outlined' | 'text';
-  textColor: string;
-  accentColor: string;
-  headerImage?: string;
-  logo?: string;
-}
-
 interface Form {
   id: string;
   title: string;
@@ -98,6 +85,8 @@ export default function EditFormPage() {
     backgroundImage: '',
     backgroundPosition: 'center',
     backgroundSize: 'cover',
+    backgroundAttachment: 'fixed',
+    backgroundRepeat: 'no-repeat',
     backgroundOpacity: 100
   });
 
@@ -122,8 +111,14 @@ export default function EditFormPage() {
             buttonStyle: data.theme.buttonStyle || 'filled',
             textColor: data.theme.textColor || '#000000',
             accentColor: data.theme.accentColor || '#000000',
-            headerImage: data.theme.headerImage,
-            logo: data.theme.logo
+            headerImage: data.theme.headerImage || '',
+            logo: data.theme.logo || '',
+            backgroundImage: data.theme.backgroundImage || '',
+            backgroundPosition: data.theme.backgroundPosition || 'center',
+            backgroundSize: data.theme.backgroundSize || 'cover',
+            backgroundAttachment: data.theme.backgroundAttachment || 'fixed',
+            backgroundRepeat: data.theme.backgroundRepeat || 'no-repeat',
+            backgroundOpacity: data.theme.backgroundOpacity || 100
           });
         }
 
@@ -289,7 +284,11 @@ export default function EditFormPage() {
         textColor: form.theme.textColor || '#000000',
         accentColor: form.theme.accentColor || '#000000',
         headerImage: form.theme.headerImage || '',
-        logo: form.theme.logo || ''
+        logo: form.theme.logo || '',
+        backgroundImage: form.theme.backgroundImage || '',
+        backgroundPosition: form.theme.backgroundPosition || 'center',
+        backgroundSize: form.theme.backgroundSize || 'cover',
+        backgroundOpacity: form.theme.backgroundOpacity || 100
       });
     }
   }, [form?.theme]);
@@ -712,14 +711,13 @@ export default function EditFormPage() {
                         {form.opensAt ? format(new Date(form.opensAt), "PPP", { locale: it }) : "Seleziona data"}
                       </Button>
                     </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0" align="start">
+                    <PopoverContent className="w-auto p-0 z-[100]" align="start" side="bottom" sideOffset={5}>
                       <Calendar
                         mode="single"
                         selected={form.opensAt ? new Date(form.opensAt) : undefined}
                         onSelect={(date) => setForm(prev => prev ? { ...prev, opensAt: date || undefined } : null)}
                         disabled={(date) => date < new Date()}
                         initialFocus
-                        locale={it}
                       />
                     </PopoverContent>
                   </Popover>
@@ -742,14 +740,13 @@ export default function EditFormPage() {
                         {form.closesAt ? format(new Date(form.closesAt), "PPP", { locale: it }) : "Seleziona data"}
                       </Button>
                     </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0" align="start">
+                    <PopoverContent className="w-auto p-0 z-[100]" align="start" side="bottom" sideOffset={5}>
                       <Calendar
                         mode="single"
                         selected={form.closesAt ? new Date(form.closesAt) : undefined}
                         onSelect={(date) => setForm(prev => prev ? { ...prev, closesAt: date || undefined } : null)}
                         disabled={(date) => date < new Date()}
                         initialFocus
-                        locale={it}
                       />
                     </PopoverContent>
                   </Popover>

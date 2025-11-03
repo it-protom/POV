@@ -6,12 +6,11 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { useState, useEffect } from "react"
-import { useNavigate, useLocation, useSearchParams } from "react-router-dom"
-import { Loader2, ArrowRight, Shield } from "lucide-react"
+import { useNavigate, useSearchParams } from "react-router-dom"
+import { Loader2, ArrowRight, Shield, Eye, EyeOff, Lock, Mail } from "lucide-react"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 // next-auth removed - needs custom auth
-import { Link } from "react-router-dom"
 import { Icons } from "@/components/icons"
 import { useAuth } from "@/contexts/AuthContext"
 import { getApiUrl } from "@/lib/utils"
@@ -26,6 +25,7 @@ export default function SignInPage() {
     email: "",
     password: ""
   })
+  const [showPassword, setShowPassword] = useState(false)
   const [validationErrors, setValidationErrors] = useState<Record<string, string>>({})
 
   // Check if user just registered
@@ -266,19 +266,22 @@ export default function SignInPage() {
                       <Label htmlFor="email" className="text-sm font-medium text-gray-700">
                         Email
                       </Label>
-                      <Input
-                        id="email"
-                        name="email"
-                        type="email"
-                        value={formData.email}
-                        onChange={handleChange}
-                        className={`h-12 rounded-xl border-2 transition-all duration-200 ${
-                          validationErrors.email 
-                            ? "border-red-300 focus:border-red-500" 
-                            : "border-gray-200 focus:border-blue-500"
-                        }`}
-                        placeholder="user@protom.com"
-                      />
+                      <div className="relative">
+                        <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                        <Input
+                          id="email"
+                          name="email"
+                          type="email"
+                          value={formData.email}
+                          onChange={handleChange}
+                          className={`h-12 rounded-xl border-2 transition-all duration-200 pl-10 ${
+                            validationErrors.email 
+                              ? "border-red-300 focus:border-red-500" 
+                              : "border-gray-200 focus:border-blue-500"
+                          }`}
+                          placeholder="user@protom.com"
+                        />
+                      </div>
                       {validationErrors.email && (
                         <p className="text-sm text-red-500 mt-1">{validationErrors.email}</p>
                       )}
@@ -288,19 +291,34 @@ export default function SignInPage() {
                       <Label htmlFor="password" className="text-sm font-medium text-gray-700">
                         Password
                       </Label>
-                      <Input
-                        id="password"
-                        name="password"
-                        type="password"
-                        value={formData.password}
-                        onChange={handleChange}
-                        className={`h-12 rounded-xl border-2 transition-all duration-200 ${
-                          validationErrors.password 
-                            ? "border-red-300 focus:border-red-500" 
-                            : "border-gray-200 focus:border-blue-500"
-                        }`}
-                        placeholder="••••••••"
-                      />
+                      <div className="relative">
+                        <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                        <Input
+                          id="password"
+                          name="password"
+                          type={showPassword ? "text" : "password"}
+                          value={formData.password}
+                          onChange={handleChange}
+                          className={`h-12 rounded-xl border-2 transition-all duration-200 pl-10 pr-10 ${
+                            validationErrors.password 
+                              ? "border-red-300 focus:border-red-500" 
+                              : "border-gray-200 focus:border-blue-500"
+                          }`}
+                          placeholder="••••••••"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowPassword(!showPassword)}
+                          className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 focus:outline-none"
+                          aria-label={showPassword ? "Nascondi password" : "Mostra password"}
+                        >
+                          {showPassword ? (
+                            <EyeOff className="w-4 h-4" />
+                          ) : (
+                            <Eye className="w-4 h-4" />
+                          )}
+                        </button>
+                      </div>
                       {validationErrors.password && (
                         <p className="text-sm text-red-500 mt-1">{validationErrors.password}</p>
                       )}
@@ -335,19 +353,6 @@ export default function SignInPage() {
                   </form>
                 </TabsContent>
               </Tabs>
-              
-              {/* Registration link */}
-              <div className="text-center pt-4 border-t border-gray-200">
-                <p className="text-sm text-gray-600">
-                  Non hai un account?{" "}
-                  <Link 
-                    to="/auth/register" 
-                    className="font-medium text-blue-600 hover:text-blue-800 transition-colors hover:underline"
-                  >
-                    Registrati ora
-                  </Link>
-                </p>
-              </div>
             </CardContent>
           </Card>
           

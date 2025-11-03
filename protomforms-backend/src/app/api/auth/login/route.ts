@@ -60,9 +60,8 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Return user data without password
-    // Note: NextAuth session will be created by the frontend calling NextAuth signIn
-    // The frontend should call: signIn('credentials', { email, password, redirect: false })
+    // Return user data - session will be created by frontend calling NextAuth signIn endpoint
+    // The frontend should make a POST to /api/auth/signin/credentials after this call
     return NextResponse.json({
       success: true,
       user: {
@@ -71,8 +70,6 @@ export async function POST(request: NextRequest) {
         name: user.name,
         role: user.role,
       },
-      // Indicate that frontend should call NextAuth signIn
-      requiresNextAuthSignIn: true,
     });
   } catch (error) {
     console.error('Login error:', error);

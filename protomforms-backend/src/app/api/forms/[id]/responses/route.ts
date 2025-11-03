@@ -82,6 +82,23 @@ export async function POST(
       );
     }
 
+    // Per form non anonimi, verifica che l'utente non abbia già inviato una risposta
+    if (!form.isAnonymous && session?.user?.id) {
+      const existingResponse = await prisma.response.findFirst({
+        where: {
+          formId: params.id,
+          userId: session.user.id,
+        },
+      });
+
+      if (existingResponse) {
+        return NextResponse.json(
+          { error: 'Hai già inviato una risposta a questo form' },
+          { status: 403 }
+        );
+      }
+    }
+
     // Calcola il prossimo progressiveNumber per il form usando SQL raw
     const result = await prisma.$queryRaw<[{ max: bigint | null }]>`
       SELECT MAX("progressiveNumber") as max 

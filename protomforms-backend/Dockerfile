@@ -11,6 +11,8 @@ RUN apk add --no-cache libc6-compat
 WORKDIR /app
 
 # Install dependencies
+# Copy prisma schema first (needed for postinstall hooks)
+COPY prisma ./prisma
 COPY package*.json ./
 RUN npm ci --legacy-peer-deps
 

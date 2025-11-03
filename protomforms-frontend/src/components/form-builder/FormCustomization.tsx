@@ -44,13 +44,15 @@ export interface Theme {
   headerImage: string;
   logo: string;
   backgroundImage: string;
-  backgroundPosition?: 'center' | 'top' | 'bottom' | 'left' | 'right';
+  backgroundPosition?: 'center' | 'top' | 'bottom' | 'left' | 'right' | 'top left' | 'top right' | 'bottom left' | 'bottom right';
   backgroundSize?: 'cover' | 'contain' | 'auto' | 'repeat';
+  backgroundAttachment?: 'fixed' | 'scroll'; // fixed = immagine ferma quando si scrolla
+  backgroundRepeat?: 'no-repeat' | 'repeat' | 'repeat-x' | 'repeat-y';
   backgroundOpacity?: number;
   headerImageHeight?: number; // Altezza header in px o percentuale
   logoSize?: number; // Dimensione logo in percentuale (100 = normale)
   logoPosition?: 'left' | 'center' | 'right' | 'above-title' | 'below-title'; // Posizione logo
-  layoutOrder?: string[]; // Ordine elementi: ['header', 'logo', 'title', 'description']
+  layoutOrder?: string[]; // Ordine elementi: ['logo', 'title', 'description']
 }
 
 interface FormCustomizationProps {
@@ -177,7 +179,7 @@ const DraggableImageUpload: React.FC<DraggableImageProps> = ({
           className={cn(
             "border-2 border-dashed rounded-lg p-8 text-center transition-all cursor-pointer",
             isDragging 
-              ? "border-primary bg-primary/5 scale-105" 
+              ? "border-[#FFCD00] bg-[#FFCD00]/5 scale-105" 
               : "border-gray-300 hover:border-gray-400 bg-gray-50/50"
           )}
           onDragOver={handleDragOver}
@@ -195,18 +197,18 @@ const DraggableImageUpload: React.FC<DraggableImageProps> = ({
           <div className="flex flex-col items-center gap-3">
             {isDragging ? (
               <>
-                <Move className="h-12 w-12 text-primary animate-bounce" />
-                <p className="text-sm font-medium text-primary">Rilascia l'immagine qui</p>
+                <Move className="h-12 w-12 text-[#FFCD00] animate-bounce" />
+                <p className="text-sm font-medium text-[#FFCD00]">Rilascia l'immagine qui</p>
               </>
             ) : (
               <>
                 <div className="relative">
                   <Upload className="h-12 w-12 text-gray-400" />
-                  <Sparkles className="h-6 w-6 text-primary absolute -top-1 -right-1" />
+                  <Sparkles className="h-6 w-6 text-[#FFCD00] absolute -top-1 -right-1" />
                 </div>
                 <div>
                   <p className="text-sm font-medium text-gray-700">
-                    Trascina un'immagine qui o <span className="text-primary">clicca per caricare</span>
+                    Trascina un'immagine qui o <span className="text-[#FFCD00]">clicca per caricare</span>
                   </p>
                   <p className="text-xs text-gray-500 mt-1">Max 5MB, formato JPG/PNG/SVG</p>
                 </div>
@@ -291,7 +293,9 @@ export function FormCustomization({
 
   // Ottieni l'ordine degli elementi (default se non specificato)
   const getLayoutOrder = (): string[] => {
-    return theme.layoutOrder || ['header', 'logo', 'title', 'description'];
+    const order = theme.layoutOrder || ['logo', 'title', 'description'];
+    // Rimuovi 'header' se presente (non più supportato)
+    return order.filter(element => element !== 'header');
   };
 
   // Sposta un elemento nell'ordine
@@ -338,7 +342,7 @@ export function FormCustomization({
           className="absolute -left-8 top-1/2 -translate-y-1/2 cursor-grab active:cursor-grabbing z-40 opacity-0 group-hover:opacity-100 transition-opacity"
           onClick={(e) => e.stopPropagation()}
         >
-          <GripVertical className="h-5 w-5 text-gray-400 hover:text-primary" />
+          <GripVertical className="h-5 w-5 text-gray-400 hover:text-[#FFCD00]" />
         </div>
         {children}
       </div>
@@ -441,7 +445,7 @@ export function FormCustomization({
               {getLayoutOrder().map((element, index) => (
                 <div key={element} className="flex items-center gap-2 p-2 bg-gray-50 rounded">
                   <GripVertical className="h-4 w-4 text-gray-400" />
-                  <span className="flex-1 text-xs capitalize">{element === 'header' ? 'Header' : element === 'logo' ? 'Logo' : element === 'title' ? 'Titolo' : 'Descrizione'}</span>
+                  <span className="flex-1 text-xs capitalize">{element === 'logo' ? 'Logo' : element === 'title' ? 'Titolo' : 'Descrizione'}</span>
                   <div className="flex gap-1">
                     <Button
                       type="button"
@@ -502,7 +506,7 @@ export function FormCustomization({
         </>
       ) : (
         <div
-          className="border-2 border-dashed rounded-lg p-8 text-center cursor-pointer hover:border-primary/50 transition-colors"
+          className="border-2 border-dashed rounded-lg p-8 text-center cursor-pointer hover:border-[#FFCD00]/50 transition-colors"
           onClick={() => {
             const input = document.createElement('input');
             input.type = 'file';
@@ -584,7 +588,7 @@ export function FormCustomization({
         <CardHeader>
           <div className="flex items-center justify-between">
             <CardTitle className="flex items-center gap-2">
-              <Eye className="h-5 w-5 text-primary" />
+              <Eye className="h-5 w-5 text-[#FFCD00]" />
               Anteprima Live
             </CardTitle>
             <div className="flex items-center gap-2">
@@ -627,8 +631,12 @@ export function FormCustomization({
             <Popover open={isEditMode && openPopovers.background} onOpenChange={(open) => isEditMode && setOpenPopovers(prev => ({ ...prev, background: open }))}>
               <PopoverTrigger asChild>
                 <div
-                  className={`relative border rounded-lg p-6 space-y-4 min-h-[400px] overflow-hidden group ${
+                  className={`relative border-2 rounded-lg p-6 space-y-4 min-h-[400px] overflow-hidden group transition-all duration-300 ${
                     isEditMode ? 'cursor-pointer' : 'cursor-default'
+                  } ${
+                    isEditMode && openPopovers.background 
+                      ? 'border-[#FFCD00] ring-4 ring-[#FFCD00]/20 shadow-[0_0_20px_rgba(255,205,0,0.3)]' 
+                      : 'border-gray-200'
                   }`}
                   style={{
                     fontFamily: `"${theme.fontFamily}", sans-serif`,
@@ -639,24 +647,28 @@ export function FormCustomization({
                       : undefined,
                     backgroundPosition: theme.backgroundPosition || 'center',
                     backgroundSize: theme.backgroundSize || 'cover',
-                    backgroundRepeat: 'no-repeat',
-                    backgroundAttachment: 'fixed', // Identico alla vista utente
+                    backgroundRepeat: theme.backgroundRepeat || 'no-repeat',
+                    backgroundAttachment: theme.backgroundAttachment || 'fixed', // Identico alla vista utente
                   }}
                   onClick={(e) => {
                     if (!isEditMode) return;
-                    // Se clicchi sullo sfondo (non su elementi figli), apri popover
-                    if (e.target === e.currentTarget || (e.target as HTMLElement).classList.contains('group')) {
+                    // Solo se clicchi direttamente sul container vuoto (non su elementi figli)
+                    const target = e.target as HTMLElement;
+                    const currentTarget = e.currentTarget as HTMLElement;
+                    
+                    // Controlla se il click è su un elemento figlio modificabile
+                    const clickableElements = target.closest('[data-editable]') || 
+                                            target.closest('button') ||
+                                            target.closest('h2') ||
+                                            target.closest('p') ||
+                                            target.closest('img');
+                    
+                    // Solo apri popover sfondo se non si clicca su elementi modificabili
+                    if (!clickableElements && (target === currentTarget || target.classList.contains('space-y-4'))) {
                       togglePopover('background');
                     }
                   }}
                 >
-                  {isEditMode && (
-                    <div className="absolute top-2 left-2 opacity-0 group-hover:opacity-100 transition-opacity z-20 pointer-events-none">
-                      <div className="bg-primary text-white shadow-lg px-3 py-1.5 rounded-md text-xs font-medium whitespace-nowrap">
-                        🎨 Sfondo
-                      </div>
-                    </div>
-                  )}
               {/* Indicatore cliccabile per font globale */}
               {isEditMode && (
                 <Popover open={openPopovers.font} onOpenChange={(open) => setOpenPopovers(prev => ({ ...prev, font: open }))}>
@@ -689,7 +701,7 @@ export function FormCustomization({
                           className={cn(
                             "p-2 rounded-lg border-2 transition-all text-left hover:scale-105",
                             theme.fontFamily === font
-                              ? "border-primary bg-primary/10 ring-2 ring-primary/20"
+                              ? "border-[#FFCD00] bg-[#FFCD00]/10 ring-2 ring-[#FFCD00]/20"
                               : "border-gray-200 hover:border-gray-300"
                           )}
                           style={{ fontFamily: font }}
@@ -724,143 +736,6 @@ export function FormCustomization({
                   <div className="relative z-10 space-y-4">
                     {/* Renderizza gli elementi in base all'ordine del layout */}
                     {getLayoutOrder().map((element) => {
-                  // Render Header
-                  if (element === 'header' && (theme.headerImage || isEditMode)) {
-                    return (
-                      <SortableLayoutElement key="header" id="header">
-                        <Popover open={isEditMode && openPopovers.headerImage} onOpenChange={(open) => isEditMode && setOpenPopovers(prev => ({ ...prev, headerImage: open }))}>
-                          <PopoverTrigger asChild>
-                            <div className={`relative group mb-4 ${isEditMode ? 'cursor-pointer' : 'cursor-default'}`}>
-                            {theme.headerImage ? (
-                              <img
-                                src={theme.headerImage}
-                                alt="Header"
-                                className={`w-full object-cover rounded-md transition-all ${
-                                  isEditMode ? 'hover:ring-2 hover:ring-primary/50' : ''
-                                }`}
-                                style={{ 
-                                  borderRadius: `${theme.borderRadius}px`,
-                                  height: theme.headerImageHeight ? `${theme.headerImageHeight}px` : '192px'
-                                }}
-                                onClick={(e) => {
-                                  if (!isEditMode) return;
-                                  e.stopPropagation();
-                                  togglePopover('headerImage');
-                                }}
-                              />
-                            ) : (
-                              <div
-                                className={`w-full h-48 rounded-md border-2 border-dashed border-gray-300 flex items-center justify-center bg-gray-50/50 transition-all ${
-                                  isEditMode ? 'hover:border-primary/50 cursor-pointer' : 'cursor-default'
-                                }`}
-                                style={{ borderRadius: `${theme.borderRadius}px` }}
-                                onClick={(e) => {
-                                  if (!isEditMode) return;
-                                  e.stopPropagation();
-                                  togglePopover('headerImage');
-                                }}
-                              >
-                                <div className="text-center">
-                                  <ImageIcon className="h-8 w-8 text-gray-400 mx-auto mb-2" />
-                                  {isEditMode && (
-                                    <p className="text-xs text-gray-500">Clicca per aggiungere</p>
-                                  )}
-                                </div>
-                              </div>
-                            )}
-                            {isEditMode && (
-                              <span className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity text-xs bg-primary text-white px-2 py-0.5 rounded whitespace-nowrap pointer-events-none z-30">
-                                📷 Header
-                              </span>
-                            )}
-                          </div>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-80" align="start" onClick={(e) => e.stopPropagation()}>
-                          <div className="space-y-4">
-                            <Label className="text-sm font-semibold">Immagine Header</Label>
-                            {theme.headerImage ? (
-                              <>
-                                <div className="relative rounded-lg overflow-hidden border-2 border-gray-200">
-                                  <img
-                                    src={theme.headerImage}
-                                    alt="Header preview"
-                                    className="w-full h-32 object-cover"
-                                    style={{ height: theme.headerImageHeight ? `${theme.headerImageHeight * 0.17}px` : undefined }}
-                                  />
-                                </div>
-                                <div className="space-y-2">
-                                  <Label className="text-xs font-medium">Altezza Immagine: {theme.headerImageHeight || 192}px</Label>
-                                  <Slider
-                                    value={[theme.headerImageHeight || 192]}
-                                    onValueChange={([value]) => updateTheme({ headerImageHeight: value })}
-                                    min={100}
-                                    max={500}
-                                    step={10}
-                                    className="w-full"
-                                  />
-                                  <div className="flex justify-between text-xs text-gray-500">
-                                    <span>100px</span>
-                                    <span>500px</span>
-                                  </div>
-                                </div>
-                                <Separator />
-                                <div className="flex gap-2">
-                                  <Button
-                                    type="button"
-                                    variant="secondary"
-                                    size="sm"
-                                    className="flex-1"
-                                    onClick={() => {
-                                      const input = document.createElement('input');
-                                      input.type = 'file';
-                                      input.accept = 'image/*';
-                                      input.onchange = (e) => {
-                                        const file = (e.target as HTMLInputElement).files?.[0];
-                                        if (file) handleImageUpload('headerImage', file);
-                                      };
-                                      input.click();
-                                    }}
-                                  >
-                                    <Upload className="h-4 w-4 mr-2" />
-                                    Sostituisci
-                                  </Button>
-                                  <Button
-                                    type="button"
-                                    variant="destructive"
-                                    size="sm"
-                                    onClick={() => removeImage('headerImage')}
-                                  >
-                                    <X className="h-4 w-4 mr-2" />
-                                    Rimuovi
-                                  </Button>
-                                </div>
-                              </>
-                            ) : (
-                              <div
-                                className="border-2 border-dashed rounded-lg p-8 text-center cursor-pointer hover:border-primary/50 transition-colors"
-                                onClick={() => {
-                                  const input = document.createElement('input');
-                                  input.type = 'file';
-                                  input.accept = 'image/*';
-                                  input.onchange = (e) => {
-                                    const file = (e.target as HTMLInputElement).files?.[0];
-                                    if (file) handleImageUpload('headerImage', file);
-                                  };
-                                  input.click();
-                                }}
-                              >
-                                <Upload className="h-8 w-8 text-gray-400 mx-auto mb-2" />
-                                <p className="text-sm text-gray-600">Clicca per caricare immagine</p>
-                                <p className="text-xs text-gray-500 mt-1">Max 5MB, JPG/PNG/SVG</p>
-                              </div>
-                            )}
-                          </div>
-                        </PopoverContent>
-                        </Popover>
-                      </SortableLayoutElement>
-                    );
-                  }
-
                   // Render Logo e Titolo insieme se sono nella stessa posizione
                   if (element === 'logo' || element === 'title') {
                     const logoPosition = theme.logoPosition || 'left';
@@ -878,8 +753,9 @@ export function FormCustomization({
                                 <div className={`mb-4 relative group ${theme.logo ? 'inline-block' : isEditMode ? 'inline-block' : 'hidden'} ${isEditMode ? 'cursor-pointer' : 'cursor-default'} w-full text-center`}>
                                   {theme.logo ? (
                                     <div
+                                      data-editable="logo"
                                       className={`rounded transition-all p-2 -m-2 inline-block ${
-                                        isEditMode ? 'hover:ring-2 hover:ring-primary/50' : ''
+                                        isEditMode ? 'hover:ring-2 hover:ring-[#FFCD00]/50' : ''
                                       }`}
                                       onClick={(e) => {
                                         if (!isEditMode) return;
@@ -891,6 +767,7 @@ export function FormCustomization({
                                         src={theme.logo}
                                         alt="Logo"
                                         className="w-auto object-contain"
+                                        data-editable="logo"
                                         style={{ 
                                           height: theme.logoSize ? `${(theme.logoSize / 100) * 64}px` : '64px'
                                         }}
@@ -899,12 +776,20 @@ export function FormCustomization({
                                   ) : (
                                     <div
                                       className={`h-16 w-32 border-2 border-dashed border-gray-300 rounded-lg flex items-center justify-center bg-gray-50/50 transition-all inline-block ${
-                                        isEditMode ? 'hover:border-primary/50 cursor-pointer' : 'cursor-default'
+                                        isEditMode ? 'hover:border-[#FFCD00]/50 cursor-pointer' : 'cursor-default'
                                       }`}
                                       onClick={(e) => {
                                         if (!isEditMode) return;
                                         e.stopPropagation();
-                                        togglePopover('logo');
+                                        // Apri direttamente il file picker quando si clicca sul placeholder
+                                        const input = document.createElement('input');
+                                        input.type = 'file';
+                                        input.accept = 'image/*';
+                                        input.onchange = (e) => {
+                                          const file = (e.target as HTMLInputElement).files?.[0];
+                                          if (file) handleImageUpload('logo', file);
+                                        };
+                                        input.click();
                                       }}
                                     >
                                       <div className="text-center">
@@ -912,11 +797,6 @@ export function FormCustomization({
                                         {isEditMode && <p className="text-xs text-gray-500">Logo</p>}
                                       </div>
                                     </div>
-                                  )}
-                                  {isEditMode && (
-                                    <span className="absolute top-0 right-0 opacity-0 group-hover:opacity-100 transition-opacity text-xs bg-primary text-white px-2 py-0.5 rounded whitespace-nowrap pointer-events-none z-30">
-                                      🏷️ Logo
-                                    </span>
                                   )}
                                 </div>
                               </PopoverTrigger>
@@ -943,8 +823,9 @@ export function FormCustomization({
                                 <div className={`relative group ${theme.logo ? 'inline-block' : isEditMode ? 'inline-block' : 'hidden'} ${isEditMode ? 'cursor-pointer' : 'cursor-default'}`}>
                                   {theme.logo ? (
                                     <div
+                                      data-editable="logo"
                                       className={`rounded transition-all p-2 -m-2 ${
-                                        isEditMode ? 'hover:ring-2 hover:ring-primary/50' : ''
+                                        isEditMode ? 'hover:ring-2 hover:ring-[#FFCD00]/50' : ''
                                       }`}
                                       onClick={(e) => {
                                         if (!isEditMode) return;
@@ -956,6 +837,7 @@ export function FormCustomization({
                                         src={theme.logo}
                                         alt="Logo"
                                         className="w-auto object-contain"
+                                        data-editable="logo"
                                         style={{ 
                                           height: theme.logoSize ? `${(theme.logoSize / 100) * 64}px` : '64px'
                                         }}
@@ -964,12 +846,20 @@ export function FormCustomization({
                                   ) : (
                                     <div
                                       className={`h-16 w-32 border-2 border-dashed border-gray-300 rounded-lg flex items-center justify-center bg-gray-50/50 transition-all ${
-                                        isEditMode ? 'hover:border-primary/50 cursor-pointer' : 'cursor-default'
+                                        isEditMode ? 'hover:border-[#FFCD00]/50 cursor-pointer' : 'cursor-default'
                                       }`}
                                       onClick={(e) => {
                                         if (!isEditMode) return;
                                         e.stopPropagation();
-                                        togglePopover('logo');
+                                        // Apri direttamente il file picker quando si clicca sul placeholder
+                                        const input = document.createElement('input');
+                                        input.type = 'file';
+                                        input.accept = 'image/*';
+                                        input.onchange = (e) => {
+                                          const file = (e.target as HTMLInputElement).files?.[0];
+                                          if (file) handleImageUpload('logo', file);
+                                        };
+                                        input.click();
                                       }}
                                     >
                                       <div className="text-center">
@@ -977,11 +867,6 @@ export function FormCustomization({
                                         {isEditMode && <p className="text-xs text-gray-500">Logo</p>}
                                       </div>
                                     </div>
-                                  )}
-                                  {isEditMode && (
-                                    <span className="absolute top-0 right-0 opacity-0 group-hover:opacity-100 transition-opacity text-xs bg-primary text-white px-2 py-0.5 rounded whitespace-nowrap pointer-events-none z-30">
-                                      🏷️ Logo
-                                    </span>
                                   )}
                                 </div>
                               </PopoverTrigger>
@@ -994,8 +879,9 @@ export function FormCustomization({
                           <Popover open={isEditMode && openPopovers.title} onOpenChange={(open) => isEditMode && setOpenPopovers(prev => ({ ...prev, title: open }))}>
                             <PopoverTrigger asChild>
                               <h2
+                                data-editable="title"
                                 className={`text-2xl font-bold relative group transition-all flex-1 ${
-                                  isEditMode ? 'cursor-pointer hover:ring-2 hover:ring-primary/50 rounded px-2 py-1 -mx-2 -my-1 inline-block' : 'cursor-default'
+                                  isEditMode ? 'cursor-pointer hover:ring-2 hover:ring-[#FFCD00]/50 rounded px-2 py-1 -mx-2 -my-1 inline-block' : 'cursor-default'
                                 }`}
                                 style={{ color: theme.primaryColor }}
                                 onClick={(e) => {
@@ -1005,11 +891,6 @@ export function FormCustomization({
                                 }}
                               >
                                 {formTitle}
-                                {isEditMode && (
-                                  <span className="absolute -top-6 left-0 opacity-0 group-hover:opacity-100 transition-opacity text-xs bg-primary text-white px-2 py-0.5 rounded whitespace-nowrap pointer-events-none z-30">
-                                    ✏️ Titolo
-                                  </span>
-                                )}
                               </h2>
                             </PopoverTrigger>
                             <PopoverContent className="w-80" align="start" onClick={(e) => e.stopPropagation()}>
@@ -1057,8 +938,9 @@ export function FormCustomization({
                                 <div className={`relative group ${theme.logo ? 'inline-block' : isEditMode ? 'inline-block' : 'hidden'} ${isEditMode ? 'cursor-pointer' : 'cursor-default'}`}>
                                   {theme.logo ? (
                                     <div
+                                      data-editable="logo"
                                       className={`rounded transition-all p-2 -m-2 ${
-                                        isEditMode ? 'hover:ring-2 hover:ring-primary/50' : ''
+                                        isEditMode ? 'hover:ring-2 hover:ring-[#FFCD00]/50' : ''
                                       }`}
                                       onClick={(e) => {
                                         if (!isEditMode) return;
@@ -1070,6 +952,7 @@ export function FormCustomization({
                                         src={theme.logo}
                                         alt="Logo"
                                         className="w-auto object-contain"
+                                        data-editable="logo"
                                         style={{ 
                                           height: theme.logoSize ? `${(theme.logoSize / 100) * 64}px` : '64px'
                                         }}
@@ -1078,12 +961,20 @@ export function FormCustomization({
                                   ) : (
                                     <div
                                       className={`h-16 w-32 border-2 border-dashed border-gray-300 rounded-lg flex items-center justify-center bg-gray-50/50 transition-all ${
-                                        isEditMode ? 'hover:border-primary/50 cursor-pointer' : 'cursor-default'
+                                        isEditMode ? 'hover:border-[#FFCD00]/50 cursor-pointer' : 'cursor-default'
                                       }`}
                                       onClick={(e) => {
                                         if (!isEditMode) return;
                                         e.stopPropagation();
-                                        togglePopover('logo');
+                                        // Apri direttamente il file picker quando si clicca sul placeholder
+                                        const input = document.createElement('input');
+                                        input.type = 'file';
+                                        input.accept = 'image/*';
+                                        input.onchange = (e) => {
+                                          const file = (e.target as HTMLInputElement).files?.[0];
+                                          if (file) handleImageUpload('logo', file);
+                                        };
+                                        input.click();
                                       }}
                                     >
                                       <div className="text-center">
@@ -1091,11 +982,6 @@ export function FormCustomization({
                                         {isEditMode && <p className="text-xs text-gray-500">Logo</p>}
                                       </div>
                                     </div>
-                                  )}
-                                  {isEditMode && (
-                                    <span className="absolute top-0 right-0 opacity-0 group-hover:opacity-100 transition-opacity text-xs bg-primary text-white px-2 py-0.5 rounded whitespace-nowrap pointer-events-none z-30">
-                                      🏷️ Logo
-                                    </span>
                                   )}
                                 </div>
                               </PopoverTrigger>
@@ -1114,8 +1000,9 @@ export function FormCustomization({
                         <Popover key="title" open={isEditMode && openPopovers.title} onOpenChange={(open) => isEditMode && setOpenPopovers(prev => ({ ...prev, title: open }))}>
                           <PopoverTrigger asChild>
                             <h2
+                              data-editable="title"
                               className={`text-2xl font-bold relative group transition-all w-full mb-2 ${
-                                isEditMode ? 'cursor-pointer hover:ring-2 hover:ring-primary/50 rounded px-2 py-1 -mx-2 -my-1 inline-block' : 'cursor-default block'
+                                isEditMode ? 'cursor-pointer hover:ring-2 hover:ring-[#FFCD00]/50 rounded px-2 py-1 -mx-2 -my-1 inline-block' : 'cursor-default block'
                               }`}
                               style={{ color: theme.primaryColor }}
                               onClick={(e) => {
@@ -1125,11 +1012,6 @@ export function FormCustomization({
                               }}
                             >
                               {formTitle}
-                              {isEditMode && (
-                                <span className="absolute -top-6 left-0 opacity-0 group-hover:opacity-100 transition-opacity text-xs bg-primary text-white px-2 py-0.5 rounded whitespace-nowrap pointer-events-none z-30">
-                                  ✏️ Titolo
-                                </span>
-                              )}
                             </h2>
                           </PopoverTrigger>
                           <PopoverContent className="w-80" align="start" onClick={(e) => e.stopPropagation()}>
@@ -1184,6 +1066,7 @@ export function FormCustomization({
                             <div className={`mb-4 relative group ${theme.logo ? 'inline-block' : isEditMode ? 'inline-block' : 'hidden'} ${isEditMode ? 'cursor-pointer' : 'cursor-default'} w-full text-center`}>
                               {theme.logo ? (
                                 <div
+                                  data-editable="logo"
                                   className={`rounded transition-all p-2 -m-2 inline-block ${
                                     isEditMode ? 'hover:ring-2 hover:ring-primary/50' : ''
                                   }`}
@@ -1197,6 +1080,7 @@ export function FormCustomization({
                                     src={theme.logo}
                                     alt="Logo"
                                     className="w-auto object-contain"
+                                    data-editable="logo"
                                     style={{ 
                                       height: theme.logoSize ? `${(theme.logoSize / 100) * 64}px` : '64px'
                                     }}
@@ -1205,12 +1089,20 @@ export function FormCustomization({
                               ) : (
                                 <div
                                   className={`h-16 w-32 border-2 border-dashed border-gray-300 rounded-lg flex items-center justify-center bg-gray-50/50 transition-all inline-block ${
-                                    isEditMode ? 'hover:border-primary/50 cursor-pointer' : 'cursor-default'
+                                    isEditMode ? 'hover:border-[#FFCD00]/50 cursor-pointer' : 'cursor-default'
                                   }`}
                                   onClick={(e) => {
                                     if (!isEditMode) return;
                                     e.stopPropagation();
-                                    togglePopover('logo');
+                                    // Apri direttamente il file picker quando si clicca sul placeholder
+                                    const input = document.createElement('input');
+                                    input.type = 'file';
+                                    input.accept = 'image/*';
+                                    input.onchange = (e) => {
+                                      const file = (e.target as HTMLInputElement).files?.[0];
+                                      if (file) handleImageUpload('logo', file);
+                                    };
+                                    input.click();
                                   }}
                                 >
                                   <div className="text-center">
@@ -1218,11 +1110,6 @@ export function FormCustomization({
                                     {isEditMode && <p className="text-xs text-gray-500">Logo</p>}
                                   </div>
                                 </div>
-                              )}
-                              {isEditMode && (
-                                <span className="absolute top-0 right-0 opacity-0 group-hover:opacity-100 transition-opacity text-xs bg-primary text-white px-2 py-0.5 rounded whitespace-nowrap pointer-events-none z-30">
-                                  🏷️ Logo
-                                </span>
                               )}
                             </div>
                           </PopoverTrigger>
@@ -1243,8 +1130,9 @@ export function FormCustomization({
                         <PopoverTrigger asChild>
                           <div className="relative group">
                             <p 
+                              data-editable="description"
                               className={`text-gray-600 mb-6 inline-block transition-all ${
-                                isEditMode ? 'cursor-pointer hover:ring-2 hover:ring-blue-500/50 rounded px-2 py-1 -mx-2 -my-1 hover:bg-blue-50/50' : 'cursor-default'
+                                isEditMode ? 'cursor-pointer hover:ring-2 hover:ring-[#FFCD00]/50 rounded px-2 py-1 -mx-2 -my-1 hover:bg-[#FFCD00]/10' : 'cursor-default'
                               }`}
                               style={{ color: theme.textColor }}
                               onClick={(e) => {
@@ -1255,14 +1143,6 @@ export function FormCustomization({
                             >
                               {formDescription}
                             </p>
-                            {isEditMode && (
-                              <div className="absolute -bottom-8 left-0 opacity-0 group-hover:opacity-100 transition-opacity z-30 pointer-events-none">
-                                <div className="bg-blue-600 text-white px-3 py-1.5 rounded-md text-xs font-semibold shadow-lg whitespace-nowrap">
-                                  📝 Modifica Testo Descrizione
-                                </div>
-                                <div className="absolute -top-1 left-4 w-2 h-2 bg-blue-600 rotate-45"></div>
-                              </div>
-                            )}
                           </div>
                         </PopoverTrigger>
                         <PopoverContent className="w-80" align="start" onClick={(e) => e.stopPropagation()}>
@@ -1316,6 +1196,7 @@ export function FormCustomization({
                <Popover open={isEditMode && openPopovers.questionBox} onOpenChange={(open) => isEditMode && setOpenPopovers(prev => ({ ...prev, questionBox: open }))}>
                   <PopoverTrigger asChild>
                     <div
+                      data-editable="questionBox"
                       className={`p-4 rounded-md border mb-4 relative group transition-all ${
                         isEditMode ? 'cursor-pointer hover:ring-2 hover:ring-primary/50' : 'cursor-default'
                       }`}
@@ -1330,11 +1211,6 @@ export function FormCustomization({
                         togglePopover('questionBox');
                       }}
                     >
-                      {isEditMode && (
-                        <span className="absolute top-2 left-2 opacity-0 group-hover:opacity-100 transition-opacity text-xs bg-primary text-white px-2 py-0.5 rounded whitespace-nowrap pointer-events-none z-30">
-                          📦 Box
-                        </span>
-                      )}
                       <p className="font-medium mb-2">Domanda di esempio</p>
                       <div className="space-y-2">
                         <label className="flex items-center gap-2 cursor-pointer">
@@ -1398,6 +1274,7 @@ export function FormCustomization({
                 <Popover open={isEditMode && openPopovers.button} onOpenChange={(open) => isEditMode && setOpenPopovers(prev => ({ ...prev, button: open }))}>
                   <PopoverTrigger asChild>
                     <Button
+                      data-editable="button"
                       className={`float-right relative group transition-all ${
                         isEditMode ? 'cursor-pointer hover:ring-2 hover:ring-primary/50' : 'cursor-default'
                       }`}
@@ -1414,11 +1291,6 @@ export function FormCustomization({
                       }}
                     >
                       Invia
-                      {isEditMode && (
-                        <span className="absolute -top-6 right-0 opacity-0 group-hover:opacity-100 transition-opacity text-xs bg-primary text-white px-2 py-0.5 rounded whitespace-nowrap pointer-events-none z-30">
-                          🔘 Bottone
-                        </span>
-                      )}
                     </Button>
                   </PopoverTrigger>
                   <PopoverContent className="w-80" align="end" onClick={(e) => e.stopPropagation()}>
@@ -1473,7 +1345,13 @@ export function FormCustomization({
                 <div className="clear-both" />
                 </div>
               </PopoverTrigger>
-              <PopoverContent className="w-96 max-h-[600px] overflow-y-auto" align="start" onClick={(e) => e.stopPropagation()}>
+              <PopoverContent 
+                className="w-96 max-h-[80vh] overflow-y-auto z-[200] shadow-2xl border-2" 
+                align="start" 
+                side="top"
+                sideOffset={10}
+                onClick={(e) => e.stopPropagation()}
+              >
                 <div className="space-y-4">
                   <div className="space-y-2">
                     <Label className="text-sm font-semibold flex items-center gap-2">
@@ -1486,7 +1364,11 @@ export function FormCustomization({
                         variant={!theme.backgroundImage ? "default" : "outline"}
                         size="sm"
                         onClick={() => updateTheme({ backgroundImage: '' })}
-                        className="text-xs"
+                        className={`text-xs transition-all ${
+                          !theme.backgroundImage 
+                            ? "bg-[#FFCD00] hover:bg-[#FFD733] text-black border-2 border-[#FFCD00] shadow-lg ring-2 ring-[#FFCD00]/30" 
+                            : "hover:border-[#FFCD00] hover:text-[#FFCD00]"
+                        }`}
                       >
                         Colore Solido
                       </Button>
@@ -1504,7 +1386,11 @@ export function FormCustomization({
                           };
                           input.click();
                         }}
-                        className="text-xs"
+                        className={`text-xs transition-all ${
+                          theme.backgroundImage 
+                            ? "bg-[#FFCD00] hover:bg-[#FFD733] text-black border-2 border-[#FFCD00] shadow-lg ring-2 ring-[#FFCD00]/30" 
+                            : "hover:border-[#FFCD00] hover:text-[#FFCD00]"
+                        }`}
                       >
                         <ImageIcon className="h-3 w-3 mr-1" />
                         Immagine
@@ -1572,10 +1458,14 @@ export function FormCustomization({
                               </SelectTrigger>
                               <SelectContent>
                                 <SelectItem value="center">Centro</SelectItem>
-                                <SelectItem value="top">Alto</SelectItem>
-                                <SelectItem value="bottom">Basso</SelectItem>
-                                <SelectItem value="left">Sinistra</SelectItem>
-                                <SelectItem value="right">Destra</SelectItem>
+                                <SelectItem value="top">Alto Centro</SelectItem>
+                                <SelectItem value="bottom">Basso Centro</SelectItem>
+                                <SelectItem value="left">Sinistra Centro</SelectItem>
+                                <SelectItem value="right">Destra Centro</SelectItem>
+                                <SelectItem value="top left">Alto Sinistra</SelectItem>
+                                <SelectItem value="top right">Alto Destra</SelectItem>
+                                <SelectItem value="bottom left">Basso Sinistra</SelectItem>
+                                <SelectItem value="bottom right">Basso Destra</SelectItem>
                               </SelectContent>
                             </Select>
                           </div>
@@ -1591,7 +1481,42 @@ export function FormCustomization({
                               <SelectContent>
                                 <SelectItem value="cover">Copri tutto</SelectItem>
                                 <SelectItem value="contain">Contieni</SelectItem>
-                                <SelectItem value="auto">Automatico</SelectItem>
+                                <SelectItem value="auto">Dimensione originale</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-3">
+                          <div className="space-y-2">
+                            <Label className="text-xs font-medium">Comportamento Scroll</Label>
+                            <Select
+                              value={theme.backgroundAttachment || 'fixed'}
+                              onValueChange={(value: any) => updateTheme({ backgroundAttachment: value })}
+                            >
+                              <SelectTrigger className="w-full text-xs h-8">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="fixed">Fisso (non scorre)</SelectItem>
+                                <SelectItem value="scroll">Scorre con pagina</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          <div className="space-y-2">
+                            <Label className="text-xs font-medium">Ripetizione</Label>
+                            <Select
+                              value={theme.backgroundRepeat || 'no-repeat'}
+                              onValueChange={(value: any) => updateTheme({ backgroundRepeat: value })}
+                            >
+                              <SelectTrigger className="w-full text-xs h-8">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="no-repeat">Nessuna</SelectItem>
+                                <SelectItem value="repeat">Ripeti tutto</SelectItem>
+                                <SelectItem value="repeat-x">Ripeti orizzontale</SelectItem>
+                                <SelectItem value="repeat-y">Ripeti verticale</SelectItem>
                               </SelectContent>
                             </Select>
                           </div>

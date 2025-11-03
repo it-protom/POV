@@ -63,6 +63,8 @@ export default function NewFormPage() {
     backgroundImage: '',
     backgroundPosition: 'center',
     backgroundSize: 'cover',
+    backgroundAttachment: 'fixed',
+    backgroundRepeat: 'no-repeat',
     backgroundOpacity: 100
   });
 
@@ -470,14 +472,13 @@ export default function NewFormPage() {
                               {opensAt ? format(opensAt, "PPP", { locale: it }) : "Seleziona data"}
                             </Button>
                           </PopoverTrigger>
-                          <PopoverContent className="w-auto p-0" align="start">
+                          <PopoverContent className="w-auto p-0 z-[100]" align="start" side="bottom" sideOffset={5}>
                             <Calendar
                               mode="single"
                               selected={opensAt}
                               onSelect={setOpensAt}
                               disabled={(date) => date < new Date()}
                               initialFocus
-                              locale={it}
                             />
                           </PopoverContent>
                         </Popover>
@@ -503,14 +504,13 @@ export default function NewFormPage() {
                               {closesAt ? format(closesAt, "PPP", { locale: it }) : "Seleziona data"}
                             </Button>
                           </PopoverTrigger>
-                          <PopoverContent className="w-auto p-0" align="start">
+                          <PopoverContent className="w-auto p-0 z-[100]" align="start" side="bottom" sideOffset={5}>
                             <Calendar
                               mode="single"
                               selected={closesAt}
                               onSelect={setClosesAt}
                               disabled={(date) => date < new Date()}
                               initialFocus
-                              locale={it}
                             />
                           </PopoverContent>
                         </Popover>
@@ -875,19 +875,37 @@ export default function NewFormPage() {
             Precedente
           </Button>
           
-          <Button
-            onClick={() => {
-              const currentIndex = steps.findIndex(s => s.id === currentStep);
-              if (currentIndex < steps.length - 1) {
-                setCurrentStep(steps[currentIndex + 1].id);
-              }
-            }}
-            disabled={!canProceed()}
-            className="bg-[#FFCD00] hover:bg-[#FFCD00]/90 text-black"
-          >
-            Successivo
-            <ArrowLeft className="h-4 w-4 ml-2 rotate-180" />
-          </Button>
+          {(() => {
+            const currentIndex = steps.findIndex(s => s.id === currentStep);
+            const isLastStep = currentIndex === steps.length - 1;
+            
+            if (isLastStep) {
+              return (
+                <Button
+                  onClick={handleSubmit}
+                  disabled={!canProceed() || isSubmitting}
+                  className="bg-[#FFCD00] hover:bg-[#FFCD00]/90 text-black"
+                >
+                  {isSubmitting ? 'Creando...' : 'Crea Form'}
+                </Button>
+              );
+            } else {
+              return (
+                <Button
+                  onClick={() => {
+                    if (currentIndex < steps.length - 1) {
+                      setCurrentStep(steps[currentIndex + 1].id);
+                    }
+                  }}
+                  disabled={!canProceed()}
+                  className="bg-[#FFCD00] hover:bg-[#FFCD00]/90 text-black"
+                >
+                  Successivo
+                  <ArrowLeft className="h-4 w-4 ml-2 rotate-180" />
+                </Button>
+              );
+            }
+          })()}
         </motion.div>
 
         {/* Import Preview Modal */}

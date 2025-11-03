@@ -198,7 +198,7 @@ export default function FormDetailPage() {
     
     try {
       setIsPublishing(true);
-      const response = await fetch(`/api/forms/${form.id}/publish`, {
+      const response = await authenticatedFetch(`/api/forms/${form.id}/publish`, {
         method: 'POST',
       });
 
@@ -217,7 +217,7 @@ export default function FormDetailPage() {
         });
         
         // Ricarica i dati del form per aggiornare tutto
-        const updatedForm = await fetch(`/api/forms/${params.id}`);
+        const updatedForm = await authenticatedFetch(`/api/forms/${params.id}`);
         if (updatedForm.ok) {
           const data = await updatedForm.json();
           setForm(data);

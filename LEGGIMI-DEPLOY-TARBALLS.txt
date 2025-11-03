@@ -1,0 +1,77 @@
+===========================================
+PROTOMFORMS - DEPLOY DA TARBALL
+===========================================
+
+I tarball sono stati creati e sono pronti per il deploy:
+- protomforms-backend.tar
+- protomforms-frontend.tar  
+- protomforms-config.tar
+- extract-and-deploy.sh
+
+===========================================
+ISTRUZIONI PER IL DEPLOY:
+===========================================
+
+1. TRASFERISCI I TARBALL SUL SERVER
+   Usa WinSCP, FileZilla o altro client SFTP:
+   - Host: 93.63.117.104
+   - User: root
+   - Trasferisci nella directory: /root/
+
+2. CONNETTITI AL SERVER VIA SSH
+   ssh root@93.63.117.104
+
+3. ESEGUI LO SCRIPT DI DEPLOY
+   cd /root
+   chmod +x extract-and-deploy.sh
+   ./extract-and-deploy.sh
+
+Lo script farà automaticamente:
+- Backup della configurazione esistente
+- Backup del database (se presente)
+- Estrazione dei tarball
+- Deploy automatico con docker-compose
+- Verifica health check
+
+4. VERIFICA IL DEPLOY
+   docker ps | grep protomforms
+   docker logs protomforms-backend --tail 50
+   docker logs protomforms-frontend --tail 50
+   
+5. TESTA L'APPLICAZIONE
+   curl https://pov.protom.com/health
+   Apri browser: https://pov.protom.com
+
+===========================================
+NOTA IMPORTANTE
+===========================================
+
+Se è la PRIMA installazione, dopo l'estrazione
+modifica il file env.production.protomforms:
+
+   nano /home/protom/protomforms/env.production.protomforms
+
+Imposta le variabili:
+- PROTOMFORMS_DB_PASSWORD: password forte per DB
+- PROTOMFORMS_NEXTAUTH_SECRET: secret random 
+  (genera con: openssl rand -base64 32)
+
+Poi riavvia il deploy:
+   cd /home/protom/protomforms
+   ./deploy-production.sh
+
+===========================================
+SUPPORTO
+===========================================
+
+Per problemi, controlla i log:
+- Backend: docker logs protomforms-backend --tail 100
+- Frontend: docker logs protomforms-frontend --tail 100
+- Database: docker logs protomforms-postgres --tail 100
+- NGINX: sudo tail -f /var/log/nginx/error.log
+
+Per ripristinare da backup:
+   I backup sono in /home/protom/protomforms-backup-YYYYMMDD_HHMMSS/
+
+===========================================
+

@@ -6,7 +6,6 @@ import { Toaster } from 'sonner';
 
 // Pages
 import LandingPage from './pages/LandingPage';
-import LoginPage from './pages/LoginPage';
 import DashboardPage from './pages/DashboardPage';
 import FormsPage from './pages/FormsPage';
 import FormDetailPage from './pages/FormDetailPage';
@@ -31,6 +30,7 @@ import AdminAnalytics from './pages/admin/analytics/page';
 // User Pages
 import UserForms from './pages/user/forms/page';
 import UserResponses from './pages/user/responses/page';
+import UserResponseDetails from './pages/user/responses/[slug]/[progressive]/page';
 
 // Auth Pages
 import AuthSignIn from './pages/auth/signin/page';
@@ -59,9 +59,9 @@ function App() {
           <Routes>
             {/* Public routes */}
             <Route path="/" element={<LandingPage />} />
-            <Route path="/login" element={<LoginPage />} />
             
-            {/* Auth routes */}
+            {/* Auth routes - Redirect /login to /auth/signin */}
+            <Route path="/login" element={<Navigate to="/auth/signin" replace />} />
             <Route path="/auth/signin" element={<AuthSignIn />} />
             <Route path="/auth/register" element={<AuthRegister />} />
             <Route path="/auth/error" element={<AuthError />} />
@@ -280,6 +280,19 @@ function App() {
                     <Navbar />
                     <div className="pt-16">
                       <UserResponses />
+                    </div>
+                  </div>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/user/responses/:slug/:progressive"
+              element={
+                <ProtectedRoute>
+                  <div className="min-h-screen">
+                    <Navbar />
+                    <div className="pt-16">
+                      <UserResponseDetails />
                     </div>
                   </div>
                 </ProtectedRoute>

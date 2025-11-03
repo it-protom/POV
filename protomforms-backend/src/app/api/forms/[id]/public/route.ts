@@ -32,14 +32,37 @@ export async function GET(
 ) {
   try {
     const session = await getServerSession(authOptions);
-    const userId = session?.user?.id;
+    
+    let userId: string | null = null;
+    let userRole: string | null = null;
+    
+    // Try to get user from session first
+    if (session?.user?.id) {
+      userId = session.user.id;
+      userRole = (session.user as any).role;
+    } else {
+      // Fallback: try to get userId from header (for custom auth flow)
+      const userIdHeader = request.headers.get('x-user-id');
+      if (userIdHeader) {
+        userId = userIdHeader;
+        // Fetch user role from database
+        const user = await prisma.user.findUnique({
+          where: { id: userId },
+          select: { role: true }
+        });
+        if (user) {
+          userRole = user.role;
+        }
+      }
+    }
+    
+    const { searchParams } = new URL(request.url);
+    const isPreview = searchParams.get('preview') === 'true';
 
-    // Fetch the form - must be public
-    const form = await prisma.form.findUnique({
-      where: { 
-        id: params.id,
-        isPublic: true // Must be public
-      },
+    // Fetch the form
+    // If preview and requester is admin or owner, allow fetching even if not public
+    const baseForm = await prisma.form.findUnique({
+      where: { id: params.id },
       include: {
         questions: {
           orderBy: { order: 'asc' }
@@ -54,16 +77,29 @@ export async function GET(
       }
     });
 
-    if (!form) {
+    if (!baseForm) {
       return NextResponse.json(
         { error: 'Form non trovato o non pubblico' },
         { status: 404 }
       );
     }
 
-    // Check if form is expired
+    const isOwner = userId && baseForm.ownerId === userId;
+    const isAdmin = userRole === 'ADMIN';
+    const canPreviewBypass = isPreview && (isOwner || isAdmin);
+
+    // If not in preview-bypass mode, require form to be public
+    if (!canPreviewBypass && !baseForm.isPublic) {
+      return NextResponse.json(
+        { error: 'Form non trovato o non pubblico' },
+        { status: 404 }
+      );
+    }
+
+    // Check dates only if not bypassing preview
     const now = new Date();
-    if (form.closesAt && new Date(form.closesAt) < now) {
+    if (!canPreviewBypass && baseForm.closesAt && new Date(baseForm.closesAt) < now) {
+      console.log(`⚠️ Form ${params.id} è scaduto (closesAt: ${baseForm.closesAt})`);
       return NextResponse.json(
         { error: 'Form scaduto' },
         { status: 403 }
@@ -71,25 +107,31 @@ export async function GET(
     }
 
     // Check if form is not yet open
-    if (form.opensAt && new Date(form.opensAt) > now) {
+    if (!canPreviewBypass && baseForm.opensAt && new Date(baseForm.opensAt) > now) {
+      console.log(`⚠️ Form ${params.id} non ancora disponibile (opensAt: ${baseForm.opensAt})`);
       return NextResponse.json(
         { error: 'Form non ancora disponibile' },
         { status: 403 }
       );
     }
 
-    // If user is authenticated, check if they already submitted
-    if (userId && !form.isAnonymous) {
+    // If user is authenticated, and not bypassing preview, check if they already submitted
+    if (!canPreviewBypass && userId && !baseForm.isAnonymous) {
       const existingResponse = await prisma.response.findFirst({
         where: {
-          formId: form.id,
+          formId: baseForm.id,
           userId: userId
         }
       });
 
-      if (existingResponse && !form.allowEdit) {
+      if (existingResponse && !baseForm.allowEdit) {
+        console.log(`⚠️ Form ${params.id} già compilato dall'utente ${userId} (allowEdit: false)`);
         return NextResponse.json(
-          { error: 'Hai già compilato questo form' },
+          { 
+            error: 'Hai già compilato questo form', 
+            alreadySubmitted: true,
+            allowEdit: false 
+          },
           { status: 403 }
         );
       }
@@ -97,26 +139,26 @@ export async function GET(
 
     // Format response - includi il tema completo
     const formattedForm = {
-      id: form.id,
-      title: form.title,
-      description: form.description || '',
-      type: form.type,
-      isPublic: form.isPublic,
-      isAnonymous: form.isAnonymous,
-      allowEdit: form.allowEdit,
-      showResults: form.showResults,
-      thankYouMessage: form.thankYouMessage,
-      opensAt: form.opensAt?.toISOString(),
-      closesAt: form.closesAt?.toISOString(),
-      createdAt: form.createdAt.toISOString(),
-      updatedAt: form.updatedAt.toISOString(),
-      theme: form.theme || null, // Include il tema completo (JSON)
+      id: baseForm.id,
+      title: baseForm.title,
+      description: baseForm.description || '',
+      type: baseForm.type,
+      isPublic: baseForm.isPublic,
+      isAnonymous: baseForm.isAnonymous,
+      allowEdit: baseForm.allowEdit,
+      showResults: baseForm.showResults,
+      thankYouMessage: baseForm.thankYouMessage,
+      opensAt: baseForm.opensAt?.toISOString(),
+      closesAt: baseForm.closesAt?.toISOString(),
+      createdAt: baseForm.createdAt.toISOString(),
+      updatedAt: baseForm.updatedAt.toISOString(),
+      theme: baseForm.theme || null, // Include il tema completo (JSON)
       owner: {
-        id: form.owner.id,
-        name: form.owner.name || 'Utente Sconosciuto',
-        email: form.owner.email
+        id: baseForm.owner.id,
+        name: baseForm.owner.name || 'Utente Sconosciuto',
+        email: baseForm.owner.email
       },
-      questions: form.questions.map(q => ({
+      questions: baseForm.questions.map(q => ({
         id: q.id,
         text: q.text,
         type: q.type,
@@ -125,6 +167,12 @@ export async function GET(
         order: q.order
       }))
     };
+
+    console.log('🎨 GET /api/forms/[id]/public - Tema dal DB:', baseForm.theme);
+    console.log('🖼️ Background image:', baseForm.theme?.backgroundImage ? 'PRESENTE' : 'ASSENTE');
+    if (baseForm.theme?.backgroundImage) {
+      console.log('📏 Background image length:', (baseForm.theme.backgroundImage as string).length);
+    }
 
     return NextResponse.json(formattedForm);
 

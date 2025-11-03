@@ -279,16 +279,27 @@ export default function UserResponsesPage() {
                           <span>{response.answers.length} risposte</span>
                         </div>
                       </div>
-                      <Button
-                        asChild
-                        variant="outline"
-                        className="border-black text-black hover:bg-[#FFCD00] hover:border-[#FFCD00]"
-                      >
-                        <Link to={`/user/responses/${response.form.slug || response.formId}/${response.progressiveNumber || response.id}`}>
+                      {response.form.slug && response.progressiveNumber ? (
+                        <Button
+                          asChild
+                          variant="outline"
+                          className="border-black text-black hover:bg-[#FFCD00] hover:border-[#FFCD00]"
+                        >
+                          <Link to={`/user/responses/${response.form.slug}/${response.progressiveNumber}`}>
+                            <Eye className="mr-2 h-4 w-4" />
+                            Visualizza
+                          </Link>
+                        </Button>
+                      ) : (
+                        <Button
+                          variant="outline"
+                          disabled
+                          className="border-gray-300 text-gray-400"
+                        >
                           <Eye className="mr-2 h-4 w-4" />
                           Visualizza
-                        </Link>
-                      </Button>
+                        </Button>
+                      )}
                     </div>
                   </CardContent>
                 </Card>

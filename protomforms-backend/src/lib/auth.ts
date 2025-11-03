@@ -50,14 +50,11 @@ console.log('🔐 Azure AD Configuration:', {
 export const authOptions: NextAuthOptions = {
   adapter: PrismaAdapter(prisma) as any,
   
-  // Configurazione URL base - importante per determinare correttamente gli URL
-  // NextAuth usa questa per costruire i redirect URI e i link CSRF
-  // In produzione deve essere HTTPS
-  url: NEXTAUTH_URL,
-  
   // Permetti il collegamento automatico di account OAuth con stessa email
   // Questo risolve l'errore OAuthAccountNotLinked
   // Nota: allowDangerousEmailAccountLinking non è disponibile in NextAuth v4, gestito nel callback signIn
+  
+  // IMPORTANTE: Non usare "url" (deprecato), NextAuth usa automaticamente NEXTAUTH_URL env var
   
   providers: [
     // Azure AD Provider

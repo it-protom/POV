@@ -80,7 +80,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   const login = async (email: string, password: string) => {
     try {
-      // Use the custom login endpoint (endpoints.auth.login è già /auth/login, baseURL contiene /api)
+      // Validate credentials with custom endpoint
       const response = await api.post(endpoints.auth.login, {
         email,
         password,
@@ -90,6 +90,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         setUser(response.data.user);
         // Store user ID in localStorage for axios interceptor and authenticatedFetch
         // This allows backend endpoints to authenticate via x-user-id header fallback
+        // La sessione persiste tramite localStorage che viene controllato al refresh
         localStorage.setItem('user_id', response.data.user.id);
       } else {
         throw new Error('Invalid credentials');

@@ -283,3 +283,82 @@
 .animate-glow {
   animation: glow 2s ease-in-out infinite;
 }
+
+/* Fix for date picker popover positioning */
+[data-radix-popper-content-wrapper] {
+  z-index: 100 !important;
+}
+
+/* Ensure popover is clickable */
+[data-slot="popover-content"] {
+  pointer-events: auto !important;
+}
+
+/* Fix calendar weekday header sizing */
+.rdp-weekdays {
+  display: flex !important;
+  width: 100% !important;
+  justify-content: space-between !important;
+}
+
+.rdp-weekday {
+  width: 2.5rem !important;
+  min-width: 2.5rem !important;
+  max-width: 2.5rem !important;
+  height: 2.5rem !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  flex-shrink: 0 !important;
+  text-align: center !important;
+  padding: 0 !important;
+}
+
+.rdp-head_row {
+  display: flex !important;
+  width: 100% !important;
+  justify-content: space-between !important;
+}
+
+.rdp-head_cell {
+  width: 2.5rem !important;
+  min-width: 2.5rem !important;
+  max-width: 2.5rem !important;
+  height: 2.5rem !important;
+  flex-shrink: 0 !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  padding: 0 !important;
+}
+
+/* Ensure calendar month grid has proper spacing */
+.rdp-month_grid {
+  width: 100% !important;
+}
+
+.rdp-cell {
+  width: 2.5rem !important;
+  min-width: 2.5rem !important;
+  max-width: 2.5rem !important;
+  height: 2.5rem !important;
+  padding: 0 !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+/* Assicura che il giorno odierno sia ben visibile */
+.rdp-day_today {
+  background-color: hsl(var(--primary) / 0.1) !important;
+  color: hsl(var(--primary)) !important;
+  font-weight: 600 !important;
+  border: 2px solid hsl(var(--primary)) !important;
+  border-radius: 0.375rem !important;
+}
+
+.rdp-day {
+  width: 2.5rem !important;
+  height: 2.5rem !important;
+  padding: 0 !important;
+}

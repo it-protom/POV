@@ -164,6 +164,13 @@ export default function FormPage() {
       }
       
       const data = await response.json();
+      console.log('📝 Form caricato:', data);
+      console.log('🎨 Tema ricevuto:', data.theme);
+      console.log('🖼️ Background image:', data.theme?.backgroundImage ? 'PRESENTE' : 'ASSENTE');
+      if (data.theme?.backgroundImage) {
+        console.log('📏 Background image length:', data.theme.backgroundImage.length);
+        console.log('📸 Background image preview:', data.theme.backgroundImage.substring(0, 100));
+      }
       setForm(data);
     } catch (error) {
       console.error('Errore nel recupero del form:', error);
@@ -179,13 +186,26 @@ export default function FormPage() {
     
     if (!form) return;
 
-    // Verifica domande obbligatorie
-    const missingRequired = form.questions
-      .filter(q => q.required)
+    // Verifica che l'utente sia all'ultima domanda visibile prima di permettere l'invio
+    const lastVisibleQuestionIndex = visibleQuestions.length > 0 
+      ? form.questions.findIndex(q => q.id === visibleQuestions[visibleQuestions.length - 1])
+      : -1;
+    
+    if (currentStep !== lastVisibleQuestionIndex) {
+      toast.error('Per favore completa tutte le domande prima di inviare');
+      return;
+    }
+
+    // Verifica domande obbligatorie solo per quelle visibili
+    const missingRequired = visibleQuestions
+      .map(qId => form.questions.find(q => q.id === qId))
+      .filter(q => q && q.required)
       .some(q => {
+        if (!q) return false;
         const answer = answers[q.id];
         if (!answer) return true;
         if (Array.isArray(answer) && answer.length === 0) return true;
+        if (typeof answer === 'string' && answer.trim() === '') return true;
         return false;
       });
 
@@ -363,8 +383,8 @@ export default function FormPage() {
         backgroundImage: theme.backgroundImage ? `url(${theme.backgroundImage})` : undefined,
         backgroundPosition: theme.backgroundPosition || 'center',
         backgroundSize: theme.backgroundSize || 'cover',
-        backgroundRepeat: 'no-repeat',
-        backgroundAttachment: 'fixed'
+        backgroundRepeat: theme.backgroundRepeat || 'no-repeat',
+        backgroundAttachment: theme.backgroundAttachment || 'fixed'
       }}
     >
       {/* Overlay per opacità background */}
@@ -439,7 +459,16 @@ export default function FormPage() {
           </div>
         </CardHeader>
         <CardContent className="flex-1 flex flex-col px-6 py-8">
-          <form onSubmit={handleSubmit} className="flex-1 flex flex-col space-y-6 max-w-4xl mx-auto w-full">
+          <form 
+            onSubmit={handleSubmit} 
+            onKeyDown={(e) => {
+              // Previeni submit accidentale premendo Enter nel form
+              if (e.key === 'Enter' && e.target instanceof HTMLInputElement) {
+                e.preventDefault();
+              }
+            }}
+            className="flex-1 flex flex-col space-y-6 max-w-4xl mx-auto w-full"
+          >
             {showProgress ? (
               <div className="space-y-4 mb-6">
                 {form.questions.map((q, index) => (
@@ -482,6 +511,21 @@ export default function FormPage() {
                     <Input
                       value={answers[currentQuestion.id] as string || ''}
                       onChange={(e) => handleAnswerChange(currentQuestion.id, e.target.value)}
+                      onKeyDown={(e) => {
+                        // Previeni submit accidentale premendo Enter
+                        if (e.key === 'Enter') {
+                          e.preventDefault();
+                          // Se siamo all'ultima domanda visibile, non fare nulla (l'utente deve cliccare il bottone)
+                          const lastVisibleQuestionIndex = visibleQuestions.length > 0 
+                            ? form.questions.findIndex(q => q.id === visibleQuestions[visibleQuestions.length - 1])
+                            : -1;
+                          if (currentStep !== lastVisibleQuestionIndex) {
+                            // Se non siamo all'ultima domanda, vai alla successiva
+                            nextStep();
+                          }
+                          // Se siamo all'ultima, non fare nulla - l'utente deve cliccare il bottone
+                        }
+                      }}
                       required={currentQuestion.required}
                       placeholder="Inserisci la tua risposta..."
                       className="w-full"
@@ -608,7 +652,7 @@ export default function FormPage() {
                           )}
                         </Button>
                       </PopoverTrigger>
-                      <PopoverContent className="w-auto p-0">
+                      <PopoverContent className="w-auto p-0 z-[100]" align="start" side="bottom" sideOffset={5}>
                         <Calendar
                           mode="single"
                           selected={answers[currentQuestion.id] as Date || undefined}
@@ -779,30 +823,45 @@ export default function FormPage() {
                 Precedente
               </Button>
               
-              {currentStep < form.questions.length - 1 ? (
-                <Button
-                  type="button"
-                  onClick={nextStep}
-                  disabled={currentQuestion.required && !answers[currentQuestion.id]}
-                  style={getButtonStyle('primary')}
-                  className="px-6 py-2"
-                >
-                  Successiva
-                </Button>
-              ) : (
-                <Button 
-                  type="submit" 
-                  disabled={submitting}
-                  style={getButtonStyle('primary')}
-                  className="px-6 py-2"
-                >
-                  {submitting ? 'Invio in corso...' : 'Invia Risposte'}
-                </Button>
-              )}
+              {(() => {
+                const lastVisibleQuestionIndex = visibleQuestions.length > 0 
+                  ? form.questions.findIndex(q => q.id === visibleQuestions[visibleQuestions.length - 1])
+                  : -1;
+                const isLastVisibleQuestion = currentStep === lastVisibleQuestionIndex && lastVisibleQuestionIndex !== -1;
+                
+                if (isLastVisibleQuestion) {
+                  return (
+                    <Button 
+                      type="button" 
+                      onClick={(e) => {
+                        e.preventDefault();
+                        handleSubmit(e as any);
+                      }}
+                      disabled={submitting}
+                      style={getButtonStyle('primary')}
+                      className="px-6 py-2"
+                    >
+                      {submitting ? 'Invio in corso...' : 'Invia Risposte'}
+                    </Button>
+                  );
+                } else {
+                  return (
+                    <Button
+                      type="button"
+                      onClick={nextStep}
+                      disabled={currentQuestion.required && !answers[currentQuestion.id]}
+                      style={getButtonStyle('primary')}
+                      className="px-6 py-2"
+                    >
+                      Successiva
+                    </Button>
+                  );
+                }
+              })()}
             </div>
           </form>
         </CardContent>
-        <CardFooter className="px-6 py-6 border-t flex justify-between max-w-4xl mx-auto w-full">
+        <CardFooter className="px-6 py-6 border-t flex justify-end max-w-4xl mx-auto w-full">
           <Button
             type="button"
             variant="outline"
@@ -812,17 +871,6 @@ export default function FormPage() {
           >
             Annulla
           </Button>
-          {currentStep === form.questions.length - 1 && (
-            <Button 
-              type="submit" 
-              form="form"
-              disabled={submitting}
-              style={getButtonStyle('primary')}
-              className="px-6 py-2"
-            >
-              {submitting ? 'Invio in corso...' : 'Invia Risposte'}
-            </Button>
-          )}
         </CardFooter>
         </Card>
       </div>

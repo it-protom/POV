@@ -45,12 +45,31 @@ export async function GET(request: NextRequest) {
 
     console.log('🔍 Fetching public forms from database...');
     
-    // Get all public forms (isPublic: true)
+    // Get current date/time for filtering
+    const now = new Date();
+    
+    // Get all public forms that are currently available (not expired, already opened)
     // Se hanno status PUBLISHED li mostriamo, altrimenti mostriamo comunque quelli pubblici
     // Questo permette retrocompatibilità con form che non hanno ancora lo status impostato
     const forms = await prisma.form.findMany({
       where: { 
         isPublic: true,
+        // Filtra per date: mostra solo form che sono già aperti (opensAt è null o <= now)
+        // E non ancora scaduti (closesAt è null o >= now)
+        AND: [
+          {
+            OR: [
+              { opensAt: null },
+              { opensAt: { lte: now } }
+            ]
+          },
+          {
+            OR: [
+              { closesAt: null },
+              { closesAt: { gte: now } }
+            ]
+          }
+        ],
         // Non filtriamo per status per retrocompatibilità
         // Mostriamo tutti i form pubblici indipendentemente dallo status
       },

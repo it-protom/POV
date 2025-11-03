@@ -311,20 +311,20 @@ export default function AdminFormsPage() {
     visible: {
       opacity: 1,
       transition: {
-        staggerChildren: 0.1
+        staggerChildren: 0,
+        delayChildren: 0
       }
     }
   };
 
   const itemVariants = {
-    hidden: { y: 20, opacity: 0 },
+    hidden: { y: 0, opacity: 1 },
     visible: {
       y: 0,
       opacity: 1,
       transition: {
-        type: "spring",
-        stiffness: 100,
-        damping: 10
+        duration: 0,
+        delay: 0
       }
     }
   };
@@ -530,18 +530,17 @@ export default function AdminFormsPage() {
             </Card>
           </motion.div>
         ) : viewMode === 'grid' ? (
-          <motion.div
-            variants={containerVariants}
+          <div
             className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 items-stretch"
+            style={{ opacity: 1 }}
           >
             {filteredForms.map((form, index) => {
               const StatusIcon = statusConfig[form.status].icon;
               return (
                 <motion.div
                   key={form.id}
-                  variants={itemVariants}
+                  initial={{ opacity: 1 }}
                   whileHover={{ scale: 1.02 }}
-                  layout
                   className="h-full"
                 >
                   <Card className="border-0 shadow-sm hover:shadow-md transition-all duration-200 group relative overflow-hidden h-full flex flex-col">
@@ -676,17 +675,16 @@ export default function AdminFormsPage() {
                 </motion.div>
               );
             })}
-          </motion.div>
+          </div>
         ) : (
           /* List View */
-          <motion.div variants={containerVariants} className="space-y-2">
+          <div className="space-y-2" style={{ opacity: 1 }}>
             {filteredForms.map((form, index) => {
               const StatusIcon = statusConfig[form.status].icon;
               return (
                 <motion.div
                   key={form.id}
-                  variants={itemVariants}
-                  layout
+                  initial={{ opacity: 1 }}
                 >
                   <Card className="border-0 shadow-sm hover:shadow-md transition-all duration-200">
                     <CardContent className="p-6">
@@ -791,7 +789,7 @@ export default function AdminFormsPage() {
                 </motion.div>
               );
             })}
-          </motion.div>
+          </div>
         )}
       </AnimatePresence>
 

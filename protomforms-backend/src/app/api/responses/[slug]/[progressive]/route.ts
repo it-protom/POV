@@ -33,12 +33,8 @@ export async function GET(
       }
     }
     
-    if (!userId || userRole !== 'ADMIN') {
-      console.log('⚠️ /api/responses/[slug]/[progressive] - Unauthorized:', {
-        hasUserId: !!userId,
-        userRole,
-        hasSession: !!session
-      });
+    if (!userId) {
+      console.log('⚠️ /api/responses/[slug]/[progressive] - Unauthorized: No userId');
       return new NextResponse('Unauthorized', { status: 401 });
     }
 
@@ -88,6 +84,18 @@ export async function GET(
 
     if (!response) {
       return new NextResponse('Response not found', { status: 404 });
+    }
+
+    // Verifica i permessi:
+    // - ADMIN può vedere tutte le risposte
+    // - USER può vedere solo le proprie risposte
+    if (userRole !== 'ADMIN' && response.userId !== userId) {
+      console.log('⚠️ /api/responses/[slug]/[progressive] - Forbidden: User trying to view someone else\'s response', {
+        userId,
+        responseUserId: response.userId,
+        userRole
+      });
+      return new NextResponse('Forbidden: You can only view your own responses', { status: 403 });
     }
 
     return NextResponse.json(response);
