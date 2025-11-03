@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Slider } from '@/components/ui/slider';
 import { Button } from '@/components/ui/button';
@@ -244,6 +245,11 @@ export function FormCustomization({
   const [editingElement, setEditingElement] = useState<'title' | 'font' | 'primaryColor' | 'backgroundColor' | 'textColor' | 'button' | null>(null);
   const [openPopovers, setOpenPopovers] = useState<Record<string, boolean>>({});
   const [isEditMode, setIsEditMode] = useState(false);
+  const [currentPreviewStep, setCurrentPreviewStep] = useState(0);
+
+  // Filtra domande valide
+  const validQuestions = questions?.filter(q => q.text && q.text.trim() !== '') || [];
+  const currentQuestion = validQuestions[currentPreviewStep];
 
   // Debug: log delle domande ricevute
   useEffect(() => {
@@ -1211,202 +1217,179 @@ export function FormCustomization({
                 </SortableContext>
               </DndContext>
                
-               {/* Questions - domande reali del form */}
-               {questions && questions.length > 0 ? (
-                 questions.filter(q => q.text && q.text.trim() !== '').slice(0, 3).length > 0 ? (
-                   questions.filter(q => q.text && q.text.trim() !== '').slice(0, 3).map((question, idx) => (
-                   <Popover key={question.id} open={isEditMode && openPopovers[`question-${idx}`]} onOpenChange={(open) => isEditMode && setOpenPopovers(prev => ({ ...prev, [`question-${idx}`]: open }))}>
-                     <PopoverTrigger asChild>
-                       <div
-                         data-editable="questionBox"
-                         className={`p-4 rounded-md border mb-4 relative group transition-all ${
-                           isEditMode ? 'cursor-pointer hover:ring-2 hover:ring-[#FFCD00]/50' : 'cursor-default'
-                         }`}
-                         style={{
-                           backgroundColor: `${theme.backgroundColor}dd`,
-                           borderColor: theme.accentColor,
-                           borderRadius: `${theme.borderRadius}px`,
-                         }}
-                         onClick={(e) => {
-                           if (!isEditMode) return;
-                           e.stopPropagation();
-                           togglePopover(`question-${idx}`);
-                         }}
-                       >
-                         <div className="flex items-center gap-2 mb-3">
-                           <span className="w-6 h-6 flex items-center justify-center rounded-full text-white text-xs font-bold" style={{ backgroundColor: theme.primaryColor }}>
-                             {idx + 1}
-                           </span>
-                           <p className="font-medium flex-1">
-                             {question.text}
-                             {question.required && <span className="text-red-500 ml-1">*</span>}
-                           </p>
+               {/* Questions - domanda corrente con navigazione */}
+               {validQuestions.length > 0 && currentQuestion ? (
+                 <div className="space-y-6 min-h-[400px] flex flex-col">
+                   {/* Domanda corrente */}
+                   <div className="flex-1">
+                     <div className="flex items-center mb-6">
+                       <span className="w-10 h-10 flex items-center justify-center rounded-full text-white mr-4 text-lg font-semibold" style={{ backgroundColor: theme.primaryColor }}>
+                         {currentPreviewStep + 1}
+                       </span>
+                       <Label className="text-xl font-semibold" style={{ color: theme.textColor }}>
+                         {currentQuestion.text}
+                         {currentQuestion.required && <span className="text-red-500 ml-1">*</span>}
+                       </Label>
+                     </div>
+
+                     <div className="pl-14">
+                       {/* TEXT */}
+                       {currentQuestion.type === 'TEXT' && (
+                         <Input placeholder="Inserisci la tua risposta..." className="w-full" readOnly />
+                       )}
+
+                       {/* MULTIPLE_CHOICE */}
+                       {currentQuestion.type === 'MULTIPLE_CHOICE' && (
+                         <div className="space-y-3">
+                           {(() => {
+                             const choices = Array.isArray(currentQuestion.options) ? currentQuestion.options : currentQuestion.options?.choices || [];
+                             return choices.map((option: string, index: number) => (
+                               <div key={index} className="flex items-center space-x-2">
+                                 <input type="radio" name={`preview-${currentQuestion.id}`} className="accent-current" style={{ accentColor: theme.primaryColor }} readOnly />
+                                 <Label>{option}</Label>
+                               </div>
+                             ));
+                           })()}
                          </div>
-                         
-                         {/* Render basato sul tipo di domanda */}
-                         {question.type === 'MULTIPLE_CHOICE' && (
-                           <div className="space-y-2 pl-8">
-                             {Array.isArray(question.options) ? (
-                               question.options.slice(0, 3).map((option: string, optIdx: number) => (
-                                 <label key={optIdx} className="flex items-center gap-2 cursor-pointer">
-                                   <input
-                                     type="radio"
-                                     name={`preview-${question.id}`}
-                                     className="accent-current"
-                                     style={{ accentColor: theme.primaryColor }}
-                                     onClick={(e) => e.stopPropagation()}
-                                   />
-                                   <span>{option}</span>
-                                 </label>
-                               ))
-                             ) : question.options?.choices ? (
-                               question.options.choices.slice(0, 3).map((option: string, optIdx: number) => (
-                                 <label key={optIdx} className="flex items-center gap-2 cursor-pointer">
-                                   <input
-                                     type={question.options.multiple ? "checkbox" : "radio"}
-                                     name={`preview-${question.id}`}
-                                     className="accent-current"
-                                     style={{ accentColor: theme.primaryColor }}
-                                     onClick={(e) => e.stopPropagation()}
-                                   />
-                                   <span>{option}</span>
-                                 </label>
-                               ))
-                             ) : (
-                               <div className="text-sm text-gray-500 italic">Nessuna opzione configurata</div>
-                             )}
+                       )}
+
+                       {/* CHECKBOX */}
+                       {currentQuestion.type === 'CHECKBOX' && (
+                         <div className="space-y-3">
+                           {(() => {
+                             const choices = Array.isArray(currentQuestion.options) ? currentQuestion.options : currentQuestion.options?.choices || [];
+                             return choices.map((option: string, index: number) => (
+                               <div key={index} className="flex items-center space-x-2">
+                                 <Checkbox disabled />
+                                 <Label>{option}</Label>
+                               </div>
+                             ));
+                           })()}
+                         </div>
+                       )}
+
+                       {/* RATING */}
+                       {currentQuestion.type === 'RATING' && (
+                         <div className="flex items-center space-x-2">
+                           {[1, 2, 3, 4, 5].map((rating) => (
+                             <Button key={rating} type="button" variant="outline" className="w-12 h-12" style={{ borderRadius: `${theme.borderRadius}px` }}>
+                               {rating}
+                             </Button>
+                           ))}
+                         </div>
+                       )}
+
+                       {/* LIKERT */}
+                       {currentQuestion.type === 'LIKERT' && (() => {
+                         const scale = currentQuestion.options?.scale || 5;
+                         const labels = currentQuestion.options?.labels || [];
+                         return (
+                           <div className="space-y-4">
+                             <div className="flex items-center justify-between mb-2">
+                               <span className="text-sm text-gray-500">{labels[0] || "Per niente d'accordo"}</span>
+                               <span className="text-sm text-gray-500">{labels[scale - 1] || "Completamente d'accordo"}</span>
+                             </div>
+                             <div className="grid grid-cols-5 gap-2">
+                               {Array.from({ length: scale }, (_, index) => (
+                                 <Button key={index} type="button" variant="outline" className="h-12" style={{ borderRadius: `${theme.borderRadius}px` }}>
+                                   <span className="text-sm">{index + 1}</span>
+                                 </Button>
+                               ))}
+                             </div>
                            </div>
-                         )}
-                         
-                         {question.type === 'TEXT' && (
-                           <div className="pl-8">
-                             <input
-                               type="text"
-                               placeholder="La tua risposta..."
-                               className="w-full px-3 py-2 border rounded-md text-sm"
-                               style={{ borderColor: theme.accentColor, borderRadius: `${theme.borderRadius}px` }}
-                               onClick={(e) => e.stopPropagation()}
-                               readOnly
-                             />
+                         );
+                       })()}
+
+                       {/* NPS */}
+                       {currentQuestion.type === 'NPS' && (
+                         <div>
+                           <div className="flex items-center justify-between mb-2">
+                             <span className="text-sm text-gray-500">0 - Non lo consiglierei</span>
+                             <span className="text-sm text-gray-500">10 - Lo consiglierei sicuramente</span>
                            </div>
-                         )}
-                         
-                         {question.type === 'RATING' && (
-                           <div className="flex gap-2 pl-8">
-                             {[1, 2, 3, 4, 5].map((rating) => (
-                               <button
-                                 key={rating}
-                                 className="w-10 h-10 rounded-md border-2 font-medium"
-                                 style={{ 
-                                   borderColor: theme.primaryColor,
-                                   color: theme.primaryColor,
-                                   borderRadius: `${theme.borderRadius}px`
-                                 }}
-                                 onClick={(e) => e.stopPropagation()}
-                               >
+                           <div className="flex items-center space-x-2">
+                             {[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((rating) => (
+                               <Button key={rating} type="button" variant="outline" className="w-10 h-10" style={{ borderRadius: `${theme.borderRadius}px` }}>
                                  {rating}
-                               </button>
+                               </Button>
                              ))}
                            </div>
-                         )}
-                         
-                         {question.type === 'DATE' && (
-                           <div className="pl-8">
-                             <input
-                               type="text"
-                               placeholder="Seleziona una data..."
-                               className="w-full px-3 py-2 border rounded-md text-sm"
-                               style={{ borderColor: theme.accentColor, borderRadius: `${theme.borderRadius}px` }}
-                               onClick={(e) => e.stopPropagation()}
-                               readOnly
-                             />
-                           </div>
-                         )}
+                         </div>
+                       )}
 
-                         {question.type === 'CHECKBOX' && (
-                           <div className="space-y-2 pl-8">
-                             {Array.isArray(question.options) ? (
-                               question.options.slice(0, 3).map((option: string, optIdx: number) => (
-                                 <label key={optIdx} className="flex items-center gap-2 cursor-pointer">
-                                   <input
-                                     type="checkbox"
-                                     className="accent-current"
-                                     style={{ accentColor: theme.primaryColor }}
-                                     onClick={(e) => e.stopPropagation()}
-                                   />
-                                   <span>{option}</span>
-                                 </label>
-                               ))
-                             ) : question.options?.choices ? (
-                               question.options.choices.slice(0, 3).map((option: string, optIdx: number) => (
-                                 <label key={optIdx} className="flex items-center gap-2 cursor-pointer">
-                                   <input
-                                     type="checkbox"
-                                     className="accent-current"
-                                     style={{ accentColor: theme.primaryColor }}
-                                     onClick={(e) => e.stopPropagation()}
-                                   />
-                                   <span>{option}</span>
-                                 </label>
-                               ))
-                             ) : (
-                               <div className="text-sm text-gray-500 italic">Nessuna opzione configurata</div>
-                             )}
-                           </div>
-                         )}
-                         
-                         {(question.type === 'NPS' || question.type === 'LIKERT' || question.type === 'RANKING' || question.type === 'FILE_UPLOAD' || question.type === 'BRANCHING') && (
-                           <div className="pl-8 text-sm text-gray-500 italic">
-                             Tipo: {question.type}
-                           </div>
-                         )}
-                       </div>
-                     </PopoverTrigger>
-                     <PopoverContent className="w-80" align="start" onClick={(e) => e.stopPropagation()}>
-                       <div className="space-y-4">
+                       {/* DATE */}
+                       {currentQuestion.type === 'DATE' && (
+                         <Input type="text" placeholder="Seleziona una data..." className="w-full" readOnly />
+                       )}
+
+                       {/* RANKING */}
+                       {currentQuestion.type === 'RANKING' && (
                          <div className="space-y-2">
-                           <Label className="text-sm font-semibold">Colore Accento (Bordo)</Label>
-                           <div className="flex gap-2">
-                             <Input
-                               type="color"
-                               value={theme.accentColor}
-                               onChange={(e) => updateTheme({ accentColor: e.target.value })}
-                               className="w-16 h-10 cursor-pointer rounded-lg border-2"
-                             />
-                             <Input
-                               type="text"
-                               value={theme.accentColor}
-                               onChange={(e) => updateTheme({ accentColor: e.target.value })}
-                               className="flex-1 font-mono text-sm"
-                               placeholder="#000000"
-                             />
-                           </div>
+                           {(currentQuestion.options as string[] || []).map((option, index) => (
+                             <div key={index} className="flex items-center space-x-3 p-3 bg-white border rounded-md" style={{ borderRadius: `${theme.borderRadius}px` }}>
+                               <GripVertical className="h-4 w-4 text-gray-400" />
+                               <span className="w-6 h-6 flex items-center justify-center rounded-full bg-gray-200 text-sm">{index + 1}</span>
+                               <span>{option}</span>
+                             </div>
+                           ))}
                          </div>
-                         <div className="space-y-2">
-                           <Label className="text-sm font-semibold">Raggio Bordi: {theme.borderRadius}px</Label>
-                           <Slider
-                             value={[theme.borderRadius]}
-                             onValueChange={([value]) => updateTheme({ borderRadius: value })}
-                             min={0}
-                             max={30}
-                             step={1}
-                             className="w-full"
-                           />
+                       )}
+
+                       {/* FILE_UPLOAD */}
+                       {currentQuestion.type === 'FILE_UPLOAD' && (
+                         <div className="border-2 border-dashed rounded-md p-6 text-center" style={{ borderRadius: `${theme.borderRadius}px` }}>
+                           <Upload className="mx-auto h-12 w-12 text-gray-400" />
+                           <p className="mt-2 text-sm text-gray-500">Trascina un file qui</p>
+                           <Button type="button" variant="outline" className="mt-4" style={{ borderRadius: `${theme.borderRadius}px` }}>Seleziona file</Button>
                          </div>
-                       </div>
-                     </PopoverContent>
-                   </Popover>
-                 ))
-                 ) : (
-                   /* Mostra messaggio se le domande esistono ma non hanno testo */
-                   <div className="p-6 rounded-md border-2 border-dashed border-amber-300 bg-amber-50 text-center">
-                     <FileText className="h-12 w-12 text-amber-500 mx-auto mb-2" />
-                     <p className="text-sm text-amber-700 font-medium">
-                       {questions.length} {questions.length === 1 ? 'domanda creata' : 'domande create'}
-                     </p>
-                     <p className="text-xs text-amber-600 mt-1">Compila il testo delle domande per vederle qui nell'anteprima</p>
+                       )}
+
+                       {/* BRANCHING */}
+                       {currentQuestion.type === 'BRANCHING' && (
+                         <p className="text-sm text-gray-500">Domanda condizionale basata sulle risposte precedenti</p>
+                       )}
+                     </div>
                    </div>
-                 )
+
+                   {/* Bottoni navigazione */}
+                   <div className="flex justify-between items-center pt-6 border-t mt-auto">
+                     <Button
+                       type="button"
+                       variant="outline"
+                       onClick={() => setCurrentPreviewStep(Math.max(0, currentPreviewStep - 1))}
+                       disabled={currentPreviewStep === 0}
+                       className="px-6 py-2"
+                     >
+                       Precedente
+                     </Button>
+                     <span className="text-sm text-gray-500">
+                       Domanda {currentPreviewStep + 1} di {validQuestions.length}
+                     </span>
+                     {currentPreviewStep === validQuestions.length - 1 ? (
+                       <Button type="button" className="px-6 py-2" style={{ backgroundColor: theme.primaryColor, color: '#fff', borderRadius: `${theme.borderRadius}px` }}>
+                         Invia Risposte
+                       </Button>
+                     ) : (
+                       <Button
+                         type="button"
+                         onClick={() => setCurrentPreviewStep(Math.min(validQuestions.length - 1, currentPreviewStep + 1))}
+                         className="px-6 py-2"
+                         style={{ backgroundColor: theme.primaryColor, color: '#fff', borderRadius: `${theme.borderRadius}px` }}
+                       >
+                         Successiva
+                       </Button>
+                     )}
+                   </div>
+                 </div>
+               ) : questions && questions.length > 0 ? (
+                 /* Mostra messaggio se le domande esistono ma non hanno testo */
+                 <div className="p-6 rounded-md border-2 border-dashed border-amber-300 bg-amber-50 text-center">
+                   <FileText className="h-12 w-12 text-amber-500 mx-auto mb-2" />
+                   <p className="text-sm text-amber-700 font-medium">
+                     {questions.length} {questions.length === 1 ? 'domanda creata' : 'domande create'}
+                   </p>
+                   <p className="text-xs text-amber-600 mt-1">Compila il testo delle domande per vederle qui nell'anteprima</p>
+                 </div>
                ) : (
                  /* Mostra placeholder se non ci sono domande */
                  <div className="p-6 rounded-md border-2 border-dashed border-gray-300 text-center">

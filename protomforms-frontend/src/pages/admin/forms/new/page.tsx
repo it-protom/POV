@@ -762,6 +762,7 @@ export default function NewFormPage() {
                   onThemeChange={setTheme}
                   formTitle={title}
                   formDescription={description}
+                  questions={questions}
                 />
               </motion.div>
             )}
