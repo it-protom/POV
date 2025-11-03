@@ -774,6 +774,7 @@ export default function EditFormPage() {
                 }}
                 formTitle={formData.title}
                 formDescription={formData.description}
+                questions={form.questions}
               />
             </CardContent>
           </Card>

@@ -28,7 +28,8 @@ import {
   ArrowDown,
   ArrowLeft,
   ArrowRight,
-  Plus
+  Plus,
+  FileText
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
@@ -55,11 +56,20 @@ export interface Theme {
   layoutOrder?: string[]; // Ordine elementi: ['logo', 'title', 'description']
 }
 
+interface Question {
+  id: string;
+  text: string;
+  type: string;
+  required: boolean;
+  options?: any;
+}
+
 interface FormCustomizationProps {
   theme: Theme;
   onThemeChange: (theme: Theme) => void;
   formTitle?: string;
   formDescription?: string;
+  questions?: Question[]; // Domande reali del form
 }
 
 const availableFonts = [
@@ -226,7 +236,8 @@ export function FormCustomization({
   theme, 
   onThemeChange, 
   formTitle = 'Titolo Form', 
-  formDescription = 'Descrizione del form' 
+  formDescription = 'Descrizione del form',
+  questions = [] 
 }: FormCustomizationProps) {
   const [showPreview, setShowPreview] = useState(true);
   const [activeTab, setActiveTab] = useState<'colors' | 'typography' | 'images' | 'layout'>('colors');
@@ -1192,84 +1203,199 @@ export function FormCustomization({
                 </SortableContext>
               </DndContext>
                
-               {/* Question Box - sempre visualizzato dopo gli elementi del layout */}
-               <Popover open={isEditMode && openPopovers.questionBox} onOpenChange={(open) => isEditMode && setOpenPopovers(prev => ({ ...prev, questionBox: open }))}>
-                  <PopoverTrigger asChild>
-                    <div
-                      data-editable="questionBox"
-                      className={`p-4 rounded-md border mb-4 relative group transition-all ${
-                        isEditMode ? 'cursor-pointer hover:ring-2 hover:ring-primary/50' : 'cursor-default'
-                      }`}
-                      style={{
-                        backgroundColor: `${theme.backgroundColor}dd`,
-                        borderColor: theme.accentColor,
-                        borderRadius: `${theme.borderRadius}px`,
-                      }}
-                      onClick={(e) => {
-                        if (!isEditMode) return;
-                        e.stopPropagation();
-                        togglePopover('questionBox');
-                      }}
-                    >
-                      <p className="font-medium mb-2">Domanda di esempio</p>
-                      <div className="space-y-2">
-                        <label className="flex items-center gap-2 cursor-pointer">
-                          <input
-                            type="radio"
-                            name="preview"
-                            className="accent-current"
-                            style={{ accentColor: theme.primaryColor }}
-                            onClick={(e) => e.stopPropagation()}
-                          />
-                          <span>Opzione 1</span>
-                        </label>
-                        <label className="flex items-center gap-2 cursor-pointer">
-                          <input
-                            type="radio"
-                            name="preview"
-                            className="accent-current"
-                            style={{ accentColor: theme.primaryColor }}
-                            onClick={(e) => e.stopPropagation()}
-                          />
-                          <span>Opzione 2</span>
-                        </label>
-                      </div>
-                    </div>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-80" align="start" onClick={(e) => e.stopPropagation()}>
-                    <div className="space-y-4">
-                      <div className="space-y-2">
-                        <Label className="text-sm font-semibold">Colore Accento (Bordo)</Label>
-                        <div className="flex gap-2">
-                          <Input
-                            type="color"
-                            value={theme.accentColor}
-                            onChange={(e) => updateTheme({ accentColor: e.target.value })}
-                            className="w-16 h-10 cursor-pointer rounded-lg border-2"
-                          />
-                          <Input
-                            type="text"
-                            value={theme.accentColor}
-                            onChange={(e) => updateTheme({ accentColor: e.target.value })}
-                            className="flex-1 font-mono text-sm"
-                            placeholder="#000000"
-                          />
-                        </div>
-                      </div>
-                      <div className="space-y-2">
-                        <Label className="text-sm font-semibold">Raggio Bordi: {theme.borderRadius}px</Label>
-                        <Slider
-                          value={[theme.borderRadius]}
-                          onValueChange={([value]) => updateTheme({ borderRadius: value })}
-                          min={0}
-                          max={30}
-                          step={1}
-                          className="w-full"
-                        />
-                      </div>
-                    </div>
-                  </PopoverContent>
-                </Popover>
+               {/* Questions - domande reali del form */}
+               {questions && questions.length > 0 ? (
+                 questions.slice(0, 3).map((question, idx) => (
+                   <Popover key={question.id} open={isEditMode && openPopovers[`question-${idx}`]} onOpenChange={(open) => isEditMode && setOpenPopovers(prev => ({ ...prev, [`question-${idx}`]: open }))}>
+                     <PopoverTrigger asChild>
+                       <div
+                         data-editable="questionBox"
+                         className={`p-4 rounded-md border mb-4 relative group transition-all ${
+                           isEditMode ? 'cursor-pointer hover:ring-2 hover:ring-[#FFCD00]/50' : 'cursor-default'
+                         }`}
+                         style={{
+                           backgroundColor: `${theme.backgroundColor}dd`,
+                           borderColor: theme.accentColor,
+                           borderRadius: `${theme.borderRadius}px`,
+                         }}
+                         onClick={(e) => {
+                           if (!isEditMode) return;
+                           e.stopPropagation();
+                           togglePopover(`question-${idx}`);
+                         }}
+                       >
+                         <div className="flex items-center gap-2 mb-3">
+                           <span className="w-6 h-6 flex items-center justify-center rounded-full text-white text-xs font-bold" style={{ backgroundColor: theme.primaryColor }}>
+                             {idx + 1}
+                           </span>
+                           <p className="font-medium flex-1">
+                             {question.text}
+                             {question.required && <span className="text-red-500 ml-1">*</span>}
+                           </p>
+                         </div>
+                         
+                         {/* Render basato sul tipo di domanda */}
+                         {question.type === 'MULTIPLE_CHOICE' && (
+                           <div className="space-y-2 pl-8">
+                             {Array.isArray(question.options) ? (
+                               question.options.slice(0, 3).map((option: string, optIdx: number) => (
+                                 <label key={optIdx} className="flex items-center gap-2 cursor-pointer">
+                                   <input
+                                     type="radio"
+                                     name={`preview-${question.id}`}
+                                     className="accent-current"
+                                     style={{ accentColor: theme.primaryColor }}
+                                     onClick={(e) => e.stopPropagation()}
+                                   />
+                                   <span>{option}</span>
+                                 </label>
+                               ))
+                             ) : question.options?.choices ? (
+                               question.options.choices.slice(0, 3).map((option: string, optIdx: number) => (
+                                 <label key={optIdx} className="flex items-center gap-2 cursor-pointer">
+                                   <input
+                                     type={question.options.multiple ? "checkbox" : "radio"}
+                                     name={`preview-${question.id}`}
+                                     className="accent-current"
+                                     style={{ accentColor: theme.primaryColor }}
+                                     onClick={(e) => e.stopPropagation()}
+                                   />
+                                   <span>{option}</span>
+                                 </label>
+                               ))
+                             ) : (
+                               <div className="text-sm text-gray-500 italic">Nessuna opzione configurata</div>
+                             )}
+                           </div>
+                         )}
+                         
+                         {question.type === 'TEXT' && (
+                           <div className="pl-8">
+                             <input
+                               type="text"
+                               placeholder="La tua risposta..."
+                               className="w-full px-3 py-2 border rounded-md text-sm"
+                               style={{ borderColor: theme.accentColor, borderRadius: `${theme.borderRadius}px` }}
+                               onClick={(e) => e.stopPropagation()}
+                               readOnly
+                             />
+                           </div>
+                         )}
+                         
+                         {question.type === 'RATING' && (
+                           <div className="flex gap-2 pl-8">
+                             {[1, 2, 3, 4, 5].map((rating) => (
+                               <button
+                                 key={rating}
+                                 className="w-10 h-10 rounded-md border-2 font-medium"
+                                 style={{ 
+                                   borderColor: theme.primaryColor,
+                                   color: theme.primaryColor,
+                                   borderRadius: `${theme.borderRadius}px`
+                                 }}
+                                 onClick={(e) => e.stopPropagation()}
+                               >
+                                 {rating}
+                               </button>
+                             ))}
+                           </div>
+                         )}
+                         
+                         {question.type === 'DATE' && (
+                           <div className="pl-8">
+                             <input
+                               type="text"
+                               placeholder="Seleziona una data..."
+                               className="w-full px-3 py-2 border rounded-md text-sm"
+                               style={{ borderColor: theme.accentColor, borderRadius: `${theme.borderRadius}px` }}
+                               onClick={(e) => e.stopPropagation()}
+                               readOnly
+                             />
+                           </div>
+                         )}
+
+                         {question.type === 'CHECKBOX' && (
+                           <div className="space-y-2 pl-8">
+                             {Array.isArray(question.options) ? (
+                               question.options.slice(0, 3).map((option: string, optIdx: number) => (
+                                 <label key={optIdx} className="flex items-center gap-2 cursor-pointer">
+                                   <input
+                                     type="checkbox"
+                                     className="accent-current"
+                                     style={{ accentColor: theme.primaryColor }}
+                                     onClick={(e) => e.stopPropagation()}
+                                   />
+                                   <span>{option}</span>
+                                 </label>
+                               ))
+                             ) : question.options?.choices ? (
+                               question.options.choices.slice(0, 3).map((option: string, optIdx: number) => (
+                                 <label key={optIdx} className="flex items-center gap-2 cursor-pointer">
+                                   <input
+                                     type="checkbox"
+                                     className="accent-current"
+                                     style={{ accentColor: theme.primaryColor }}
+                                     onClick={(e) => e.stopPropagation()}
+                                   />
+                                   <span>{option}</span>
+                                 </label>
+                               ))
+                             ) : (
+                               <div className="text-sm text-gray-500 italic">Nessuna opzione configurata</div>
+                             )}
+                           </div>
+                         )}
+                         
+                         {(question.type === 'NPS' || question.type === 'LIKERT' || question.type === 'RANKING' || question.type === 'FILE_UPLOAD' || question.type === 'BRANCHING') && (
+                           <div className="pl-8 text-sm text-gray-500 italic">
+                             Tipo: {question.type}
+                           </div>
+                         )}
+                       </div>
+                     </PopoverTrigger>
+                     <PopoverContent className="w-80" align="start" onClick={(e) => e.stopPropagation()}>
+                       <div className="space-y-4">
+                         <div className="space-y-2">
+                           <Label className="text-sm font-semibold">Colore Accento (Bordo)</Label>
+                           <div className="flex gap-2">
+                             <Input
+                               type="color"
+                               value={theme.accentColor}
+                               onChange={(e) => updateTheme({ accentColor: e.target.value })}
+                               className="w-16 h-10 cursor-pointer rounded-lg border-2"
+                             />
+                             <Input
+                               type="text"
+                               value={theme.accentColor}
+                               onChange={(e) => updateTheme({ accentColor: e.target.value })}
+                               className="flex-1 font-mono text-sm"
+                               placeholder="#000000"
+                             />
+                           </div>
+                         </div>
+                         <div className="space-y-2">
+                           <Label className="text-sm font-semibold">Raggio Bordi: {theme.borderRadius}px</Label>
+                           <Slider
+                             value={[theme.borderRadius]}
+                             onValueChange={([value]) => updateTheme({ borderRadius: value })}
+                             min={0}
+                             max={30}
+                             step={1}
+                             className="w-full"
+                           />
+                         </div>
+                       </div>
+                     </PopoverContent>
+                   </Popover>
+                 ))
+               ) : (
+                 /* Mostra placeholder se non ci sono domande */
+                 <div className="p-6 rounded-md border-2 border-dashed border-gray-300 text-center">
+                   <FileText className="h-12 w-12 text-gray-400 mx-auto mb-2" />
+                   <p className="text-sm text-gray-500 font-medium">Nessuna domanda creata</p>
+                   <p className="text-xs text-gray-400 mt-1">Aggiungi domande per vedere l'anteprima qui</p>
+                 </div>
+               )}
 
                 <Popover open={isEditMode && openPopovers.button} onOpenChange={(open) => isEditMode && setOpenPopovers(prev => ({ ...prev, button: open }))}>
                   <PopoverTrigger asChild>
