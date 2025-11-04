@@ -60,16 +60,24 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
+    // Get formId from query params
+    const { searchParams } = new URL(request.url);
+    const formId = searchParams.get('formId');
+
     // Utilizza cache aggressivo per le statistiche dashboard
+    const cacheKey = formId && formId !== 'all' 
+      ? `dashboard:stats:form:${formId}:v3` 
+      : 'dashboard:stats:all-users:v3';
+      
     const dashboardStats = await advancedCache.getOrSet(
-      'dashboard:stats:ultra-optimized',
+      cacheKey,
       async () => {
         console.time('Dashboard stats generation');
-        const stats = await generateDashboardStats();
+        const stats = await generateDashboardStats(formId && formId !== 'all' ? formId : null);
         console.timeEnd('Dashboard stats generation');
         return stats;
       },
-      6 * 60 * 60 // 6 ore di cache (in secondi)
+      1 * 60 * 60 // 1 ora di cache (in secondi)
     );
 
     return NextResponse.json(dashboardStats);
@@ -79,10 +87,15 @@ export async function GET(request: NextRequest) {
   }
 }
 
-async function generateDashboardStats() {
+async function generateDashboardStats(formId: string | null = null) {
   // Calcola le statistiche principali in parallelo
   const lastMonth = new Date();
   lastMonth.setMonth(lastMonth.getMonth() - 1);
+  
+  // Prepara i filtri base per le query
+  const responseFilter = formId ? { formId } : {};
+  const answerFilter = formId ? { question: { formId } } : {};
+  const questionFilter = formId ? { formId } : {};
   
   const [
     totalForms,
@@ -94,12 +107,12 @@ async function generateDashboardStats() {
     lastMonthResponses,
     lastMonthUsers
   ] = await Promise.all([
-    prisma.form.count(),
-    prisma.response.count(),
+    formId ? 1 : prisma.form.count(),
+    prisma.response.count({ where: responseFilter }),
     prisma.user.count(),
-    prisma.answer.count(),
-    prisma.question.count(),
-    prisma.form.count({
+    prisma.answer.count({ where: answerFilter }),
+    prisma.question.count({ where: questionFilter }),
+    formId ? (await prisma.form.findUnique({ where: { id: formId }, select: { createdAt: true } }))?.createdAt && (await prisma.form.findUnique({ where: { id: formId }, select: { createdAt: true } }))!.createdAt >= lastMonth ? 1 : 0 : prisma.form.count({
       where: {
         createdAt: {
           gte: lastMonth
@@ -108,6 +121,7 @@ async function generateDashboardStats() {
     }),
     prisma.response.count({
       where: {
+        ...responseFilter,
         createdAt: {
           gte: lastMonth
         }
@@ -144,6 +158,7 @@ async function generateDashboardStats() {
     
     const responses = await prisma.response.count({
       where: {
+        ...responseFilter,
         createdAt: {
           gte: startDate,
           lt: endDate
@@ -151,7 +166,7 @@ async function generateDashboardStats() {
       }
     });
     
-    const forms = await prisma.form.count({
+    const forms = formId ? 0 : await prisma.form.count({
       where: {
         createdAt: {
           gte: startDate,
@@ -167,65 +182,268 @@ async function generateDashboardStats() {
     });
   }
 
-  // Dati per il grafico di completamento
-  const completedResponses = await prisma.response.count({
-    where: {
-      answers: {
-        some: {}
+  // Dati per il grafico di completamento - basato su utenti totali
+  let completionData: any[] = [];
+  let userCompletionDetails: any[] = [];
+  
+  if (formId) {
+    // Per un singolo form: mostra quanti utenti hanno completato vs totale utenti
+    const selectedForm = await prisma.form.findUnique({
+      where: { id: formId },
+      select: { 
+        isAnonymous: true,
+        questions: {
+          select: { id: true }
+        }
+      }
+    });
+    
+    const totalQuestionsInForm = selectedForm?.questions.length || 0;
+    
+    // Prendi tutti gli utenti (escluso admin se necessario)
+    const allUsers = await prisma.user.findMany({
+      select: {
+        id: true,
+        name: true,
+        email: true
+      }
+    });
+    
+    // Prendi tutte le risposte per questo form con conteggio delle answers
+    const responsesWithAnswers = await prisma.response.findMany({
+      where: { formId },
+      include: {
+        user: {
+          select: {
+            id: true,
+            name: true,
+            email: true
+          }
+        },
+        answers: {
+          select: { id: true }
+        }
+      }
+    });
+    
+    // Mappa userId -> risposta
+    const userResponseMap = new Map(
+      responsesWithAnswers.map(r => [r.userId, r])
+    );
+    
+    let usersCompleted = 0;
+    let usersNotResponded = 0;
+    
+    // Analizza ogni utente
+    allUsers.forEach(user => {
+      const response = userResponseMap.get(user.id);
+      
+      if (!response) {
+        usersNotResponded++;
+        if (!selectedForm?.isAnonymous) {
+          userCompletionDetails.push({
+            name: user.name || user.email,
+            email: user.email,
+            status: 'Non ha risposto',
+            answersCount: 0,
+            totalQuestions: totalQuestionsInForm
+          });
+        }
+      } else {
+        const answersCount = response.answers.length;
+        const isComplete = answersCount >= totalQuestionsInForm;
+        
+        if (isComplete) {
+          usersCompleted++;
+        }
+        
+        if (!selectedForm?.isAnonymous) {
+          userCompletionDetails.push({
+            name: user.name || user.email,
+            email: user.email,
+            status: isComplete ? 'Completato' : `Parziale (${answersCount}/${totalQuestionsInForm})`,
+            answersCount,
+            totalQuestions: totalQuestionsInForm
+          });
+        }
+      }
+    });
+    
+    completionData = [
+      { name: 'Hanno Completato', value: usersCompleted, color: '#22c55e', percentage: Math.round((usersCompleted / allUsers.length) * 100) },
+      { name: 'Non Hanno Risposto', value: usersNotResponded, color: '#ef4444', percentage: Math.round((usersNotResponded / allUsers.length) * 100) }
+    ];
+  } else {
+    // Per tutti i form: mostra i dati aggregati per il grafico
+    const completedResponses = await prisma.response.count({
+      where: {
+        ...responseFilter,
+        answers: {
+          some: {}
+        }
+      }
+    });
+    
+    const partialResponses = Math.max(0, totalResponses - completedResponses);
+    const abandonedResponses = Math.round(totalResponses * 0.1); // stima
+
+    completionData = [
+      { name: 'Completate', value: completedResponses, color: '#22c55e' },
+      { name: 'Parziali', value: partialResponses, color: '#f59e0b' },
+      { name: 'Abbandonate', value: abandonedResponses, color: '#ef4444' }
+    ];
+    
+    // Genera dettagli per UTENTI con tutti i form
+    const allUsers = await prisma.user.findMany({
+      select: {
+        id: true,
+        name: true,
+        email: true
+      }
+    });
+    
+    const allForms = await prisma.form.findMany({
+      select: {
+        id: true,
+        title: true,
+        isAnonymous: true,
+        questions: {
+          select: { id: true }
+        }
+      }
+    });
+    
+    // Per ogni utente, calcola lo stato di completamento di TUTTI i form (anche anonimi)
+    // L'admin deve vedere chi ha completato cosa per gestione, indipendentemente dall'anonimato
+    for (const user of allUsers) {
+      let totalFormsCompleted = 0;
+      let totalFormsPartial = 0;
+      let totalFormsNotStarted = 0;
+      const formStatuses: string[] = [];
+      
+      for (const form of allForms) {
+        const totalQuestionsInForm = form.questions.length;
+        
+        const userResponse = await prisma.response.findFirst({
+          where: {
+            formId: form.id,
+            userId: user.id
+          },
+          include: {
+            answers: {
+              select: { id: true }
+            }
+          }
+        });
+        
+        const formLabel = form.isAnonymous ? `${form.title} (Anonimo)` : form.title;
+        
+        if (!userResponse) {
+          totalFormsNotStarted++;
+          formStatuses.push(`${formLabel}: ❌`);
+        } else {
+          const answersCount = userResponse.answers.length;
+          if (answersCount >= totalQuestionsInForm) {
+            totalFormsCompleted++;
+            formStatuses.push(`${formLabel}: ✅`);
+          } else if (answersCount > 0) {
+            totalFormsPartial++;
+            formStatuses.push(`${formLabel}: ⚠️ ${answersCount}/${totalQuestionsInForm}`);
+          } else {
+            totalFormsNotStarted++;
+            formStatuses.push(`${formLabel}: ❌`);
+          }
+        }
+      }
+      
+      // Aggiungi sempre l'utente se ci sono form
+      if (allForms.length > 0) {
+        userCompletionDetails.push({
+          name: user.name || user.email,
+          email: user.email,
+          status: formStatuses.length > 0 ? formStatuses.join(', ') : 'Nessun form disponibile',
+          answersCount: totalFormsCompleted,
+          totalQuestions: allForms.length
+        });
       }
     }
-  });
-  
-  const partialResponses = Math.max(0, totalResponses - completedResponses);
-  const abandonedResponses = Math.round(totalResponses * 0.1); // stima
-
-  const completionData = [
-    { name: 'Completate', value: completedResponses, color: '#22c55e' },
-    { name: 'Parziali', value: partialResponses, color: '#f59e0b' },
-    { name: 'Abbandonate', value: abandonedResponses, color: '#ef4444' }
-  ];
+  }
 
   // Top forms con più risposte
-  const topForms = await prisma.form.findMany({
-    take: 4,
-    include: {
-      responses: {
-        select: {
-          id: true,
-          answers: {
+  const topForms = formId 
+    ? await prisma.form.findMany({
+        where: { id: formId },
+        include: {
+          responses: {
+            select: {
+              id: true,
+              answers: {
+                select: {
+                  id: true
+                }
+              }
+            }
+          },
+          questions: {
             select: {
               id: true
             }
           }
         }
-      },
-      questions: {
-        select: {
-          id: true
+      })
+    : await prisma.form.findMany({
+        take: 4,
+        include: {
+          responses: {
+            select: {
+              id: true,
+              answers: {
+                select: {
+                  id: true
+                }
+              }
+            }
+          },
+          questions: {
+            select: {
+              id: true
+            }
+          }
+        },
+        orderBy: {
+          responses: {
+            _count: 'desc'
+          }
         }
-      }
-    },
-    orderBy: {
-      responses: {
-        _count: 'desc'
-      }
-    }
-  });
+      });
 
   // Recent activity (forms e risposte recenti) in parallelo
   const [recentForms, recentResponses] = await Promise.all([
-    prisma.form.findMany({
-      take: 2,
-      orderBy: { createdAt: 'desc' },
-      include: {
-        owner: {
-          select: {
-            name: true
+    formId 
+      ? prisma.form.findMany({
+          where: { id: formId },
+          take: 1,
+          include: {
+            owner: {
+              select: {
+                name: true
+              }
+            }
           }
-        }
-      }
-    }),
+        })
+      : prisma.form.findMany({
+          take: 2,
+          orderBy: { createdAt: 'desc' },
+          include: {
+            owner: {
+              select: {
+                name: true
+              }
+            }
+          }
+        }),
     prisma.response.findMany({
+      where: responseFilter,
       take: 2,
       orderBy: { createdAt: 'desc' },
       include: {
@@ -321,6 +539,7 @@ async function generateDashboardStats() {
     
     const monthResponses = await prisma.response.findMany({
       where: {
+        ...responseFilter,
         createdAt: { gte: monthStart, lt: monthEnd }
       },
       include: { answers: true }
@@ -376,6 +595,7 @@ async function generateDashboardStats() {
   
   const recentResponsesForHourly = await prisma.response.findMany({
     where: {
+      ...responseFilter,
       createdAt: { gte: thirtyDaysAgo }
     },
     select: { createdAt: true }
@@ -430,6 +650,7 @@ async function generateDashboardStats() {
     ],
     chartData: monthlyData,
     completionData,
+    userCompletionDetails,
     topForms: formattedTopForms,
     recentActivity: formattedActivity.slice(0, 4),
     performanceData,

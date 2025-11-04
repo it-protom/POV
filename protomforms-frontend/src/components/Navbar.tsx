@@ -408,7 +408,7 @@ function NavbarContent() {
                   className="h-10 w-10 transition-transform group-hover:scale-105 object-contain"
                 />
                 <div className="flex flex-col">
-                  <span className="text-lg font-bold text-gray-800 group-hover:text-[#FFCD00] transition-colors">
+                  <span className="text-2xl font-bold text-gray-800 group-hover:text-[#FFCD00] transition-colors">
                     pov
                   </span>
                   <span className="text-xs text-gray-500 -mt-1">

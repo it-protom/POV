@@ -116,3 +116,5 @@ Se il problema persiste dopo aver seguito questi passaggi, verifica:
 2. La console del browser per errori specifici di Azure AD
 3. Le impostazioni del tenant Azure AD per restrizioni sui redirect URI
 
+
+

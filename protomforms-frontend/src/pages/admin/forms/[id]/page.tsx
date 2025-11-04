@@ -620,7 +620,13 @@ export default function FormDetailPage() {
               <Button variant="outline" className="w-full" asChild>
                 <Link to={`/admin/forms/${form.id}/responses`}>
                   <BarChart3 className="h-4 w-4 mr-2" />
-                  Risultati
+                  Analisi Risposte
+                </Link>
+              </Button>
+              <Button variant="outline" className="w-full" asChild>
+                <Link to={`/admin/forms/${form.id}/results`}>
+                  <Users className="h-4 w-4 mr-2" />
+                  Visualizza Risultati
                 </Link>
               </Button>
             </CardContent>

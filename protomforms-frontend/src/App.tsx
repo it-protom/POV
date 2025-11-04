@@ -19,6 +19,7 @@ import AdminFormDetail from './pages/admin/forms/[id]/page';
 import AdminFormEdit from './pages/admin/forms/[id]/edit/page';
 import AdminFormPreview from './pages/admin/forms/[id]/preview/page';
 import AdminFormResponses from './pages/admin/forms/[id]/responses/page';
+import AdminFormResults from './pages/admin/forms/[id]/results/page';
 import AdminFormShare from './pages/admin/forms/[id]/share/page';
 import AdminResponses from './pages/admin/responses/page';
 import AdminResponseDetail from './pages/admin/responses/[slug]/page';
@@ -161,6 +162,19 @@ function App() {
                     <Navbar />
                     <div className="pt-16">
                       <AdminFormResponses />
+                    </div>
+                  </div>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin/forms/:id/results"
+              element={
+                <ProtectedRoute requiredRole="ADMIN">
+                  <div className="min-h-screen">
+                    <Navbar />
+                    <div className="pt-16">
+                      <AdminFormResults />
                     </div>
                   </div>
                 </ProtectedRoute>

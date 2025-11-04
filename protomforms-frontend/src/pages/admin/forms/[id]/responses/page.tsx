@@ -342,6 +342,10 @@ export default function FormResponsesPage() {
           <h1 className="text-2xl font-bold">Risposte al Form</h1>
         </div>
         <div className="flex items-center gap-4">
+          <Button variant="outline" onClick={() => navigate(`/admin/forms/${params.id}/results`)}>
+            <User className="mr-2 h-4 w-4" />
+            Visualizza Risultati
+          </Button>
           <Button onClick={exportToCSV}>
             <Download className="mr-2 h-4 w-4" />
             Esporta CSV

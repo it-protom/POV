@@ -180,3 +180,5 @@ echo "   Stop: docker-compose -f docker-compose.production.yml down"
 echo ""
 echo -e "${GREEN}✅ All services updated and running${NC}"
 
+
+

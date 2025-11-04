@@ -33,8 +33,11 @@ import {
   FileText,
   CheckCircle,
   MousePointer2,
-  Maximize2
+  Maximize2,
+  Wand2,
+  Settings
 } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 
@@ -293,6 +296,327 @@ export function FormCustomization({
   const [openPopovers, setOpenPopovers] = useState<Record<string, boolean>>({});
   const [isEditMode, setIsEditMode] = useState(false);
   const [currentPreviewStep, setCurrentPreviewStep] = useState(0);
+  
+  // NUOVO: Sistema Click-to-Edit
+  const [clickToEditMode, setClickToEditMode] = useState(true); // Attivo di default
+  const [selectedElement, setSelectedElement] = useState<{
+    type: 'background' | 'question' | 'option' | 'button' | 'questionText' | 'optionStyle' | null;
+  }>({ type: null });
+  
+  // Gestione click su elemento
+  const handleElementClick = (e: React.MouseEvent, elementType: typeof selectedElement.type) => {
+    e.stopPropagation();
+    if (!clickToEditMode && !isEditMode) return;
+    setSelectedElement({ type: selectedElement.type === elementType ? null : elementType });
+  };
+  
+  // Chiudi popup quando clicchi fuori
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      const target = e.target as HTMLElement;
+      if (!target.closest('[data-editable]') && !target.closest('[data-edit-popup]')) {
+        setSelectedElement({ type: null });
+      }
+    };
+    
+    if ((clickToEditMode || isEditMode) && selectedElement.type) {
+      document.addEventListener('click', handleClickOutside);
+      return () => document.removeEventListener('click', handleClickOutside);
+    }
+  }, [clickToEditMode, isEditMode, selectedElement.type]);
+  
+  // Componente Popup Custom
+  const EditPopup = ({ type, onClose }: { type: string; onClose: () => void }) => (
+    <div 
+      data-edit-popup 
+      className="fixed top-20 right-4 z-50 bg-white rounded-lg shadow-2xl border-2 border-[#FFCD00] p-4 max-w-sm w-full max-h-[70vh] overflow-y-auto animate-in slide-in-from-right duration-200"
+    >
+      <div className="flex items-center justify-between mb-4">
+        <h3 className="font-semibold text-lg flex items-center gap-2">
+          <Wand2 className="h-5 w-5 text-[#FFCD00]" />
+          {type === 'background' && 'Modifica Sfondo'}
+          {type === 'question' && 'Modifica Domanda'}
+          {type === 'questionText' && 'Stile Testo Domanda'}
+          {type === 'option' && 'Modifica Opzioni'}
+          {type === 'optionStyle' && 'Stile Opzioni'}
+          {type === 'button' && 'Modifica Bottone'}
+        </h3>
+        <Button variant="ghost" size="sm" onClick={onClose} className="h-8 w-8 p-0">
+          <X className="h-4 w-4" />
+        </Button>
+      </div>
+      
+      <div className="space-y-4">
+        {/* SFONDO */}
+        {type === 'background' && (
+          <>
+            <div className="space-y-2">
+              <Label className="text-sm font-medium">Colore Sfondo</Label>
+              <div className="flex gap-2">
+                <Input
+                  type="color"
+                  value={theme.backgroundColor}
+                  onChange={(e) => updateTheme({ backgroundColor: e.target.value })}
+                  className="w-16 h-10 cursor-pointer"
+                />
+                <Input
+                  type="text"
+                  value={theme.backgroundColor}
+                  onChange={(e) => updateTheme({ backgroundColor: e.target.value })}
+                  placeholder="#ffffff"
+                  className="flex-1"
+                />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label className="text-sm font-medium">Colore Testo</Label>
+              <div className="flex gap-2">
+                <Input
+                  type="color"
+                  value={theme.textColor}
+                  onChange={(e) => updateTheme({ textColor: e.target.value })}
+                  className="w-16 h-10 cursor-pointer"
+                />
+                <Input
+                  type="text"
+                  value={theme.textColor}
+                  onChange={(e) => updateTheme({ textColor: e.target.value })}
+                  placeholder="#000000"
+                  className="flex-1"
+                />
+              </div>
+            </div>
+          </>
+        )}
+        
+        {/* DOMANDA CARD */}
+        {type === 'question' && (
+          <>
+            <div className="space-y-2">
+              <Label className="text-sm font-medium">Colore Sfondo Domanda</Label>
+              <div className="flex gap-2">
+                <Input
+                  type="color"
+                  value={theme.questionBackgroundColor || '#ffffff'}
+                  onChange={(e) => updateTheme({ questionBackgroundColor: e.target.value })}
+                  className="w-16 h-10 cursor-pointer"
+                />
+                <Input
+                  type="text"
+                  value={theme.questionBackgroundColor || '#ffffff'}
+                  onChange={(e) => updateTheme({ questionBackgroundColor: e.target.value })}
+                  placeholder="#ffffff"
+                  className="flex-1"
+                />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label className="text-sm font-medium">Colore Bordo</Label>
+              <div className="flex gap-2">
+                <Input
+                  type="color"
+                  value={theme.questionBorderColor || '#e5e7eb'}
+                  onChange={(e) => updateTheme({ questionBorderColor: e.target.value })}
+                  className="w-16 h-10 cursor-pointer"
+                />
+                <Input
+                  type="text"
+                  value={theme.questionBorderColor || '#e5e7eb'}
+                  onChange={(e) => updateTheme({ questionBorderColor: e.target.value })}
+                  placeholder="#e5e7eb"
+                  className="flex-1"
+                />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label className="text-sm font-medium">Arrotondamento Angoli: {theme.borderRadius}px</Label>
+              <Slider
+                value={[theme.borderRadius]}
+                onValueChange={([value]) => updateTheme({ borderRadius: value })}
+                min={0}
+                max={32}
+                step={2}
+                className="w-full"
+              />
+            </div>
+          </>
+        )}
+        
+        {/* TESTO DOMANDA */}
+        {type === 'questionText' && (
+          <>
+            <div className="space-y-2">
+              <Label className="text-sm font-medium">Colore Testo</Label>
+              <div className="flex gap-2">
+                <Input
+                  type="color"
+                  value={theme.questionTextColor || theme.textColor}
+                  onChange={(e) => updateTheme({ questionTextColor: e.target.value })}
+                  className="w-16 h-10 cursor-pointer"
+                />
+                <Input
+                  type="text"
+                  value={theme.questionTextColor || theme.textColor}
+                  onChange={(e) => updateTheme({ questionTextColor: e.target.value })}
+                  placeholder="#000000"
+                  className="flex-1"
+                />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label className="text-sm font-medium">Dimensione Testo: {theme.questionFontSize || 20}px</Label>
+              <Slider
+                value={[theme.questionFontSize || 20]}
+                onValueChange={([value]) => updateTheme({ questionFontSize: value })}
+                min={14}
+                max={32}
+                step={2}
+                className="w-full"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label className="text-sm font-medium">Peso Font</Label>
+              <Select
+                value={theme.questionFontWeight || 'semibold'}
+                onValueChange={(value: any) => updateTheme({ questionFontWeight: value })}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="normal">Normale</SelectItem>
+                  <SelectItem value="medium">Medio</SelectItem>
+                  <SelectItem value="semibold">Semi-grassetto</SelectItem>
+                  <SelectItem value="bold">Grassetto</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </>
+        )}
+        
+        {/* OPZIONI */}
+        {type === 'optionStyle' && (
+          <>
+            <div className="space-y-2">
+              <Label className="text-sm font-medium">Colore Testo Opzioni</Label>
+              <div className="flex gap-2">
+                <Input
+                  type="color"
+                  value={theme.optionTextColor || theme.textColor}
+                  onChange={(e) => updateTheme({ optionTextColor: e.target.value })}
+                  className="w-16 h-10 cursor-pointer"
+                />
+                <Input
+                  type="text"
+                  value={theme.optionTextColor || theme.textColor}
+                  onChange={(e) => updateTheme({ optionTextColor: e.target.value })}
+                  placeholder="#000000"
+                  className="flex-1"
+                />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label className="text-sm font-medium">Colore Selezione</Label>
+              <div className="flex gap-2">
+                <Input
+                  type="color"
+                  value={theme.optionSelectedColor || theme.primaryColor}
+                  onChange={(e) => updateTheme({ optionSelectedColor: e.target.value })}
+                  className="w-16 h-10 cursor-pointer"
+                />
+                <Input
+                  type="text"
+                  value={theme.optionSelectedColor || theme.primaryColor}
+                  onChange={(e) => updateTheme({ optionSelectedColor: e.target.value })}
+                  placeholder={theme.primaryColor}
+                  className="flex-1"
+                />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label className="text-sm font-medium">Dimensione Font: {theme.optionFontSize || 16}px</Label>
+              <Slider
+                value={[theme.optionFontSize || 16]}
+                onValueChange={([value]) => updateTheme({ optionFontSize: value })}
+                min={12}
+                max={24}
+                step={1}
+                className="w-full"
+              />
+            </div>
+          </>
+        )}
+        
+        {/* BOTTONE */}
+        {type === 'button' && (
+          <>
+            <div className="space-y-2">
+              <Label className="text-sm font-medium">Stile Bottone</Label>
+              <Select
+                value={theme.buttonStyle}
+                onValueChange={(value: 'filled' | 'outlined') => updateTheme({ buttonStyle: value })}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="filled">Pieno</SelectItem>
+                  <SelectItem value="outlined">Contorno</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label className="text-sm font-medium">Colore Principale</Label>
+              <div className="flex gap-2">
+                <Input
+                  type="color"
+                  value={theme.primaryColor}
+                  onChange={(e) => updateTheme({ primaryColor: e.target.value })}
+                  className="w-16 h-10 cursor-pointer"
+                />
+                <Input
+                  type="text"
+                  value={theme.primaryColor}
+                  onChange={(e) => updateTheme({ primaryColor: e.target.value })}
+                  placeholder="#FFCD00"
+                  className="flex-1"
+                />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label className="text-sm font-medium">Colore Testo Bottone</Label>
+              <div className="flex gap-2">
+                <Input
+                  type="color"
+                  value={theme.buttonTextColor || '#ffffff'}
+                  onChange={(e) => updateTheme({ buttonTextColor: e.target.value })}
+                  className="w-16 h-10 cursor-pointer"
+                />
+                <Input
+                  type="text"
+                  value={theme.buttonTextColor || '#ffffff'}
+                  onChange={(e) => updateTheme({ buttonTextColor: e.target.value })}
+                  placeholder="#ffffff"
+                  className="flex-1"
+                />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label className="text-sm font-medium">Arrotondamento: {theme.borderRadius}px</Label>
+              <Slider
+                value={[theme.borderRadius]}
+                onValueChange={([value]) => updateTheme({ borderRadius: value })}
+                min={0}
+                max={32}
+                step={2}
+                className="w-full"
+              />
+            </div>
+          </>
+        )}
+      </div>
+    </div>
+  );
 
   // Filtra domande valide
   const validQuestions = questions?.filter(q => q.text && q.text.trim() !== '') || [];
@@ -659,14 +983,30 @@ export function FormCustomization({
 
   return (
     <div className="space-y-6">
+      {/* Popup Custom per Click-to-Edit */}
+      {(clickToEditMode || isEditMode) && selectedElement.type && (
+        <EditPopup 
+          type={selectedElement.type} 
+          onClose={() => setSelectedElement({ type: null })} 
+        />
+      )}
+      
       {/* Preview */}
       <Card className="border-0 shadow-lg">
         <CardHeader>
           <div className="flex items-center justify-between">
-            <CardTitle className="flex items-center gap-2">
-              <Eye className="h-5 w-5 text-[#FFCD00]" />
-              Anteprima Live
-            </CardTitle>
+            <div className="flex items-center gap-3">
+              <CardTitle className="flex items-center gap-2">
+                <Eye className="h-5 w-5 text-[#FFCD00]" />
+                Anteprima Live
+              </CardTitle>
+              {(clickToEditMode || isEditMode) && (
+                <span className="text-xs bg-[#FFCD00]/20 text-[#FFCD00] px-2 py-1 rounded-full font-medium flex items-center gap-1">
+                  <Wand2 className="h-3 w-3" />
+                  Clicca per modificare
+                </span>
+              )}
+            </div>
             <div className="flex items-center gap-2">
               <Button
                 variant={isEditMode ? "default" : "outline"}
@@ -707,10 +1047,13 @@ export function FormCustomization({
             <Popover open={isEditMode && openPopovers.background} onOpenChange={(open) => isEditMode && setOpenPopovers(prev => ({ ...prev, background: open }))}>
               <PopoverTrigger asChild>
                 <div
+                  data-editable="background"
                   className={`relative border-2 rounded-lg p-6 space-y-4 min-h-[400px] overflow-hidden group transition-all duration-300 ${
-                    isEditMode ? 'cursor-pointer' : 'cursor-default'
+                    (clickToEditMode || isEditMode) ? 'cursor-pointer' : 'cursor-default'
                   } ${
-                    isEditMode && openPopovers.background 
+                    selectedElement.type === 'background'
+                      ? 'border-[#FFCD00] ring-4 ring-[#FFCD00]/20 shadow-[0_0_20px_rgba(255,205,0,0.3)]' 
+                      : isEditMode && openPopovers.background 
                       ? 'border-[#FFCD00] ring-4 ring-[#FFCD00]/20 shadow-[0_0_20px_rgba(255,205,0,0.3)]' 
                       : 'border-gray-200'
                   }`}
@@ -724,27 +1067,44 @@ export function FormCustomization({
                     backgroundPosition: theme.backgroundPosition || 'center',
                     backgroundSize: theme.backgroundSize || 'cover',
                     backgroundRepeat: theme.backgroundRepeat || 'no-repeat',
-                    backgroundAttachment: theme.backgroundAttachment || 'fixed', // Identico alla vista utente
+                    backgroundAttachment: theme.backgroundAttachment || 'fixed',
                   }}
                   onClick={(e) => {
-                    if (!isEditMode) return;
-                    // Solo se clicchi direttamente sul container vuoto (non su elementi figli)
+                    if (!(clickToEditMode || isEditMode)) return;
+                    
                     const target = e.target as HTMLElement;
                     const currentTarget = e.currentTarget as HTMLElement;
                     
-                    // Controlla se il click è su un elemento figlio modificabile
-                    const clickableElements = target.closest('[data-editable]') || 
-                                            target.closest('button') ||
-                                            target.closest('h2') ||
-                                            target.closest('p') ||
-                                            target.closest('img');
+                    // Se clicchi su un elemento editable, non aprire lo sfondo
+                    const clickableElements = target.closest('[data-editable]');
                     
-                    // Solo apri popover sfondo se non si clicca su elementi modificabili
-                    if (!clickableElements && (target === currentTarget || target.classList.contains('space-y-4'))) {
-                      togglePopover('background');
+                    // Solo apri popup sfondo se clicchi direttamente sul container
+                    if (!clickableElements || clickableElements === currentTarget) {
+                      handleElementClick(e, 'background');
                     }
                   }}
                 >
+              {/* Overlay per indicare che lo sfondo è cliccabile */}
+              {(clickToEditMode || isEditMode) && (
+                <div 
+                  className={`absolute inset-0 pointer-events-none transition-all duration-200 ${
+                    selectedElement.type === 'background' 
+                      ? 'bg-[#FFCD00]/10' 
+                      : 'bg-transparent group-hover:bg-[#FFCD00]/5'
+                  }`}
+                />
+              )}
+              
+              {/* Badge per indicare sfondo cliccabile */}
+              {(clickToEditMode || isEditMode) && selectedElement.type !== 'background' && (
+                <div className="absolute top-4 left-4 opacity-0 group-hover:opacity-100 transition-opacity z-10 pointer-events-none">
+                  <span className="text-xs bg-white/90 backdrop-blur-sm text-gray-700 px-2 py-1 rounded-full font-medium shadow-sm flex items-center gap-1">
+                    <Palette className="h-3 w-3" />
+                    Clicca per modificare lo sfondo
+                  </span>
+                </div>
+              )}
+              
               {/* Indicatore cliccabile per font globale */}
               {isEditMode && (
                 <Popover open={openPopovers.font} onOpenChange={(open) => setOpenPopovers(prev => ({ ...prev, font: open }))}>
@@ -1270,13 +1630,24 @@ export function FormCustomization({
                
                {/* Questions - domanda corrente con navigazione */}
                {validQuestions.length > 0 && currentQuestion ? (
-                 <div className="space-y-6 min-h-[400px] flex flex-col" style={{ 
-                   padding: `${theme.cardPadding || 24}px`,
-                   backgroundColor: theme.questionBackgroundColor || 'transparent',
-                   borderRadius: `${theme.borderRadius}px`,
-                   border: theme.questionBorderColor ? `${theme.borderWidth || 1}px solid ${theme.questionBorderColor}` : 'none',
-                   boxShadow: `0 ${theme.shadowIntensity || 2}px ${(theme.shadowIntensity || 2) * 4}px rgba(0,0,0,0.1)`
-                 }}>
+                 <div 
+                   data-editable="question"
+                   className={`space-y-6 min-h-[400px] flex flex-col ${(clickToEditMode || isEditMode) ? 'cursor-pointer hover:shadow-lg' : ''} ${selectedElement.type === 'question' ? 'ring-4 ring-[#FFCD00] ring-offset-4' : ''} transition-all`}
+                   style={{ 
+                     padding: `${theme.cardPadding || 24}px`,
+                     backgroundColor: theme.questionBackgroundColor || 'transparent',
+                     borderRadius: `${theme.borderRadius}px`,
+                     border: theme.questionBorderColor ? `${theme.borderWidth || 1}px solid ${theme.questionBorderColor}` : 'none',
+                     boxShadow: `0 ${theme.shadowIntensity || 2}px ${(theme.shadowIntensity || 2) * 4}px rgba(0,0,0,0.1)`
+                   }}
+                   onClick={(e) => {
+                     // Se non clicchi su elementi più specifici (questionText, button), apri question
+                     const target = e.target as HTMLElement;
+                     if (!target.closest('[data-editable="questionText"]') && !target.closest('[data-editable="button"]')) {
+                       handleElementClick(e, 'question');
+                     }
+                   }}
+                 >
                    {/* Domanda corrente */}
                    <div className="flex-1">
                      <div className="flex items-center mb-6">
@@ -1292,15 +1663,20 @@ export function FormCustomization({
                          {currentPreviewStep + 1}
                        </span>
                        <Label 
-                         className="font-semibold flex-1" 
+                         data-editable="questionText"
+                         className={`font-semibold flex-1 ${(clickToEditMode || isEditMode) ? 'cursor-pointer hover:opacity-80 transition-opacity' : ''} ${selectedElement.type === 'questionText' ? 'ring-2 ring-[#FFCD00] ring-offset-2 rounded' : ''}`}
                          style={{ 
                            color: theme.questionTextColor || theme.textColor,
                            fontSize: `${theme.questionFontSize || 20}px`,
                            fontWeight: theme.questionFontWeight || 'semibold'
                          }}
+                         onClick={(e) => handleElementClick(e, 'questionText')}
                        >
                          {currentQuestion.text}
                          {currentQuestion.required && <span className="text-red-500 ml-1">*</span>}
+                         {(clickToEditMode || isEditMode) && (
+                           <span className="ml-2 text-xs bg-[#FFCD00] text-black px-2 py-1 rounded">✏️ Clicca per modificare</span>
+                         )}
                        </Label>
                      </div>
 
@@ -1315,7 +1691,12 @@ export function FormCustomization({
 
                        {/* MULTIPLE_CHOICE */}
                        {currentQuestion.type === 'MULTIPLE_CHOICE' && (
-                         <div style={{ marginTop: `${theme.optionSpacing || 12}px` }}>
+                         <div 
+                           data-editable="optionStyle"
+                           className={`${(clickToEditMode || isEditMode) ? 'cursor-pointer' : ''} ${selectedElement.type === 'optionStyle' ? 'ring-2 ring-[#FFCD00] ring-offset-2 rounded-lg' : ''}`}
+                           style={{ marginTop: `${theme.optionSpacing || 12}px` }}
+                           onClick={(e) => handleElementClick(e, 'optionStyle')}
+                         >
                            {(() => {
                              const choices = Array.isArray(currentQuestion.options) ? currentQuestion.options : currentQuestion.options?.choices || [];
                              return choices.map((option: string, index: number) => (
@@ -1372,12 +1753,19 @@ export function FormCustomization({
 
                        {/* RATING */}
                        {currentQuestion.type === 'RATING' && (
-                         <div className="flex items-center space-x-2">
+                         <div 
+                           data-editable="optionStyle"
+                           className={`flex items-center space-x-2 ${(clickToEditMode || isEditMode) ? 'cursor-pointer' : ''} ${selectedElement.type === 'optionStyle' ? 'ring-2 ring-[#FFCD00] ring-offset-2 rounded-lg p-2' : ''}`}
+                           onClick={(e) => handleElementClick(e, 'optionStyle')}
+                         >
                            {[1, 2, 3, 4, 5].map((rating) => (
                              <Button key={rating} type="button" variant="outline" className="w-12 h-12" style={{ borderRadius: `${theme.borderRadius}px` }}>
                                {rating}
                              </Button>
                            ))}
+                           {(clickToEditMode || isEditMode) && (
+                             <span className="ml-2 text-xs bg-[#FFCD00] text-black px-2 py-1 rounded">✏️</span>
+                           )}
                          </div>
                        )}
 
@@ -1386,10 +1774,17 @@ export function FormCustomization({
                          const scale = currentQuestion.options?.scale || 5;
                          const labels = currentQuestion.options?.labels || [];
                          return (
-                           <div className="space-y-4">
+                           <div 
+                             data-editable="optionStyle"
+                             className={`space-y-4 ${(clickToEditMode || isEditMode) ? 'cursor-pointer' : ''} ${selectedElement.type === 'optionStyle' ? 'ring-2 ring-[#FFCD00] ring-offset-2 rounded-lg p-2' : ''}`}
+                             onClick={(e) => handleElementClick(e, 'optionStyle')}
+                           >
                              <div className="flex items-center justify-between mb-2">
                                <span className="text-sm text-gray-500">{labels[0] || "Per niente d'accordo"}</span>
                                <span className="text-sm text-gray-500">{labels[scale - 1] || "Completamente d'accordo"}</span>
+                               {(clickToEditMode || isEditMode) && (
+                                 <span className="text-xs bg-[#FFCD00] text-black px-2 py-1 rounded">✏️ Clicca per stile</span>
+                               )}
                              </div>
                              <div className="grid grid-cols-5 gap-2">
                                {Array.from({ length: scale }, (_, index) => (
@@ -1501,20 +1896,33 @@ export function FormCustomization({
                          Invia Risposte
                        </Button>
                      ) : (
-                       <Button
-                         type="button"
-                         onClick={() => setCurrentPreviewStep(Math.min(validQuestions.length - 1, currentPreviewStep + 1))}
-                         className="px-6 py-2 transition-all"
-                         style={{ 
-                           backgroundColor: theme.buttonStyle === 'filled' ? theme.primaryColor : 'transparent',
-                           color: theme.buttonTextColor || (theme.buttonStyle === 'filled' ? '#fff' : theme.primaryColor),
-                           border: theme.buttonStyle === 'outlined' ? `${theme.borderWidth || 2}px solid ${theme.primaryColor}` : 'none',
-                           borderRadius: `${theme.borderRadius}px`,
-                           fontWeight: '600'
-                         }}
+                       <div 
+                         data-editable="button"
+                         className={`inline-block ${(clickToEditMode || isEditMode) ? 'cursor-pointer' : ''} ${selectedElement.type === 'button' ? 'ring-4 ring-[#FFCD00] ring-offset-4 rounded-lg' : ''}`}
+                         onClick={(e) => handleElementClick(e, 'button')}
                        >
-                         Successiva
-                       </Button>
+                         <Button
+                           type="button"
+                           onClick={(e) => {
+                             if (!(clickToEditMode || isEditMode)) {
+                               setCurrentPreviewStep(Math.min(validQuestions.length - 1, currentPreviewStep + 1));
+                             }
+                           }}
+                           className="px-6 py-2 transition-all relative"
+                           style={{ 
+                             backgroundColor: theme.buttonStyle === 'filled' ? theme.primaryColor : 'transparent',
+                             color: theme.buttonTextColor || (theme.buttonStyle === 'filled' ? '#fff' : theme.primaryColor),
+                             border: theme.buttonStyle === 'outlined' ? `${theme.borderWidth || 2}px solid ${theme.primaryColor}` : 'none',
+                             borderRadius: `${theme.borderRadius}px`,
+                             fontWeight: '600'
+                           }}
+                         >
+                           Successiva
+                           {(clickToEditMode || isEditMode) && (
+                             <span className="ml-2 text-xs bg-white/20 px-1.5 py-0.5 rounded">✏️</span>
+                           )}
+                         </Button>
+                       </div>
                      )}
                    </div>
                  </div>
@@ -1858,35 +2266,97 @@ export function FormCustomization({
       {/* Pannello Personalizzazione Completa */}
       <Card className="border-0 shadow-lg">
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Sparkles className="h-5 w-5 text-[#FFCD00]" />
-            Personalizzazione Completa
-          </CardTitle>
-          <CardDescription>
-            Modifica ogni elemento del form: domande, opzioni, bottoni, colori e molto altro
-          </CardDescription>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle className="flex items-center gap-2">
+                <Sparkles className="h-5 w-5 text-[#FFCD00]" />
+                {clickToEditMode ? 'Personalizzazione Facile' : 'Personalizzazione Avanzata'}
+              </CardTitle>
+              <CardDescription className="mt-1">
+                {clickToEditMode 
+                  ? '👆 Clicca direttamente sugli elementi sopra per modificarli' 
+                  : 'Modifica ogni elemento del form usando le schede qui sotto'}
+              </CardDescription>
+            </div>
+            <Button
+              variant={clickToEditMode ? "default" : "outline"}
+              size="sm"
+              onClick={() => setClickToEditMode(!clickToEditMode)}
+              className={clickToEditMode ? "bg-[#FFCD00] hover:bg-[#FFCD00]/90 text-black" : ""}
+            >
+              {clickToEditMode ? (
+                <>
+                  <Wand2 className="h-4 w-4 mr-2" />
+                  Modalità Facile
+                </>
+              ) : (
+                <>
+                  <Settings className="h-4 w-4 mr-2" />
+                  Modalità Avanzata
+                </>
+              )}
+            </Button>
+          </div>
         </CardHeader>
         <CardContent>
-          {/* Tab Navigation */}
-          <div className="flex gap-2 mb-6 overflow-x-auto pb-2">
-            {tabs.map((tab) => (
-              <Button
-                key={tab.id}
-                variant={activeTab === tab.id ? 'default' : 'outline'}
-                size="sm"
-                onClick={() => setActiveTab(tab.id as any)}
-                className={activeTab === tab.id ? 'bg-[#FFCD00] hover:bg-[#FFCD00]/90 text-black' : ''}
-              >
-                <tab.icon className="h-4 w-4 mr-2" />
-                {tab.label}
-              </Button>
-            ))}
-          </div>
+          {clickToEditMode ? (
+            /* NUOVO: Modalità Click-to-Edit Semplice */
+            <div className="py-8 text-center space-y-4">
+              <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-[#FFCD00]/10 mb-4">
+                <MousePointer2 className="h-8 w-8 text-[#FFCD00]" />
+              </div>
+              <h3 className="text-lg font-semibold text-gray-900">Come funziona?</h3>
+              <div className="max-w-md mx-auto space-y-3 text-sm text-gray-600">
+                <div className="flex items-start gap-3 text-left">
+                  <div className="w-6 h-6 rounded-full bg-[#FFCD00] text-black flex items-center justify-center flex-shrink-0 font-semibold text-xs">
+                    1
+                  </div>
+                  <p><strong>Clicca sull'elemento</strong> che vuoi modificare nell'anteprima sopra (sfondo, domanda, bottone, etc.)</p>
+                </div>
+                <div className="flex items-start gap-3 text-left">
+                  <div className="w-6 h-6 rounded-full bg-[#FFCD00] text-black flex items-center justify-center flex-shrink-0 font-semibold text-xs">
+                    2
+                  </div>
+                  <p><strong>Scegli i colori e stili</strong> che preferisci dal popup che appare</p>
+                </div>
+                <div className="flex items-start gap-3 text-left">
+                  <div className="w-6 h-6 rounded-full bg-[#FFCD00] text-black flex items-center justify-center flex-shrink-0 font-semibold text-xs">
+                    3
+                  </div>
+                  <p><strong>Vedi il risultato in tempo reale!</strong> Le modifiche si applicano immediatamente</p>
+                </div>
+              </div>
+              <div className="pt-4">
+                <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
+                  💡 Suggerimento: Passa alla "Modalità Avanzata" per opzioni più dettagliate
+                </Badge>
+              </div>
+            </div>
+          ) : (
+            <>
+              {/* Tab Navigation - Solo in modalità avanzata */}
+              <div className="flex gap-2 mb-6 overflow-x-auto pb-2">
+                {tabs.map((tab) => (
+                  <Button
+                    key={tab.id}
+                    variant={activeTab === tab.id ? 'default' : 'outline'}
+                    size="sm"
+                    onClick={() => setActiveTab(tab.id as any)}
+                    className={activeTab === tab.id ? 'bg-[#FFCD00] hover:bg-[#FFCD00]/90 text-black' : ''}
+                  >
+                    <tab.icon className="h-4 w-4 mr-2" />
+                    {tab.label}
+                  </Button>
+                ))}
+              </div>
+            </>
+          )}
 
-          {/* Tab Content */}
-          <div className="space-y-6">
-            {/* TAB: Colori Base */}
-            {activeTab === 'colors' && (
+          {/* Tab Content - Solo in modalità avanzata */}
+          {!clickToEditMode && (
+            <div className="space-y-6">
+              {/* TAB: Colori Base */}
+              {activeTab === 'colors' && (
               <div className="space-y-6">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-2">
@@ -2452,6 +2922,7 @@ export function FormCustomization({
               </div>
             )}
           </div>
+          )}
         </CardContent>
       </Card>
     </div>

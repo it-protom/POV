@@ -36,7 +36,8 @@ import {
   Clock,
   Smartphone,
   Monitor,
-  Tablet
+  Tablet,
+  Search
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { authenticatedFetch } from '../../../lib/utils';
@@ -84,20 +85,63 @@ interface DashboardData {
   completionData: Array<{
     name: string;
     value: number;
-    percentage: number;
+    percentage?: number;
+  }>;
+  userCompletionDetails?: Array<{
+    name: string;
+    email: string;
+    status: string;
+    answersCount: number;
+    totalQuestions: number;
   }>;
 }
 
 export default function DashboardPage() {
-  const [timeRange, setTimeRange] = useState('30d');
+  const [selectedFormId, setSelectedFormId] = useState<string>('all');
   const [isLoading, setIsLoading] = useState(true);
   const [dashboardData, setDashboardData] = useState<DashboardData | null>(null);
+  const [availableForms, setAvailableForms] = useState<Array<{ id: string; title: string }>>([]);
   const [expandedCards, setExpandedCards] = useState<{ [key: string]: boolean }>({});
+  
+  // Filtri e paginazione per la tabella utenti
+  const [searchTerm, setSearchTerm] = useState('');
+  const [filterStatus, setFilterStatus] = useState<'all' | 'completed' | 'partial' | 'notStarted'>('all');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [expandedUser, setExpandedUser] = useState<number | null>(null);
+  const itemsPerPage = 10;
+
+  useEffect(() => {
+    const fetchForms = async () => {
+      try {
+        const response = await authenticatedFetch('/api/forms/summary', {
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        });
+        if (response.ok) {
+          const data = await response.json();
+          console.log('Forms data received:', data);
+          // L'API restituisce {forms: [...]}
+          setAvailableForms(data.forms || []);
+        }
+      } catch (error) {
+        console.error('Error fetching forms:', error);
+      }
+    };
+
+    fetchForms();
+  }, []);
 
   useEffect(() => {
     const fetchDashboardData = async () => {
+      setIsLoading(true);
       try {
-        const response = await authenticatedFetch('/api/dashboard/stats', {
+        const params = new URLSearchParams();
+        if (selectedFormId && selectedFormId !== 'all') {
+          params.append('formId', selectedFormId);
+        }
+        
+        const response = await authenticatedFetch(`/api/dashboard/stats?${params.toString()}`, {
           headers: {
             'Content-Type': 'application/json',
           },
@@ -114,7 +158,7 @@ export default function DashboardPage() {
     };
 
     fetchDashboardData();
-  }, [timeRange]);
+  }, [selectedFormId]);
 
   const toggleCardExpansion = (cardId: string) => {
     setExpandedCards(prev => ({
@@ -150,6 +194,30 @@ export default function DashboardPage() {
   const chartData = dashboardData?.chartData || [];
   const deviceData = dashboardData?.deviceData || [];
   const completionData = dashboardData?.completionData || [];
+  const allUserCompletionDetails = dashboardData?.userCompletionDetails || [];
+  
+  // Filtraggio e paginazione
+  const filteredUsers = allUserCompletionDetails.filter(user => {
+    // Filtro ricerca
+    const matchesSearch = searchTerm === '' || 
+      user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      user.email.toLowerCase().includes(searchTerm.toLowerCase());
+    
+    // Filtro stato
+    const completionRate = user.totalQuestions > 0 ? user.answersCount / user.totalQuestions : 0;
+    const matchesStatus = filterStatus === 'all' ||
+      (filterStatus === 'completed' && completionRate === 1) ||
+      (filterStatus === 'partial' && completionRate > 0 && completionRate < 1) ||
+      (filterStatus === 'notStarted' && completionRate === 0);
+    
+    return matchesSearch && matchesStatus;
+  });
+  
+  const totalPages = Math.ceil(filteredUsers.length / itemsPerPage);
+  const paginatedUsers = filteredUsers.slice(
+    (currentPage - 1) * itemsPerPage,
+    currentPage * itemsPerPage
+  );
 
   return (
     <motion.div
@@ -170,23 +238,42 @@ export default function DashboardPage() {
               <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold bg-gradient-to-r from-gray-900 to-gray-600 bg-clip-text text-transparent">
                 Dashboard Analytics
               </h1>
-            
+              {selectedFormId !== 'all' && (
+                <p className="text-sm text-gray-600 mt-2">
+                  <Badge variant="outline" className="bg-[#FFCD00]/10 border-[#FFCD00] text-gray-900">
+                    <FileText className="h-3 w-3 mr-1" />
+                    {availableForms.find(f => f.id === selectedFormId)?.title || 'Form Selezionato'}
+                  </Badge>
+                </p>
+              )}
             </div>
             
             <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
-              <Select value={timeRange} onValueChange={setTimeRange}>
-                <SelectTrigger className="w-full sm:w-[180px]">
-                  <SelectValue placeholder="Periodo" />
+              <Select value={selectedFormId} onValueChange={setSelectedFormId}>
+                <SelectTrigger className="w-full sm:w-[220px]">
+                  <SelectValue placeholder="Seleziona Form" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="7d">Ultimi 7 giorni</SelectItem>
-                  <SelectItem value="30d">Ultimi 30 giorni</SelectItem>
-                  <SelectItem value="90d">Ultimi 3 mesi</SelectItem>
-                  <SelectItem value="12m">Ultimo anno</SelectItem>
+                  <SelectItem value="all">
+                    Tutti i Form ({availableForms.length})
+                  </SelectItem>
+                  {availableForms.map((form) => (
+                    <SelectItem key={form.id} value={form.id}>
+                      {form.title}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
               
-              <Button variant="outline" size="sm" className="flex-shrink-0">
+              <Button 
+                variant="outline" 
+                size="sm" 
+                className="flex-shrink-0"
+                onClick={() => {
+                  setIsLoading(true);
+                  window.location.reload();
+                }}
+              >
                 <RefreshCw className="h-4 w-4 mr-2" />
                 Aggiorna
               </Button>
@@ -314,50 +401,418 @@ export default function DashboardPage() {
 
           {/* Completion Analysis */}
           {completionData && completionData.length > 0 ? (
-            <AccessibleChart
-              title="Distribuzione Completamento"
-              description="Stato delle risposte"
-              data={completionData}
-              showLegend={true}
-              showTable={true}
-              ariaLabel="Grafico a torta che mostra la distribuzione dello stato di completamento delle risposte"
-              legendProps={{
-                payload: [
-                  { value: 'Completate', color: chartColors.status.completed },
-                  { value: 'Parziali', color: chartColors.status.partial },
-                  { value: 'Abbandonate', color: chartColors.status.abandoned }
-                ]
-              }}
-            >
-            <ResponsiveContainer width="100%" height="100%">
-              <PieChart>
-                <Pie
-                  data={completionData}
-                  cx="50%"
-                  cy="50%"
-                  innerRadius={chartPresets.pie.innerRadius}
-                  outerRadius={chartPresets.pie.outerRadius}
-                  paddingAngle={chartPresets.pie.paddingAngle}
-                  dataKey="value"
-                  label={({ name, percentage }) => percentage > 5 ? `${name} ${percentage}%` : ''}
-                  labelLine={false}
-                  fontSize={10}
-                >
-                  {completionData.map((entry, index) => (
-                    <Cell 
-                      key={`cell-${index}`} 
-                      fill={
-                        entry.name === 'Completate' ? chartColors.status.completed :
-                        entry.name === 'Parziali' ? chartColors.status.partial :
-                        chartColors.status.abandoned
-                      } 
-                    />
-                  ))}
-                </Pie>
-                <Tooltip content={<PerformanceTooltip />} />
-              </PieChart>
-            </ResponsiveContainer>
-          </AccessibleChart>
+            <div className="space-y-4">
+              <AccessibleChart
+                title="Distribuzione Completamento"
+                description={selectedFormId !== 'all' ? "Stato completamento utenti" : "Stato delle risposte"}
+                data={completionData}
+                showLegend={true}
+                showTable={allUserCompletionDetails.length === 0}
+                ariaLabel="Grafico a torta che mostra la distribuzione dello stato di completamento"
+                legendProps={{
+                  payload: completionData.map(item => ({
+                    value: item.name,
+                    color: item.name.includes('Completato') ? chartColors.status.completed :
+                           item.name.includes('Parziali') ? chartColors.status.partial :
+                           item.name.includes('Non Hanno') ? chartColors.status.abandoned :
+                           item.name === 'Completate' ? chartColors.status.completed :
+                           item.name === 'Abbandonate' ? chartColors.status.abandoned :
+                           chartColors.status.partial
+                  }))
+                }}
+              >
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie
+                      data={completionData}
+                      cx="50%"
+                      cy="50%"
+                      innerRadius={chartPresets.pie.innerRadius}
+                      outerRadius={chartPresets.pie.outerRadius}
+                      paddingAngle={chartPresets.pie.paddingAngle}
+                      dataKey="value"
+                      label={({ name, percentage, value }) => {
+                        const pct = percentage || Math.round((value / completionData.reduce((sum, d) => sum + d.value, 0)) * 100);
+                        return pct > 5 ? `${name.split(' ')[0]} ${pct}%` : '';
+                      }}
+                      labelLine={false}
+                      fontSize={10}
+                    >
+                      {completionData.map((entry, index) => (
+                        <Cell 
+                          key={`cell-${index}`} 
+                          fill={
+                            entry.name.includes('Completato') ? chartColors.status.completed :
+                            entry.name.includes('Parziali') ? chartColors.status.partial :
+                            entry.name.includes('Non Hanno') ? chartColors.status.abandoned :
+                            entry.name === 'Completate' ? chartColors.status.completed :
+                            entry.name === 'Abbandonate' ? chartColors.status.abandoned :
+                            chartColors.status.partial
+                          } 
+                        />
+                      ))}
+                    </Pie>
+                    <Tooltip content={<PerformanceTooltip />} />
+                  </PieChart>
+                </ResponsiveContainer>
+              </AccessibleChart>
+              
+              {/* Tabella dettagli */}
+              {allUserCompletionDetails.length > 0 ? (
+                <Card>
+                  <CardHeader>
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                      <div>
+                        <CardTitle className="text-lg flex items-center gap-2">
+                          <Users className="h-5 w-5" />
+                          {selectedFormId === 'all' 
+                            ? `Tutti gli Utenti (${filteredUsers.length}${filteredUsers.length !== allUserCompletionDetails.length ? ` di ${allUserCompletionDetails.length}` : ''})`
+                            : `Dettaglio Utenti - ${availableForms.find(f => f.id === selectedFormId)?.title || 'Form'} (${allUserCompletionDetails.length})`
+                          }
+                        </CardTitle>
+                        {selectedFormId === 'all' && (
+                          <p className="text-xs text-gray-500 mt-1">
+                            Clicca su una riga per vedere i dettagli | 🔒 = Form anonimo
+                          </p>
+                        )}
+                      </div>
+                      
+                      {selectedFormId === 'all' && (
+                        <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+                          <div className="relative flex-1 sm:w-64">
+                            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                            <input
+                              type="text"
+                              placeholder="Cerca utente o email..."
+                              value={searchTerm}
+                              onChange={(e) => {
+                                setSearchTerm(e.target.value);
+                                setCurrentPage(1);
+                              }}
+                              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            />
+                          </div>
+                          <Select value={filterStatus} onValueChange={(value: any) => {
+                            setFilterStatus(value);
+                            setCurrentPage(1);
+                          }}>
+                            <SelectTrigger className="w-full sm:w-[180px]">
+                              <SelectValue placeholder="Filtra per stato" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="all">Tutti gli stati</SelectItem>
+                              <SelectItem value="completed">✅ Completati</SelectItem>
+                              <SelectItem value="partial">⚠️ Parziali</SelectItem>
+                              <SelectItem value="notStarted">❌ Non iniziati</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      )}
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="overflow-x-auto">
+                      {selectedFormId === 'all' ? (
+                        // Tabella compatta e scalabile per tutti gli utenti
+                        <>
+                          <table className="w-full">
+                            <thead>
+                              <tr className="border-b border-gray-200 bg-gray-50">
+                                <th className="text-left py-3 px-4 font-semibold text-xs text-gray-700 uppercase tracking-wider">Utente</th>
+                                <th className="text-center py-3 px-4 font-semibold text-xs text-gray-700 uppercase tracking-wider">Completamento</th>
+                                <th className="text-center py-3 px-4 font-semibold text-xs text-gray-700 uppercase tracking-wider">Progresso</th>
+                                <th className="text-center py-3 px-4 font-semibold text-xs text-gray-700 uppercase tracking-wider">Azioni</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {paginatedUsers.length > 0 ? paginatedUsers.map((user, index) => {
+                                const globalIndex = (currentPage - 1) * itemsPerPage + index;
+                                const completionRate = user.totalQuestions > 0 
+                                  ? Math.round((user.answersCount / user.totalQuestions) * 100)
+                                  : 0;
+                                const isExpanded = expandedUser === globalIndex;
+                                
+                                // Raggruppa i form per stato (solo se espanso)
+                                const formsByStatus = isExpanded ? {
+                                  completed: [] as string[],
+                                  partial: [] as string[],
+                                  notStarted: [] as string[]
+                                } : null;
+                                
+                                if (isExpanded && formsByStatus) {
+                                  user.status.split(', ').forEach(formStatus => {
+                                    if (formStatus.includes('✅')) {
+                                      formsByStatus.completed.push(formStatus.replace('✅', '').replace(':', '').trim());
+                                    } else if (formStatus.includes('⚠️')) {
+                                      formsByStatus.partial.push(formStatus.replace('⚠️', '').replace(':', '').trim());
+                                    } else if (formStatus.includes('❌')) {
+                                      formsByStatus.notStarted.push(formStatus.replace('❌', '').replace(':', '').trim());
+                                    }
+                                  });
+                                }
+                                
+                                return (
+                                  <React.Fragment key={globalIndex}>
+                                    <tr 
+                                      className={`border-b border-gray-100 hover:bg-gray-50 cursor-pointer transition-colors ${
+                                        isExpanded ? 'bg-blue-50' : ''
+                                      }`}
+                                      onClick={() => setExpandedUser(isExpanded ? null : globalIndex)}
+                                    >
+                                      <td className="py-3 px-4">
+                                        <div className="flex items-center gap-3">
+                                          <div className="h-8 w-8 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white text-xs font-semibold flex-shrink-0">
+                                            {user.name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase()}
+                                          </div>
+                                          <div className="min-w-0">
+                                            <div className="font-medium text-sm text-gray-900 truncate">{user.name}</div>
+                                            <div className="text-xs text-gray-500 truncate">{user.email}</div>
+                                          </div>
+                                        </div>
+                                      </td>
+                                      <td className="py-3 px-4 text-center">
+                                        <Badge 
+                                          variant="outline"
+                                          className={
+                                            completionRate === 100 
+                                              ? 'bg-green-50 text-green-700 border-green-200' 
+                                              : completionRate > 0
+                                              ? 'bg-yellow-50 text-yellow-700 border-yellow-200'
+                                              : 'bg-red-50 text-red-700 border-red-200'
+                                          }
+                                        >
+                                          {completionRate === 100 ? '✅ Completo' : 
+                                           completionRate > 0 ? '⚠️ Parziale' : '❌ Da fare'}
+                                        </Badge>
+                                      </td>
+                                      <td className="py-3 px-4">
+                                        <div className="flex flex-col items-center gap-1">
+                                          <span className="text-sm font-medium text-gray-900">
+                                            {user.answersCount}/{user.totalQuestions}
+                                          </span>
+                                          <div className="w-full max-w-[120px] h-1.5 bg-gray-200 rounded-full overflow-hidden">
+                                            <div 
+                                              className={`h-full transition-all ${
+                                                completionRate >= 80 ? 'bg-green-500' :
+                                                completionRate >= 50 ? 'bg-yellow-500' : 'bg-red-500'
+                                              }`}
+                                              style={{ width: `${completionRate}%` }}
+                                            />
+                                          </div>
+                                          <span className="text-xs text-gray-500">{completionRate}%</span>
+                                        </div>
+                                      </td>
+                                      <td className="py-3 px-4 text-center">
+                                        <Button
+                                          variant="ghost"
+                                          size="sm"
+                                          className="text-xs"
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            setExpandedUser(isExpanded ? null : globalIndex);
+                                          }}
+                                        >
+                                          {isExpanded ? 'Nascondi' : 'Dettagli'}
+                                          <Eye className="h-3 w-3 ml-1" />
+                                        </Button>
+                                      </td>
+                                    </tr>
+                                    {isExpanded && formsByStatus && (
+                                      <tr>
+                                        <td colSpan={4} className="p-0">
+                                          <div className="bg-blue-50 border-t border-b border-blue-100 p-4">
+                                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                              {/* Completati */}
+                                              {formsByStatus.completed.length > 0 && (
+                                                <div>
+                                                  <div className="text-xs font-semibold text-gray-700 mb-2 flex items-center gap-1">
+                                                    <span className="text-green-600">✅</span>
+                                                    Completati ({formsByStatus.completed.length})
+                                                  </div>
+                                                  <div className="flex flex-wrap gap-1">
+                                                    {formsByStatus.completed.map((form, idx) => (
+                                                      <Badge key={idx} className="bg-green-100 text-green-800 border-green-200 text-xs">
+                                                        {form.replace(' (Anonimo)', '')}
+                                                        {form.includes('(Anonimo)') && <span className="ml-1">🔒</span>}
+                                                      </Badge>
+                                                    ))}
+                                                  </div>
+                                                </div>
+                                              )}
+                                              
+                                              {/* Parziali */}
+                                              {formsByStatus.partial.length > 0 && (
+                                                <div>
+                                                  <div className="text-xs font-semibold text-gray-700 mb-2 flex items-center gap-1">
+                                                    <span className="text-yellow-600">⚠️</span>
+                                                    In corso ({formsByStatus.partial.length})
+                                                  </div>
+                                                  <div className="flex flex-wrap gap-1">
+                                                    {formsByStatus.partial.map((form, idx) => (
+                                                      <Badge key={idx} className="bg-yellow-100 text-yellow-800 border-yellow-200 text-xs">
+                                                        {form.replace(' (Anonimo)', '')}
+                                                        {form.includes('(Anonimo)') && <span className="ml-1">🔒</span>}
+                                                      </Badge>
+                                                    ))}
+                                                  </div>
+                                                </div>
+                                              )}
+                                              
+                                              {/* Non iniziati */}
+                                              {formsByStatus.notStarted.length > 0 && (
+                                                <div>
+                                                  <div className="text-xs font-semibold text-gray-700 mb-2 flex items-center gap-1">
+                                                    <span className="text-red-600">❌</span>
+                                                    Da completare ({formsByStatus.notStarted.length})
+                                                  </div>
+                                                  <div className="flex flex-wrap gap-1">
+                                                    {formsByStatus.notStarted.map((form, idx) => (
+                                                      <Badge key={idx} variant="outline" className="bg-red-50 text-red-700 border-red-200 text-xs">
+                                                        {form.replace(' (Anonimo)', '')}
+                                                        {form.includes('(Anonimo)') && <span className="ml-1">🔒</span>}
+                                                      </Badge>
+                                                    ))}
+                                                  </div>
+                                                </div>
+                                              )}
+                                            </div>
+                                          </div>
+                                        </td>
+                                      </tr>
+                                    )}
+                                  </React.Fragment>
+                                );
+                              }) : (
+                                <tr>
+                                  <td colSpan={4} className="py-8 text-center text-gray-500">
+                                    <Users className="h-12 w-12 mx-auto mb-2 text-gray-300" />
+                                    <p className="font-medium">Nessun utente trovato</p>
+                                    <p className="text-sm mt-1">Prova a modificare i filtri di ricerca</p>
+                                  </td>
+                                </tr>
+                              )}
+                            </tbody>
+                          </table>
+                          
+                          {/* Paginazione */}
+                          {totalPages > 1 && (
+                            <div className="flex items-center justify-between border-t border-gray-200 pt-4 mt-4">
+                              <div className="text-sm text-gray-500">
+                                Mostrando {((currentPage - 1) * itemsPerPage) + 1} - {Math.min(currentPage * itemsPerPage, filteredUsers.length)} di {filteredUsers.length} utenti
+                              </div>
+                              <div className="flex gap-2">
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
+                                  disabled={currentPage === 1}
+                                >
+                                  Precedente
+                                </Button>
+                                <div className="flex items-center gap-1">
+                                  {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                                    let pageNum;
+                                    if (totalPages <= 5) {
+                                      pageNum = i + 1;
+                                    } else if (currentPage <= 3) {
+                                      pageNum = i + 1;
+                                    } else if (currentPage >= totalPages - 2) {
+                                      pageNum = totalPages - 4 + i;
+                                    } else {
+                                      pageNum = currentPage - 2 + i;
+                                    }
+                                    
+                                    return (
+                                      <Button
+                                        key={i}
+                                        variant={currentPage === pageNum ? "default" : "outline"}
+                                        size="sm"
+                                        onClick={() => setCurrentPage(pageNum)}
+                                        className="w-8 h-8 p-0"
+                                      >
+                                        {pageNum}
+                                      </Button>
+                                    );
+                                  })}
+                                </div>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
+                                  disabled={currentPage === totalPages}
+                                >
+                                  Successivo
+                                </Button>
+                              </div>
+                            </div>
+                          )}
+                        </>
+                      ) : (
+                        // Tabella per singolo form - dettaglio utenti
+                        <table className="w-full border-collapse">
+                          <thead>
+                            <tr className="border-b border-gray-200">
+                              <th className="text-left py-3 px-4 font-semibold text-sm text-gray-700">Utente</th>
+                              <th className="text-left py-3 px-4 font-semibold text-sm text-gray-700">Email</th>
+                              <th className="text-center py-3 px-4 font-semibold text-sm text-gray-700">Stato</th>
+                              <th className="text-center py-3 px-4 font-semibold text-sm text-gray-700">Progresso</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {allUserCompletionDetails.map((user, index) => (
+                              <tr 
+                                key={index} 
+                                className={`border-b border-gray-100 hover:bg-gray-50 transition-colors ${
+                                  index % 2 === 0 ? 'bg-white' : 'bg-gray-50/50'
+                                }`}
+                              >
+                                <td className="py-3 px-4 text-sm">{user.name}</td>
+                                <td className="py-3 px-4 text-sm text-gray-600">{user.email}</td>
+                                <td className="py-3 px-4 text-center">
+                                  <Badge 
+                                    variant="outline"
+                                    className={
+                                      user.status === 'Completato' 
+                                        ? 'bg-green-50 text-green-700 border-green-200' 
+                                        : user.status === 'Non ha risposto'
+                                        ? 'bg-red-50 text-red-700 border-red-200'
+                                        : 'bg-yellow-50 text-yellow-700 border-yellow-200'
+                                    }
+                                  >
+                                    {user.status}
+                                  </Badge>
+                                </td>
+                                <td className="py-3 px-4 text-center text-sm">
+                                  <div className="flex items-center justify-center gap-2">
+                                    <span className="text-gray-600">
+                                      {user.answersCount}/{user.totalQuestions}
+                                    </span>
+                                    <div className="w-20 h-2 bg-gray-200 rounded-full overflow-hidden">
+                                      <div 
+                                        className={`h-full transition-all ${
+                                          user.answersCount >= user.totalQuestions 
+                                            ? 'bg-green-500' 
+                                            : user.answersCount > 0 
+                                            ? 'bg-yellow-500'
+                                            : 'bg-red-500'
+                                        }`}
+                                        style={{ 
+                                          width: `${Math.round((user.answersCount / Math.max(user.totalQuestions, 1)) * 100)}%` 
+                                        }}
+                                      />
+                                    </div>
+                                  </div>
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              ) : null}
+            </div>
           ) : (
             <NoDataChart 
               title="Distribuzione Completamento"
