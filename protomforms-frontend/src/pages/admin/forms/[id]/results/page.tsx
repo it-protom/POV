@@ -4,14 +4,10 @@ import { useState, useEffect, useMemo } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { ArrowLeft, ChevronLeft, ChevronRight, Clock, User, MoreVertical, List, Eye } from "lucide-react";
+import { ArrowLeft, List, Eye } from "lucide-react";
 import { authenticatedFetch } from '@/lib/utils';
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Label } from "@/components/ui/label";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Progress } from "@/components/ui/progress";
 
 interface Question {
   id: string;
@@ -334,218 +330,138 @@ export default function FormResultsPage() {
 
         {/* Vista Dettaglio */}
         {viewMode === "detail" && (
-          <>
-          <div className="bg-white rounded-lg shadow-sm border">
-          {/* Title */}
-          <div className="border-b p-6">
-            <h1 className="text-2xl font-semibold">Visualizza risultati</h1>
-          </div>
-
-          {/* Navigation Bar */}
-          <div className="border-b p-4 bg-gray-50">
+          <div className="space-y-6">
+            {/* Header con navigazione */}
             <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <span className="text-sm text-gray-600">Risposta precedente</span>
-                <div className="flex items-center gap-2">
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={goToPrevious}
-                    disabled={currentIndex === 0}
-                    className="h-8 w-8"
-                  >
-                    <ChevronLeft className="h-5 w-5" />
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={goToNext}
-                    disabled={currentIndex === responses.length - 1}
-                    className="h-8 w-8"
-                  >
-                    <ChevronRight className="h-5 w-5" />
-                  </Button>
-                </div>
-              </div>
-
-              <div className="flex items-center gap-6">
-                {/* User Info */}
-                <div className="text-center">
-                  <div className="text-blue-600 font-medium text-sm">Intervistato</div>
-                  <div className="flex items-center gap-2 mt-1">
-                    <span className="text-lg font-semibold">{currentIndex + 1}</span>
-                    <span className="font-medium">
-                      {form.isAnonymous 
-                        ? `Anonimo #${currentResponse?.progressiveNumber}`
-                        : (currentResponse?.user?.name || `Risposta #${currentResponse?.progressiveNumber}`)}
-                    </span>
-                  </div>
-                </div>
-
-                {/* Completion Time */}
-                <div className="text-right">
-                  <div className="text-5xl font-light text-gray-900">
-                    {formatCompletionTime(completionTime)}
-                  </div>
-                  <div className="text-sm text-gray-500 mt-1">
-                    Tempo per il<br />completamento
-                  </div>
-                </div>
-
-                <Button variant="ghost" size="icon">
-                  <MoreVertical className="h-5 w-5" />
+              <Button 
+                variant="ghost" 
+                onClick={() => navigate(-1)}
+                className="text-gray-600"
+              >
+                ← Torna alle Risposte
+              </Button>
+              
+              <div className="flex items-center gap-4">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={goToPrevious}
+                  disabled={currentIndex === 0}
+                >
+                  ←
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={goToNext}
+                  disabled={currentIndex === responses.length - 1}
+                >
+                  →
                 </Button>
               </div>
             </div>
-          </div>
 
-          {/* Questions and Answers */}
-          <div className="p-8 space-y-8">
-            {form.questions
-              .sort((a, b) => a.order - b.order)
-              .map((question, index) => {
-                const answer = currentResponse?.answers.find(
-                  (a) => a.questionId === question.id
-                );
+            {/* Titolo Form e Risposta */}
+            <div className="space-y-1">
+              <h1 className="text-xl font-semibold">{form.title}</h1>
+              <div className="flex items-center gap-2 text-sm text-gray-600">
+                <span>Risposta #{currentResponse?.progressiveNumber}</span>
+                <span>•</span>
+                <span>{formatDate(currentResponse?.createdAt || '')}</span>
+              </div>
+            </div>
 
-                return (
-                  <div key={question.id} className="space-y-4">
-                    <div className="flex gap-2">
-                      <span className="text-gray-500 font-medium">{index + 1}.</span>
-                      <div className="flex-1">
-                        <h3 className="text-base font-medium mb-1">
-                          {question.text}
-                          {question.required && <span className="text-red-500 ml-1">*</span>}
-                        </h3>
-
-                        {/* Display answer based on question type */}
-                        <div className="mt-4">
-                          {question.type === "TEXT" && (
-                            <div className="text-gray-700">
-                              {answer?.value || <span className="text-gray-400 italic">Nessuna risposta</span>}
-                            </div>
-                          )}
-
-                          {question.type === "TEXTAREA" && (
-                            <div className="text-gray-700 whitespace-pre-wrap">
-                              {answer?.value || <span className="text-gray-400 italic">Nessuna risposta</span>}
-                            </div>
-                          )}
-
-                          {question.type === "MULTIPLE_CHOICE" && (
-                            <RadioGroup value={answer?.value} disabled>
-                              <div className="space-y-3">
-                                {question.options?.map((option) => (
-                                  <div key={option} className="flex items-center space-x-2">
-                                    <RadioGroupItem
-                                      value={option}
-                                      id={`${question.id}-${option}`}
-                                      checked={answer?.value === option}
-                                      className="pointer-events-none"
-                                    />
-                                    <Label
-                                      htmlFor={`${question.id}-${option}`}
-                                      className={answer?.value === option ? "font-medium" : ""}
-                                    >
-                                      {option}
-                                    </Label>
-                                  </div>
-                                ))}
-                              </div>
-                            </RadioGroup>
-                          )}
-
-                          {question.type === "CHECKBOX" && (
-                            <div className="space-y-3">
-                              {question.options?.map((option) => {
-                                const isChecked = Array.isArray(answer?.value) && answer.value.includes(option);
-                                return (
-                                  <div key={option} className="flex items-center space-x-2">
-                                    <Checkbox
-                                      id={`${question.id}-${option}`}
-                                      checked={isChecked}
-                                      disabled
-                                    />
-                                    <Label
-                                      htmlFor={`${question.id}-${option}`}
-                                      className={isChecked ? "font-medium" : ""}
-                                    >
-                                      {option}
-                                    </Label>
-                                  </div>
-                                );
-                              })}
-                            </div>
-                          )}
-
-                          {question.type === "RATING" && (
-                            <div className="flex gap-2">
-                              {[1, 2, 3, 4, 5].map((star) => (
-                                <button
-                                  key={star}
-                                  type="button"
-                                  disabled
-                                  className={`text-2xl ${
-                                    answer?.value >= star
-                                      ? "text-yellow-400"
-                                      : "text-gray-300"
-                                  }`}
-                                >
-                                  ★
-                                </button>
-                              ))}
-                              {answer?.value && (
-                                <span className="ml-2 text-sm text-gray-600">
-                                  {answer.value}/5
-                                </span>
-                              )}
-                            </div>
-                          )}
-
-                          {question.type === "DATE" && (
-                            <div className="text-gray-700">
-                              {answer?.value ? new Date(answer.value).toLocaleDateString('it-IT') : (
-                                <span className="text-gray-400 italic">Nessuna risposta</span>
-                              )}
-                            </div>
-                          )}
-
-                          {question.type === "TIME" && (
-                            <div className="text-gray-700">
-                              {answer?.value || <span className="text-gray-400 italic">Nessuna risposta</span>}
-                            </div>
-                          )}
-
-                          {question.type === "NUMBER" && (
-                            <div className="text-gray-700">
-                              {answer?.value !== undefined ? answer.value : (
-                                <span className="text-gray-400 italic">Nessuna risposta</span>
-                              )}
-                            </div>
-                          )}
-
-                          {question.type === "EMAIL" && (
-                            <div className="text-gray-700">
-                              {answer?.value || <span className="text-gray-400 italic">Nessuna risposta</span>}
-                            </div>
-                          )}
-                        </div>
-                      </div>
+            {/* Card Intervistato */}
+            <Card className="border">
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <div className="text-sm text-gray-600 mb-1">Intervistato</div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-lg font-medium">{currentResponse?.progressiveNumber}</span>
+                      <span className="text-base font-medium">
+                        {form.isAnonymous 
+                          ? 'Anonimo'
+                          : (currentResponse?.user?.name || `Risposta #${currentResponse?.progressiveNumber}`)}
+                      </span>
                     </div>
                   </div>
-                );
-              })}
-          </div>
-          </div>
+                  <div className="text-right">
+                    <div className="text-2xl font-medium">{formatCompletionTime(completionTime)}</div>
+                    <div className="text-xs text-gray-500">Tempo per il completamento</div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
 
-          {/* Progress Indicator */}
-          <div className="mt-6 text-center">
-            <p className="text-sm text-gray-500">
+            {/* Domande e Risposte */}
+            <div className="space-y-6">
+              {form.questions
+                .sort((a, b) => a.order - b.order)
+                .map((question, index) => {
+                  const answer = currentResponse?.answers.find(
+                    (a) => a.questionId === question.id
+                  );
+
+                  // Formatta il tipo di domanda
+                  const questionTypeLabel = question.type === "MULTIPLE_CHOICE" ? "MULTIPLE_CHOICE" :
+                                           question.type === "CHECKBOX" ? "CHECKBOX" :
+                                           question.type === "RATING" ? "LIKERT" :
+                                           question.type === "TEXT" ? "TEXT" :
+                                           question.type === "TEXTAREA" ? "TEXTAREA" :
+                                           question.type === "DATE" ? "DATE" :
+                                           question.type === "TIME" ? "TIME" :
+                                           question.type === "NUMBER" ? "NUMBER" :
+                                           question.type === "EMAIL" ? "EMAIL" :
+                                           question.type;
+
+                  // Formatta la risposta
+                  let answerDisplay = '';
+                  if (question.type === "MULTIPLE_CHOICE") {
+                    answerDisplay = answer?.value || 'Nessuna risposta';
+                  } else if (question.type === "CHECKBOX") {
+                    if (Array.isArray(answer?.value)) {
+                      answerDisplay = answer.value.join(', ');
+                    } else {
+                      answerDisplay = answer?.value ? String(answer.value) : 'Nessuna risposta';
+                    }
+                  } else if (question.type === "RATING" || question.type === "LIKERT") {
+                    answerDisplay = answer?.value ? String(answer.value) : 'Nessuna risposta';
+                  } else if (question.type === "DATE") {
+                    answerDisplay = answer?.value ? new Date(answer.value).toLocaleDateString('it-IT') : 'Nessuna risposta';
+                  } else {
+                    answerDisplay = answer?.value ? String(answer.value) : 'Nessuna risposta';
+                  }
+
+                  return (
+                    <Card key={question.id} className="border">
+                      <CardContent className="p-6">
+                        <div className="space-y-3">
+                          <div className="flex items-center gap-2">
+                            <span className="text-sm font-medium text-gray-600">Domanda {index + 1}</span>
+                            <span className="text-sm text-gray-500">{questionTypeLabel}</span>
+                          </div>
+                          <div className="text-base font-medium text-gray-900">
+                            {question.text}
+                          </div>
+                          <div className="pt-2 border-t">
+                            <div className="text-sm text-gray-600 mb-1">Risposta:</div>
+                            <div className="text-base text-gray-900 font-medium">
+                              {answerDisplay}
+                            </div>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  );
+                })}
+            </div>
+
+            {/* Indicatore progresso */}
+            <div className="text-center text-sm text-gray-500">
               Risposta {currentIndex + 1} di {responses.length}
-            </p>
-            <Progress value={((currentIndex + 1) / responses.length) * 100} className="mt-2 max-w-md mx-auto" />
+            </div>
           </div>
-          </>
         )}
       </div>
     </div>

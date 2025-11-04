@@ -291,13 +291,26 @@ export default function DashboardPage() {
         {/* Key Metrics */}
         {stats.length > 0 ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6 mb-8">
-            {stats.map((stat, index) => (
-              <MetricCard
-                key={stat.title}
-                {...stat}
-                index={index}
-              />
-            ))}
+            {stats.map((stat, index) => {
+              // Determina l'URL in base al titolo
+              let href: string | undefined;
+              if (stat.title === "Forms Totali") {
+                href = "/admin/forms";
+              } else if (stat.title === "Risposte Totali") {
+                href = "/admin/responses";
+              } else if (stat.title === "Utenti Attivi") {
+                href = "/admin/users";
+              }
+
+              return (
+                <MetricCard
+                  key={stat.title}
+                  {...stat}
+                  index={index}
+                  href={href}
+                />
+              );
+            })}
           </div>
         ) : (
           <div className="mb-8">
@@ -519,34 +532,112 @@ export default function DashboardPage() {
                             <thead>
                               <tr className="border-b border-gray-200 bg-gray-50">
                                 <th className="text-left py-3 px-4 font-semibold text-xs text-gray-700 uppercase tracking-wider">Utente</th>
-                                <th className="text-center py-3 px-4 font-semibold text-xs text-gray-700 uppercase tracking-wider">Completamento</th>
-                                <th className="text-center py-3 px-4 font-semibold text-xs text-gray-700 uppercase tracking-wider">Progresso</th>
+                                <th className="text-left py-3 px-4 font-semibold text-xs text-gray-700 uppercase tracking-wider">Completamento</th>
+                                <th className="text-left py-3 px-4 font-semibold text-xs text-gray-700 uppercase tracking-wider">Progresso</th>
                                 <th className="text-center py-3 px-4 font-semibold text-xs text-gray-700 uppercase tracking-wider">Azioni</th>
                               </tr>
                             </thead>
                             <tbody>
                               {paginatedUsers.length > 0 ? paginatedUsers.map((user, index) => {
                                 const globalIndex = (currentPage - 1) * itemsPerPage + index;
-                                const completionRate = user.totalQuestions > 0 
-                                  ? Math.round((user.answersCount / user.totalQuestions) * 100)
-                                  : 0;
                                 const isExpanded = expandedUser === globalIndex;
+                                
+                                // Calcola statistiche aggregate senza parsare tutti i form
+                                let completedCount = 0;
+                                let partialCount = 0;
+                                let notStartedCount = 0;
+                                
+                                if (user.status && user.status !== 'Nessun form disponibile') {
+                                  const statusParts = user.status.split(', ');
+                                  statusParts.forEach(part => {
+                                    const statusPart = part.split(':')[1]?.trim() || part;
+                                    if (statusPart.includes('✅') || statusPart.includes('Completato')) {
+                                      completedCount++;
+                                    } else if (statusPart.includes('⚠️') || statusPart.includes('Parziale')) {
+                                      partialCount++;
+                                    } else if (statusPart.includes('❌') || statusPart.includes('Non iniziato')) {
+                                      notStartedCount++;
+                                    }
+                                  });
+                                }
+                                
+                                // Se non abbiamo trovato stati, usa i totali dal backend
+                                if (completedCount === 0 && partialCount === 0 && notStartedCount === 0 && user.totalQuestions > 0) {
+                                  // Fallback: calcola basandosi sui dati disponibili
+                                  completedCount = user.answersCount || 0;
+                                  notStartedCount = Math.max(0, user.totalQuestions - completedCount);
+                                }
+                                
+                                // Il totale dei form viene dal backend (user.totalQuestions rappresenta il numero di form)
+                                const totalForms = user.totalQuestions || (completedCount + partialCount + notStartedCount);
+                                const completionRate = totalForms > 0 
+                                  ? Math.round((completedCount / totalForms) * 100)
+                                  : 0;
+                                
+                                // Parse form statuses solo quando espanso (lazy loading)
+                                interface FormStatus {
+                                  formName: string;
+                                  status: 'completed' | 'partial' | 'notStarted';
+                                  progress?: string;
+                                  isAnonymous: boolean;
+                                }
+                                
+                                const formStatuses: FormStatus[] = [];
+                                if (isExpanded && user.status && user.status !== 'Nessun form disponibile') {
+                                  user.status.split(', ').forEach(formStatus => {
+                                    const isAnonymous = formStatus.includes('(Anonimo)');
+                                    const formName = formStatus.split(':')[0].replace('(Anonimo)', '').trim();
+                                    const statusPart = formStatus.split(':')[1]?.trim() || '';
+                                    
+                                    if (statusPart.includes('Completato') || statusPart.includes('✅')) {
+                                      formStatuses.push({
+                                        formName,
+                                        status: 'completed',
+                                        isAnonymous
+                                      });
+                                    } else if (statusPart.includes('Parziale') || statusPart.includes('⚠️')) {
+                                      const progressMatch = statusPart.match(/(\d+)\/(\d+)/);
+                                      formStatuses.push({
+                                        formName,
+                                        status: 'partial',
+                                        progress: progressMatch ? progressMatch[0] : undefined,
+                                        isAnonymous
+                                      });
+                                    } else if (statusPart.includes('Non iniziato') || statusPart.includes('❌')) {
+                                      formStatuses.push({
+                                        formName,
+                                        status: 'notStarted',
+                                        isAnonymous
+                                      });
+                                    }
+                                  });
+                                }
                                 
                                 // Raggruppa i form per stato (solo se espanso)
                                 const formsByStatus = isExpanded ? {
-                                  completed: [] as string[],
-                                  partial: [] as string[],
-                                  notStarted: [] as string[]
+                                  completed: [] as Array<{name: string; isAnonymous: boolean}>,
+                                  partial: [] as Array<{name: string; progress?: string; isAnonymous: boolean}>,
+                                  notStarted: [] as Array<{name: string; isAnonymous: boolean}>
                                 } : null;
                                 
                                 if (isExpanded && formsByStatus) {
-                                  user.status.split(', ').forEach(formStatus => {
-                                    if (formStatus.includes('✅')) {
-                                      formsByStatus.completed.push(formStatus.replace('✅', '').replace(':', '').trim());
-                                    } else if (formStatus.includes('⚠️')) {
-                                      formsByStatus.partial.push(formStatus.replace('⚠️', '').replace(':', '').trim());
-                                    } else if (formStatus.includes('❌')) {
-                                      formsByStatus.notStarted.push(formStatus.replace('❌', '').replace(':', '').trim());
+                                  formStatuses.forEach(formStatus => {
+                                    if (formStatus.status === 'completed') {
+                                      formsByStatus.completed.push({
+                                        name: formStatus.formName,
+                                        isAnonymous: formStatus.isAnonymous
+                                      });
+                                    } else if (formStatus.status === 'partial') {
+                                      formsByStatus.partial.push({
+                                        name: formStatus.formName,
+                                        progress: formStatus.progress,
+                                        isAnonymous: formStatus.isAnonymous
+                                      });
+                                    } else if (formStatus.status === 'notStarted') {
+                                      formsByStatus.notStarted.push({
+                                        name: formStatus.formName,
+                                        isAnonymous: formStatus.isAnonymous
+                                      });
                                     }
                                   });
                                 }
@@ -554,14 +645,13 @@ export default function DashboardPage() {
                                 return (
                                   <React.Fragment key={globalIndex}>
                                     <tr 
-                                      className={`border-b border-gray-100 hover:bg-gray-50 cursor-pointer transition-colors ${
-                                        isExpanded ? 'bg-blue-50' : ''
+                                      className={`border-b border-gray-200 hover:bg-gray-50 ${
+                                        isExpanded ? 'bg-gray-100' : ''
                                       }`}
-                                      onClick={() => setExpandedUser(isExpanded ? null : globalIndex)}
                                     >
                                       <td className="py-3 px-4">
                                         <div className="flex items-center gap-3">
-                                          <div className="h-8 w-8 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white text-xs font-semibold flex-shrink-0">
+                                          <div className="h-8 w-8 rounded-full bg-gray-200 flex items-center justify-center text-gray-700 text-xs font-medium flex-shrink-0">
                                             {user.name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase()}
                                           </div>
                                           <div className="min-w-0">
@@ -570,112 +660,109 @@ export default function DashboardPage() {
                                           </div>
                                         </div>
                                       </td>
-                                      <td className="py-3 px-4 text-center">
-                                        <Badge 
-                                          variant="outline"
-                                          className={
-                                            completionRate === 100 
-                                              ? 'bg-green-50 text-green-700 border-green-200' 
-                                              : completionRate > 0
-                                              ? 'bg-yellow-50 text-yellow-700 border-yellow-200'
-                                              : 'bg-red-50 text-red-700 border-red-200'
-                                          }
-                                        >
-                                          {completionRate === 100 ? '✅ Completo' : 
-                                           completionRate > 0 ? '⚠️ Parziale' : '❌ Da fare'}
-                                        </Badge>
+                                      <td className="py-3 px-4">
+                                        <div className="flex flex-col gap-1">
+                                          {totalForms > 0 ? (
+                                            <>
+                                              <div className="text-sm text-gray-900">
+                                                {completedCount} completati / {partialCount} parziali / {notStartedCount} non iniziati
+                                              </div>
+                                              <div className="text-xs text-gray-500">
+                                                Totale: {totalForms} form
+                                              </div>
+                                            </>
+                                          ) : (
+                                            <span className="text-sm text-gray-400">Nessun form disponibile</span>
+                                          )}
+                                        </div>
                                       </td>
                                       <td className="py-3 px-4">
-                                        <div className="flex flex-col items-center gap-1">
-                                          <span className="text-sm font-medium text-gray-900">
-                                            {user.answersCount}/{user.totalQuestions}
-                                          </span>
-                                          <div className="w-full max-w-[120px] h-1.5 bg-gray-200 rounded-full overflow-hidden">
-                                            <div 
-                                              className={`h-full transition-all ${
-                                                completionRate >= 80 ? 'bg-green-500' :
-                                                completionRate >= 50 ? 'bg-yellow-500' : 'bg-red-500'
-                                              }`}
-                                              style={{ width: `${completionRate}%` }}
-                                            />
-                                          </div>
-                                          <span className="text-xs text-gray-500">{completionRate}%</span>
+                                        <div className="flex flex-col gap-1">
+                                          {totalForms > 0 ? (
+                                            <>
+                                              <div className="w-full max-w-[200px] h-2 bg-gray-200 rounded-full overflow-hidden">
+                                                <div 
+                                                  className="h-full bg-gray-600 transition-all"
+                                                  style={{ width: `${completionRate}%` }}
+                                                />
+                                              </div>
+                                              <span className="text-xs text-gray-600">{completionRate}% completati</span>
+                                            </>
+                                          ) : (
+                                            <span className="text-sm text-gray-400">-</span>
+                                          )}
                                         </div>
                                       </td>
                                       <td className="py-3 px-4 text-center">
                                         <Button
-                                          variant="ghost"
+                                          variant="outline"
                                           size="sm"
                                           className="text-xs"
-                                          onClick={(e) => {
-                                            e.stopPropagation();
-                                            setExpandedUser(isExpanded ? null : globalIndex);
-                                          }}
+                                          onClick={() => setExpandedUser(isExpanded ? null : globalIndex)}
                                         >
                                           {isExpanded ? 'Nascondi' : 'Dettagli'}
-                                          <Eye className="h-3 w-3 ml-1" />
                                         </Button>
                                       </td>
                                     </tr>
                                     {isExpanded && formsByStatus && (
                                       <tr>
-                                        <td colSpan={4} className="p-0">
-                                          <div className="bg-blue-50 border-t border-b border-blue-100 p-4">
-                                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                                              {/* Completati */}
-                                              {formsByStatus.completed.length > 0 && (
-                                                <div>
-                                                  <div className="text-xs font-semibold text-gray-700 mb-2 flex items-center gap-1">
-                                                    <span className="text-green-600">✅</span>
-                                                    Completati ({formsByStatus.completed.length})
-                                                  </div>
-                                                  <div className="flex flex-wrap gap-1">
-                                                    {formsByStatus.completed.map((form, idx) => (
-                                                      <Badge key={idx} className="bg-green-100 text-green-800 border-green-200 text-xs">
-                                                        {form.replace(' (Anonimo)', '')}
-                                                        {form.includes('(Anonimo)') && <span className="ml-1">🔒</span>}
-                                                      </Badge>
-                                                    ))}
-                                                  </div>
+                                        <td colSpan={4} className="p-4 bg-gray-50 border-b border-gray-200">
+                                          <div className="space-y-4">
+                                            {/* Completati */}
+                                            {formsByStatus.completed.length > 0 && (
+                                              <div>
+                                                <div className="text-sm font-semibold text-gray-700 mb-2">
+                                                  Completati ({formsByStatus.completed.length})
                                                 </div>
-                                              )}
-                                              
-                                              {/* Parziali */}
-                                              {formsByStatus.partial.length > 0 && (
-                                                <div>
-                                                  <div className="text-xs font-semibold text-gray-700 mb-2 flex items-center gap-1">
-                                                    <span className="text-yellow-600">⚠️</span>
-                                                    In corso ({formsByStatus.partial.length})
-                                                  </div>
-                                                  <div className="flex flex-wrap gap-1">
-                                                    {formsByStatus.partial.map((form, idx) => (
-                                                      <Badge key={idx} className="bg-yellow-100 text-yellow-800 border-yellow-200 text-xs">
-                                                        {form.replace(' (Anonimo)', '')}
-                                                        {form.includes('(Anonimo)') && <span className="ml-1">🔒</span>}
-                                                      </Badge>
-                                                    ))}
-                                                  </div>
+                                                <div className="flex flex-wrap gap-2">
+                                                  {formsByStatus.completed.map((form, idx) => (
+                                                    <Badge key={idx} variant="outline" className="text-xs">
+                                                      {form.name}
+                                                      {form.isAnonymous && ' (Anonimo)'}
+                                                    </Badge>
+                                                  ))}
                                                 </div>
-                                              )}
-                                              
-                                              {/* Non iniziati */}
-                                              {formsByStatus.notStarted.length > 0 && (
-                                                <div>
-                                                  <div className="text-xs font-semibold text-gray-700 mb-2 flex items-center gap-1">
-                                                    <span className="text-red-600">❌</span>
-                                                    Da completare ({formsByStatus.notStarted.length})
-                                                  </div>
-                                                  <div className="flex flex-wrap gap-1">
-                                                    {formsByStatus.notStarted.map((form, idx) => (
-                                                      <Badge key={idx} variant="outline" className="bg-red-50 text-red-700 border-red-200 text-xs">
-                                                        {form.replace(' (Anonimo)', '')}
-                                                        {form.includes('(Anonimo)') && <span className="ml-1">🔒</span>}
-                                                      </Badge>
-                                                    ))}
-                                                  </div>
+                                              </div>
+                                            )}
+                                            
+                                            {/* Parziali */}
+                                            {formsByStatus.partial.length > 0 && (
+                                              <div>
+                                                <div className="text-sm font-semibold text-gray-700 mb-2">
+                                                  In corso ({formsByStatus.partial.length})
                                                 </div>
-                                              )}
-                                            </div>
+                                                <div className="flex flex-wrap gap-2">
+                                                  {formsByStatus.partial.map((form, idx) => (
+                                                    <Badge key={idx} variant="outline" className="text-xs">
+                                                      {form.name}
+                                                      {form.progress && ` (${form.progress})`}
+                                                      {form.isAnonymous && ' (Anonimo)'}
+                                                    </Badge>
+                                                  ))}
+                                                </div>
+                                              </div>
+                                            )}
+                                            
+                                            {/* Non iniziati */}
+                                            {formsByStatus.notStarted.length > 0 && (
+                                              <div>
+                                                <div className="text-sm font-semibold text-gray-700 mb-2">
+                                                  Da completare ({formsByStatus.notStarted.length})
+                                                </div>
+                                                <div className="flex flex-wrap gap-2">
+                                                  {formsByStatus.notStarted.map((form, idx) => (
+                                                    <Badge key={idx} variant="outline" className="text-xs">
+                                                      {form.name}
+                                                      {form.isAnonymous && ' (Anonimo)'}
+                                                    </Badge>
+                                                  ))}
+                                                </div>
+                                              </div>
+                                            )}
+                                            
+                                            {formStatuses.length === 0 && (
+                                              <div className="text-sm text-gray-500">Nessun form disponibile</div>
+                                            )}
                                           </div>
                                         </td>
                                       </tr>
@@ -685,7 +772,6 @@ export default function DashboardPage() {
                               }) : (
                                 <tr>
                                   <td colSpan={4} className="py-8 text-center text-gray-500">
-                                    <Users className="h-12 w-12 mx-auto mb-2 text-gray-300" />
                                     <p className="font-medium">Nessun utente trovato</p>
                                     <p className="text-sm mt-1">Prova a modificare i filtri di ricerca</p>
                                   </td>

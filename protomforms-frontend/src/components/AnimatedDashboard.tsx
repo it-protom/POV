@@ -8,6 +8,7 @@ import { Button } from './ui/button';
 import { PlusCircle, FileText, BarChart, Trash2, Eye, Edit } from 'lucide-react';
 import { toast } from 'sonner';
 import { usePageLoading, useApiLoading } from '../hooks/use-api-loading';
+import { authenticatedFetch } from '../lib/utils';
 import { DashboardSkeleton, FormCardSkeleton } from './ui/skeleton';
 import {
   AlertDialog,
@@ -34,7 +35,6 @@ interface Form {
 }
 
 export default function AnimatedDashboard() {
-  const router = useRouter();
   const [forms, setForms] = useState<Form[]>([]);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [formToDelete, setFormToDelete] = useState<string | null>(null);
@@ -90,7 +90,7 @@ export default function AnimatedDashboard() {
     if (!formToDelete) return;
     
     try {
-      const response = await fetch(`/api/forms/${formToDelete}`, {
+      const response = await authenticatedFetch(`/api/forms/${formToDelete}`, {
         method: 'DELETE',
       });
       

@@ -11,19 +11,33 @@ export async function GET(
   try {
     const session = await getServerSession(authOptions);
     
-    // Richiedi autenticazione per accedere ai form tramite slug
-    if (!session) {
+    let userId: string | null = null;
+    let userRole: string | null = null;
+    
+    // Try to get user from session first
+    if (session?.user?.id) {
+      userId = session.user.id;
+      userRole = (session.user as any).role;
+    } else {
+      // Fallback: try to get userId from header (for custom auth flow)
+      const userIdHeader = request.headers.get('x-user-id');
+      if (userIdHeader) {
+        userId = userIdHeader;
+        // Fetch user role from database
+        const user = await prisma.user.findUnique({
+          where: { id: userId },
+          select: { role: true }
+        });
+        if (user) {
+          userRole = user.role;
+        }
+      }
+    }
+    
+    if (!userId) {
       return NextResponse.json(
         { error: 'Non autorizzato' },
         { status: 401 }
-      );
-    }
-
-    // Verifica che l'utente sia un admin
-    if (session.user.role !== 'ADMIN') {
-      return NextResponse.json(
-        { error: 'Accesso negato' },
-        { status: 403 }
       );
     }
 
@@ -51,8 +65,8 @@ export async function GET(
       );
     }
 
-    // Verifica che l'utente sia il proprietario del form
-    if (form.ownerId !== session.user.id) {
+    // Check permissions: admin can see all forms, users can see their own forms
+    if (userRole !== 'ADMIN' && form.ownerId !== userId) {
       return NextResponse.json(
         { error: 'Accesso negato' },
         { status: 403 }

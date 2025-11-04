@@ -273,7 +273,7 @@ export default function AdminFormsPage() {
 
     await withDeleting(async () => {
       try {
-        const response = await fetch(`/api/forms/${deleteFormId}`, {
+        const response = await authenticatedFetch(`/api/forms/${deleteFormId}`, {
           method: 'DELETE',
         });
 
