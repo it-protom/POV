@@ -97,8 +97,9 @@ export async function POST(
       );
     }
 
-    // Per form non anonimi, verifica che l'utente non abbia già inviato una risposta
-    if (!form.isAnonymous && userId) {
+    // Verifica che l'utente non abbia già inviato una risposta (sia per form anonimi che non)
+    // Ora che salviamo sempre il userId, possiamo prevenire doppie submission anche per form anonimi
+    if (userId) {
       const existingResponse = await prisma.response.findFirst({
         where: {
           formId: params.id,
@@ -157,8 +158,10 @@ export async function POST(
       data: {
         formId: params.id,
         progressiveNumber: nextProgressive,
-        // Per form anonimi, non salviamo userId. Per form non anonimi usa session o header
-        userId: form.isAnonymous ? null : (userId || null),
+        // Salva sempre userId se disponibile, anche per form anonimi
+        // L'anonimato si riferisce alla visualizzazione pubblica, ma l'utente
+        // deve poter vedere le proprie risposte nella sezione "Le Mie Risposte"
+        userId: userId || null,
         answers: {
           create: Object.entries(answers).map(([questionId, value]) => ({
             questionId,

@@ -39,14 +39,9 @@ export async function GET(
       return NextResponse.json({ error: 'Form non trovato' }, { status: 404 });
     }
     
-    // Per form anonimi, non tracciamo le submission per utente
-    if (form.isAnonymous) {
-      return NextResponse.json({ 
-        hasSubmitted: false 
-      });
-    }
-    
     // Cerca una risposta esistente per questo utente e form
+    // ANCHE per form anonimi, ora che salviamo il userId per permettere
+    // all'utente di vedere le proprie risposte nella sezione "Le Mie Risposte"
     const existingResponse = await prisma.response.findFirst({
       where: {
         formId: params.id,

@@ -19,7 +19,8 @@ import {
   X,
   Plus,
   TrendingUp,
-  ChevronRight
+  ChevronRight,
+  Database
 } from 'lucide-react';
 import { Badge } from './ui/badge';
 import { authenticatedFetch } from '../lib/utils';
@@ -69,6 +70,11 @@ const adminNavigation: NavItem[] = [
     title: "Utenti",
     href: "/admin/users",
     icon: Users,
+  },
+  {
+    title: "Migrazione DB",
+    href: "/admin/migrate-responses",
+    icon: Database,
   },
   {
     title: "Impostazioni",

@@ -27,6 +27,7 @@ import AdminResponseProgressive from './pages/admin/responses/[slug]/[progressiv
 import AdminSettings from './pages/admin/settings/page';
 import AdminUsers from './pages/admin/users/page';
 import AdminAnalytics from './pages/admin/analytics/page';
+import AdminMigrateResponses from './pages/admin/migrate-responses/page';
 
 // User Pages
 import UserForms from './pages/user/forms/page';
@@ -266,6 +267,19 @@ function App() {
                     <Navbar />
                     <div className="pt-16">
                       <AdminAnalytics />
+                    </div>
+                  </div>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin/migrate-responses"
+              element={
+                <ProtectedRoute requiredRole="ADMIN">
+                  <div className="min-h-screen">
+                    <Navbar />
+                    <div className="pt-16">
+                      <AdminMigrateResponses />
                     </div>
                   </div>
                 </ProtectedRoute>

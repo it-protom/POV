@@ -51,6 +51,8 @@ export async function GET(request: NextRequest) {
       );
     }
 
+    console.log('🔍 Fetching responses for userId:', userId);
+
     // Get user's responses
     const responses = await prisma.response.findMany({
       where: {
@@ -77,6 +79,16 @@ export async function GET(request: NextRequest) {
         createdAt: 'desc',
       },
     });
+
+    console.log(`✅ Found ${responses.length} responses for user ${userId}`);
+    
+    // DEBUG: Verifica se ci sono risposte con userId = null (risposte vecchie)
+    const orphanedResponses = await prisma.response.count({
+      where: {
+        userId: null
+      }
+    });
+    console.log(`⚠️ Found ${orphanedResponses} orphaned responses (userId = null)`);
 
     return NextResponse.json(responses);
 
