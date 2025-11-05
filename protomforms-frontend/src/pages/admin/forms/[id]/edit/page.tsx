@@ -12,7 +12,6 @@ import { Switch } from "@/components/ui/switch";
 import { ArrowLeft, Plus, Trash2, Save, Eye, Copy, Palette, Type, Layout, FileText, CheckCircle, Clock, AlertCircle, CalendarIcon } from "lucide-react";
 import { FormCustomization, Theme } from '@/components/form-builder/FormCustomization';
 import { FormCustomizationV2 } from '@/components/form-builder/customization';
-import { QuestionBuilder } from '@/components/form-builder/QuestionBuilder';
 import { Link } from "react-router-dom";
 import { toast } from "sonner";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
@@ -26,8 +25,6 @@ import { format } from 'date-fns';
 import { it } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 import { Separator } from '@/components/ui/separator';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { QuestionFormData, QuestionType as QBQuestionType } from '@/types/question';
 
 // Tipi per le domande
 type QuestionType = "MULTIPLE_CHOICE" | "TEXT" | "RATING" | "DATE" | "RANKING" | "LIKERT" | "FILE_UPLOAD" | "NPS" | "BRANCHING";
@@ -69,8 +66,6 @@ export default function EditFormPage() {
   const [form, setForm] = useState<Form | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [showQuestionEditor, setShowQuestionEditor] = useState(false);
-  const [editedQuestions, setEditedQuestions] = useState<QuestionFormData[]>([]);
   const [formData, setFormData] = useState({
     title: '',
     description: '',
@@ -110,16 +105,21 @@ export default function EditFormPage() {
         // Imposta il tema dal form se esiste, altrimenti usa i valori predefiniti
         if (data.theme) {
           setTheme({
-            // Carica tutte le proprietà dal tema salvato, mantenendo i valori di default solo se assenti
-            ...data.theme,
-            // Garantisce che le proprietà base siano sempre presenti
             primaryColor: data.theme.primaryColor || '#000000',
             backgroundColor: data.theme.backgroundColor || '#ffffff',
             fontFamily: data.theme.fontFamily || 'Inter',
-            borderRadius: data.theme.borderRadius !== undefined ? data.theme.borderRadius : 8,
+            borderRadius: data.theme.borderRadius || 8,
             buttonStyle: data.theme.buttonStyle || 'filled',
             textColor: data.theme.textColor || '#000000',
             accentColor: data.theme.accentColor || '#000000',
+            headerImage: data.theme.headerImage || '',
+            logo: data.theme.logo || '',
+            backgroundImage: data.theme.backgroundImage || '',
+            backgroundPosition: data.theme.backgroundPosition || 'center',
+            backgroundSize: data.theme.backgroundSize || 'cover',
+            backgroundAttachment: data.theme.backgroundAttachment || 'fixed',
+            backgroundRepeat: data.theme.backgroundRepeat || 'no-repeat',
+            backgroundOpacity: data.theme.backgroundOpacity || 100
           });
         }
 
@@ -324,30 +324,17 @@ export default function EditFormPage() {
   };
 
   // Aggiorno la funzione handleThemeChange per aggiornare sia il tema locale che il form
-  const handleThemeChange = (newTheme: Partial<Theme>) => {
+  const handleThemeChange = (updates: Partial<Theme>) => {
     if (!form) return;
     
-    // Crea un nuovo tema partendo da quello corrente
-    const updatedTheme: Partial<Theme> = { ...theme };
-    
-    // Applica gli aggiornamenti, rimuovendo le proprietà esplicitamente settate a undefined
-    Object.keys(newTheme).forEach((key) => {
-      const value = (newTheme as any)[key];
-      if (value === undefined || value === null || (key === 'backgroundImage' && value === '')) {
-        // Rimuovi la proprietà se è undefined, null o stringa vuota (per backgroundImage)
-        delete updatedTheme[key as keyof Theme];
-      } else {
-        // Altrimenti aggiorna normalmente
-        (updatedTheme as any)[key] = value;
-      }
-    });
-    
-    setTheme(updatedTheme as Theme);
+    // Aggiorna il tema locale
+    const updatedTheme = { ...theme, ...updates };
+    setTheme(updatedTheme);
     
     // Aggiorna il form con il nuovo tema
     setForm({
       ...form,
-      theme: updatedTheme as Theme
+      theme: updatedTheme
     });
   };
 
@@ -546,86 +533,6 @@ export default function EditFormPage() {
       toast.error("Impossibile aggiornare le opzioni");
     } finally {
       setSaving(false);
-    }
-  };
-
-  // Converti le domande del form nel formato QuestionFormData
-  const convertQuestionsToFormData = (questions: Question[]): QuestionFormData[] => {
-    return questions.map((q, index) => ({
-      id: q.id,
-      type: q.type as QBQuestionType,
-      text: q.text,
-      required: q.required,
-      options: q.options || [],
-      dateOptions: undefined,
-    }));
-  };
-
-  // Converti QuestionFormData nel formato Question
-  const convertFormDataToQuestions = (formDataQuestions: QuestionFormData[]): Question[] => {
-    return formDataQuestions.map((q, index) => ({
-      id: q.id,
-      type: q.type as QuestionType,
-      text: q.text,
-      required: q.required,
-      options: q.options || [],
-      order: index + 1,
-    }));
-  };
-
-  // Gestisce le modifiche alle domande nel QuestionBuilder (aggiornamento locale)
-  const handleQuestionsChange = (updatedQuestions: QuestionFormData[]) => {
-    setEditedQuestions(updatedQuestions);
-  };
-
-  // Salva le domande quando si chiude il dialog
-  const handleSaveQuestions = async () => {
-    if (!form) return;
-
-    // Converti le domande nel formato corretto
-    const convertedQuestions = convertFormDataToQuestions(editedQuestions);
-
-    // Salva le domande sul server
-    setSaving(true);
-    try {
-      const response = await authenticatedFetch(`/api/forms/${params.id}`, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          ...formData,
-          questions: convertedQuestions.map(q => ({
-            text: q.text,
-            type: q.type,
-            required: q.required,
-            options: q.options,
-            order: q.order
-          }))
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error("Errore nel salvataggio delle domande");
-      }
-
-      const updatedForm = await response.json();
-      setForm(updatedForm);
-      setShowQuestionEditor(false);
-      toast.success("Domande aggiornate con successo");
-    } catch (error) {
-      console.error("Errore nel salvataggio delle domande:", error);
-      toast.error("Impossibile salvare le domande");
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  // Inizializza le domande quando si apre il dialog
-  const handleOpenQuestionEditor = () => {
-    if (form) {
-      setEditedQuestions(convertQuestionsToFormData(form.questions));
-      setShowQuestionEditor(true);
     }
   };
 
@@ -864,6 +771,7 @@ export default function EditFormPage() {
               <FormCustomizationV2
                 initialTheme={theme}
                 onThemeChange={(newTheme) => {
+                  setTheme(newTheme);
                   handleThemeChange(newTheme);
                 }}
                 formTitle={formData.title}
@@ -914,11 +822,7 @@ export default function EditFormPage() {
                 ))}
               </div>
               <div className="mt-4">
-                <Button 
-                  variant="outline" 
-                  className="w-full"
-                  onClick={handleOpenQuestionEditor}
-                >
+                <Button variant="outline" className="w-full">
                   <FileText className="h-4 w-4 mr-2" />
                   Modifica domande
                 </Button>
@@ -974,41 +878,6 @@ export default function EditFormPage() {
           </Card>
         </div>
       </div>
-
-      {/* Dialog per modificare le domande */}
-      <Dialog open={showQuestionEditor} onOpenChange={(open) => {
-        if (!open) {
-          setShowQuestionEditor(false);
-        }
-      }}>
-        <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>Modifica Domande</DialogTitle>
-            <DialogDescription>
-              Aggiungi, modifica o elimina le domande del form. Puoi trascinare le domande per riordinarle.
-            </DialogDescription>
-          </DialogHeader>
-          <QuestionBuilder
-            questions={editedQuestions}
-            onQuestionsChange={handleQuestionsChange}
-          />
-          <div className="flex justify-end gap-2 mt-4">
-            <Button
-              variant="outline"
-              onClick={() => setShowQuestionEditor(false)}
-              disabled={saving}
-            >
-              Annulla
-            </Button>
-            <Button
-              onClick={handleSaveQuestions}
-              disabled={saving}
-            >
-              {saving ? 'Salvando...' : 'Salva modifiche'}
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
     </motion.div>
   );
 } 
