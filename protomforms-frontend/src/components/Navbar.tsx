@@ -19,8 +19,7 @@ import {
   X,
   Plus,
   TrendingUp,
-  ChevronRight,
-  Database
+  ChevronRight
 } from 'lucide-react';
 import { Badge } from './ui/badge';
 import { authenticatedFetch } from '../lib/utils';
@@ -70,16 +69,6 @@ const adminNavigation: NavItem[] = [
     title: "Utenti",
     href: "/admin/users",
     icon: Users,
-  },
-  {
-    title: "Migrazione DB",
-    href: "/admin/migrate-responses",
-    icon: Database,
-  },
-  {
-    title: "Impostazioni",
-    href: "/admin/settings",
-    icon: Settings,
   },
 ];
 
@@ -411,13 +400,13 @@ function NavbarContent() {
                 <img
                   src="/logo_pov.png"
                   alt="POV Logo"
-                  className="h-10 w-10 transition-transform group-hover:scale-105 object-contain mt-0.5"
+                  className="h-14 w-14 transition-transform group-hover:scale-105 object-contain mt-0.5"
                 />
-                <div className="flex flex-col">
-                  <span className="text-2xl font-bold text-gray-800 group-hover:text-[#FFCD00] transition-colors leading-none">
+                <div className="flex flex-col -mt-1 text-left items-start">
+                  <span className="text-4xl font-bold text-gray-800 group-hover:text-[#FFCD00] transition-colors leading-none block -ml-0.5">
                     pov
                   </span>
-                  <span className="text-xs text-gray-500 mt-0.5">
+                  <span className="text-xs text-gray-500 mt-1 block">
                     by Protom Group
                   </span>
                 </div>

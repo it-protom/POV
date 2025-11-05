@@ -478,7 +478,14 @@ export default function NewFormPage() {
                               mode="single"
                               selected={opensAt}
                               onSelect={setOpensAt}
-                              disabled={(date) => date < new Date()}
+                              disabled={(date) => {
+                                // Permetti di selezionare anche oggi
+                                const today = new Date();
+                                today.setHours(0, 0, 0, 0);
+                                const dateToCheck = new Date(date);
+                                dateToCheck.setHours(0, 0, 0, 0);
+                                return dateToCheck < today;
+                              }}
                               initialFocus
                             />
                           </PopoverContent>
