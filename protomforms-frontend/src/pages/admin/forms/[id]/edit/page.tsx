@@ -110,21 +110,16 @@ export default function EditFormPage() {
         // Imposta il tema dal form se esiste, altrimenti usa i valori predefiniti
         if (data.theme) {
           setTheme({
+            // Carica tutte le proprietà dal tema salvato, mantenendo i valori di default solo se assenti
+            ...data.theme,
+            // Garantisce che le proprietà base siano sempre presenti
             primaryColor: data.theme.primaryColor || '#000000',
             backgroundColor: data.theme.backgroundColor || '#ffffff',
             fontFamily: data.theme.fontFamily || 'Inter',
-            borderRadius: data.theme.borderRadius || 8,
+            borderRadius: data.theme.borderRadius !== undefined ? data.theme.borderRadius : 8,
             buttonStyle: data.theme.buttonStyle || 'filled',
             textColor: data.theme.textColor || '#000000',
             accentColor: data.theme.accentColor || '#000000',
-            headerImage: data.theme.headerImage || '',
-            logo: data.theme.logo || '',
-            backgroundImage: data.theme.backgroundImage || '',
-            backgroundPosition: data.theme.backgroundPosition || 'center',
-            backgroundSize: data.theme.backgroundSize || 'cover',
-            backgroundAttachment: data.theme.backgroundAttachment || 'fixed',
-            backgroundRepeat: data.theme.backgroundRepeat || 'no-repeat',
-            backgroundOpacity: data.theme.backgroundOpacity || 100
           });
         }
 

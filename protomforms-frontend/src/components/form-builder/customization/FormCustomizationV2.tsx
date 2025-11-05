@@ -275,6 +275,37 @@ function FormPreview({ theme, title, description, questions }: FormPreviewProps)
   const dragStartRef = React.useRef(0);
   const prevSlideRef = React.useRef(0);
 
+  // Helper per ottenere lo stile del pattern
+  const getPatternStyle = (pattern: string): string => {
+    switch (pattern) {
+      case 'dots':
+        return `radial-gradient(circle, currentColor 1px, transparent 1px)`;
+      case 'grid':
+        return `linear-gradient(currentColor 1px, transparent 1px), linear-gradient(90deg, currentColor 1px, transparent 1px)`;
+      case 'waves':
+        return `repeating-linear-gradient(45deg, transparent, transparent 10px, currentColor 10px, currentColor 20px)`;
+      case 'diagonal':
+        return `repeating-linear-gradient(45deg, currentColor, currentColor 1px, transparent 1px, transparent 10px)`;
+      default:
+        return 'none';
+    }
+  };
+
+  // Helper per ottenere il background gradient
+  const getGradientBackground = (gradient: ThemeV2['backgroundGradient']): string => {
+    if (!gradient || !gradient.colors || gradient.colors.length === 0) return '';
+    
+    if (gradient.type === 'linear') {
+      const angle = gradient.angle || 135;
+      return `linear-gradient(${angle}deg, ${gradient.colors.join(', ')})`;
+    } else {
+      return `radial-gradient(circle, ${gradient.colors.join(', ')})`;
+    }
+  };
+
+  // Determina il tipo di background
+  const backgroundType = theme.backgroundType || (theme.backgroundImage ? 'image' : theme.backgroundGradient ? 'gradient' : theme.backgroundPattern && theme.backgroundPattern !== 'none' ? 'pattern' : 'color');
+
   // Domande di esempio per TUTTI i tipi configurabili
   const sampleQuestions: QuestionFormData[] = useMemo(() => [
     {
@@ -453,11 +484,76 @@ function FormPreview({ theme, title, description, questions }: FormPreviewProps)
 
   return (
     <div
-      className="w-full h-full flex flex-col min-h-0 p-4"
+      className="w-full h-full flex flex-col min-h-0 p-4 relative overflow-hidden"
       style={{
         fontFamily: theme.fontFamily || 'Inter, system-ui, sans-serif',
+        backgroundColor: backgroundType === 'color' ? theme.backgroundColor : undefined,
+        backgroundImage: backgroundType === 'gradient' ? getGradientBackground(theme.backgroundGradient) : 
+                        backgroundType === 'pattern' ? getPatternStyle(theme.backgroundPattern || 'none') : undefined,
+        backgroundSize: backgroundType === 'pattern' ? '20px 20px' : undefined,
+        backgroundPosition: backgroundType === 'pattern' ? '0 0' : undefined,
       }}
     >
+      {/* Background image con blur */}
+      {backgroundType === 'image' && theme.backgroundImage && (
+        <div
+          className="absolute inset-0 pointer-events-none z-0"
+          style={{
+            backgroundImage: `url(${theme.backgroundImage})`,
+            backgroundPosition: 'center',
+            backgroundSize: 'cover',
+            backgroundRepeat: 'no-repeat',
+            filter: theme.backgroundBlur && theme.backgroundBlur > 0 ? `blur(${theme.backgroundBlur}px)` : undefined,
+          }}
+        />
+      )}
+
+      {/* Background gradient con blur */}
+      {backgroundType === 'gradient' && theme.backgroundGradient && (
+        <div
+          className="absolute inset-0 pointer-events-none z-0"
+          style={{
+            background: getGradientBackground(theme.backgroundGradient),
+            filter: theme.backgroundBlur && theme.backgroundBlur > 0 ? `blur(${theme.backgroundBlur}px)` : undefined,
+          }}
+        />
+      )}
+
+      {/* Background pattern con blur */}
+      {backgroundType === 'pattern' && theme.backgroundPattern && theme.backgroundPattern !== 'none' && (
+        <div
+          className="absolute inset-0 pointer-events-none z-0"
+          style={{
+            backgroundImage: getPatternStyle(theme.backgroundPattern),
+            backgroundSize: '20px 20px',
+            opacity: 0.1,
+            filter: theme.backgroundBlur && theme.backgroundBlur > 0 ? `blur(${theme.backgroundBlur}px)` : undefined,
+          }}
+        />
+      )}
+
+      {/* Overlay opacità backgroundImage */}
+      {backgroundType === 'image' && theme.backgroundImage && (
+        <div
+          className="absolute inset-0 pointer-events-none z-0"
+          style={{
+            backgroundColor: `rgba(255, 255, 255, ${1 - ((theme.backgroundOpacity || 100) / 100)})`,
+          }}
+        />
+      )}
+
+      {/* Overlay colorato personalizzato */}
+      {theme.backgroundOverlay && theme.backgroundOverlay.opacity > 0 && (
+        <div
+          className="absolute inset-0 pointer-events-none z-0"
+          style={{
+            backgroundColor: theme.backgroundOverlay.color,
+            opacity: theme.backgroundOverlay.opacity,
+          }}
+        />
+      )}
+      
+      <div className="relative z-10 w-full h-full flex flex-col min-h-0">
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -620,6 +716,7 @@ function FormPreview({ theme, title, description, questions }: FormPreviewProps)
           </div>
         </div>
       </motion.div>
+      </div>
     </div>
   );
 }
@@ -637,14 +734,19 @@ interface QuestionPreviewProps {
 function QuestionPreview({ question, index, theme }: QuestionPreviewProps) {
   return (
     <div
-      className="p-3 sm:p-6 rounded-xl border w-full max-w-full"
+      className="rounded-xl border w-full max-w-full"
       style={{
+        gap: theme.questionSpacing ? `${theme.questionSpacing}px` : undefined,
+        padding: `${theme.cardPadding || 24}px`,
         backgroundColor: theme.questionBackgroundColor || '#f9fafb',
         borderColor: theme.questionBorderColor || '#e5e7eb',
         borderRadius: theme.borderRadius ? `${theme.borderRadius}px` : '8px',
         borderWidth: theme.borderWidth ? `${theme.borderWidth}px` : '1px',
         borderStyle: theme.borderStyle || 'solid',
-        padding: theme.cardPadding ? `${Math.min(theme.cardPadding, 24)}px` : undefined,
+        boxShadow: theme.glowEffect?.enabled 
+          ? `0 0 ${(theme.glowEffect.intensity || 50) / 5}px ${theme.glowEffect.color || theme.primaryColor}, 0 ${theme.shadowIntensity || 2}px ${(theme.shadowIntensity || 2) * 4}px rgba(0,0,0,0.1)`
+          : `0 ${theme.shadowIntensity || 2}px ${(theme.shadowIntensity || 2) * 4}px rgba(0,0,0,0.1)`,
+        transition: theme.enableTransitions !== false ? 'all 300ms' : undefined,
       }}
     >
       <div className="flex items-start gap-4 mb-4">

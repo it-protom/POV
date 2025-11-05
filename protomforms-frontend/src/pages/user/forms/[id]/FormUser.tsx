@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { motion, AnimatePresence } from 'framer-motion';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -145,6 +146,7 @@ export default function FormUser({ form: initialForm }: { form: Form }) {
   const [visibleQuestions, setVisibleQuestions] = useState<string[]>([]);
   const [submittedResponse, setSubmittedResponse] = useState<{ responseId: string; progressiveNumber: number } | null>(null);
   const [submittedAnswers, setSubmittedAnswers] = useState<Record<string, string | string[] | number | Date | null>>({});
+  const [slideDirection, setSlideDirection] = useState<'left' | 'right'>('right');
 
   // Carica il font se il form ha un tema personalizzato
   useEffect(() => {
@@ -375,6 +377,7 @@ export default function FormUser({ form: initialForm }: { form: Form }) {
       }
       
       if (nextQuestionIndex < form.questions.length) {
+        setSlideDirection('right');
         setCurrentStep(nextQuestionIndex);
       }
     }
@@ -396,6 +399,7 @@ export default function FormUser({ form: initialForm }: { form: Form }) {
       }
       
       if (prevQuestionIndex >= 0) {
+        setSlideDirection('left');
         setCurrentStep(prevQuestionIndex);
       }
     }
@@ -815,24 +819,45 @@ export default function FormUser({ form: initialForm }: { form: Form }) {
         {/* Domanda corrente - STRUTTURA IDENTICA A FormCustomization.tsx righe 1633-1928 */}
         {validQuestions.length > 0 && currentQuestion ? (
           <div 
-            className="min-h-[400px] lg:min-h-[500px] flex flex-col"
+            className="rounded-xl border w-full min-h-[400px] lg:min-h-[500px] flex flex-col"
             style={{ 
               gap: theme.questionSpacing ? `${theme.questionSpacing}px` : undefined,
               padding: `${theme.cardPadding || 24}px`,
-              backgroundColor: theme.questionBackgroundColor || 'transparent',
-              borderRadius: `${theme.borderRadius}px`,
-              border: theme.questionBorderColor ? `${theme.borderWidth || 1}px ${theme.borderStyle || 'solid'} ${theme.questionBorderColor}` : 'none',
-              borderStyle: theme.questionBorderColor ? (theme.borderStyle || 'solid') : undefined,
+              backgroundColor: theme.questionBackgroundColor || '#f9fafb',
+              borderColor: theme.questionBorderColor || '#e5e7eb',
+              borderRadius: theme.borderRadius ? `${theme.borderRadius}px` : '8px',
+              borderWidth: theme.borderWidth ? `${theme.borderWidth}px` : '1px',
+              borderStyle: theme.borderStyle || 'solid',
               boxShadow: theme.glowEffect?.enabled 
                 ? `0 0 ${(theme.glowEffect.intensity || 50) / 5}px ${theme.glowEffect.color || theme.primaryColor}, 0 ${theme.shadowIntensity || 2}px ${(theme.shadowIntensity || 2) * 4}px rgba(0,0,0,0.1)`
                 : `0 ${theme.shadowIntensity || 2}px ${(theme.shadowIntensity || 2) * 4}px rgba(0,0,0,0.1)`,
               transition: theme.enableTransitions !== false ? `all ${getAnimationDuration(theme.animationSpeed)}` : undefined,
               transform: theme.hoverEffect && theme.hoverScale ? `scale(${theme.hoverScale})` : undefined,
-              // Padding aumentato su desktop con media query inline non supportata, useremo CSS custom
             }}
           >
-            {/* Domanda corrente */}
-            <div className="flex-1 flex flex-col">
+            {/* Domanda corrente con animazione */}
+            <AnimatePresence mode="wait" custom={slideDirection}>
+              <motion.div
+                key={currentStep}
+                custom={slideDirection}
+                initial={{ 
+                  opacity: 0,
+                  x: slideDirection === 'right' ? '20%' : '-20%'
+                }}
+                animate={{ 
+                  opacity: 1,
+                  x: 0
+                }}
+                exit={{ 
+                  opacity: 0,
+                  x: slideDirection === 'right' ? '-20%' : '20%'
+                }}
+                transition={{ 
+                  duration: theme.enableTransitions !== false ? (theme.animationSpeed === 'slow' ? 0.5 : theme.animationSpeed === 'fast' ? 0.15 : 0.3) : 0, 
+                  ease: [0.4, 0, 0.2, 1]
+                }}
+                className="flex-1 flex flex-col"
+              >
               <div className="flex items-center mb-8 lg:mb-12">
                 <span 
                   className="w-10 h-10 flex items-center justify-center rounded-full mr-4 font-semibold" 
@@ -1271,7 +1296,8 @@ export default function FormUser({ form: initialForm }: { form: Form }) {
                 )}
                 </div>
               </div>
-            </div>
+              </motion.div>
+            </AnimatePresence>
 
             {/* Bottoni navigazione */}
             <div className="flex justify-between items-center pt-6 border-t mt-auto">
