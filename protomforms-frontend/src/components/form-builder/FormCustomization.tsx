@@ -105,6 +105,11 @@ export interface Theme {
   // Effetti
   shadowIntensity?: number; // Intensità ombra card (0-10, default 2)
   hoverEffect?: boolean; // Abilita effetto hover su opzioni
+  backgroundBlur?: number; // Effetto sfocatura (0-50px)
+  backgroundOverlay?: {
+    color: string; // Colore sovrapposizione
+    opacity: number; // Opacità (0-1)
+  };
 }
 
 interface Question {

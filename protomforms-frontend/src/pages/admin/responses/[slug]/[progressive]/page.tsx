@@ -95,14 +95,14 @@ export default function ResponseDetailsPage() {
       
       if (!currentResponse) {
         // Se non trovata nella lista, prova a caricarla direttamente
-        const res = await authenticatedFetch(`/api/responses/${params.slug}/${params.progressive}`, {
-          headers: {
-            'Content-Type': 'application/json',
-          },
-        });
+      const res = await authenticatedFetch(`/api/responses/${params.slug}/${params.progressive}`, {
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
         if (!res.ok) throw new Error('Risposta non trovata');
-        const data = await res.json();
-        setResponse(data);
+      const data = await res.json();
+      setResponse(data);
       } else {
         setResponse(currentResponse);
       }
@@ -273,7 +273,7 @@ export default function ResponseDetailsPage() {
                 <div className="flex items-center justify-between">
                   <div>
                     <div className="text-sm text-gray-600 mb-1">Intervistato</div>
-                    <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2">
                       <span className="text-lg font-medium">{response.progressiveNumber}</span>
                       <span className="text-base font-medium">
                         {response.form.isAnonymous 
@@ -288,16 +288,16 @@ export default function ResponseDetailsPage() {
                   </div>
                 </div>
               </CardContent>
-            </Card>
+        </Card>
 
             {/* Domande e Risposte */}
-            {response.answers.length === 0 ? (
+        {response.answers.length === 0 ? (
               <Card className="border">
-                <CardContent className="p-8 text-center">
-                  <p className="text-gray-600">Nessuna risposta disponibile per questa risposta.</p>
-                </CardContent>
-              </Card>
-            ) : (
+            <CardContent className="p-8 text-center">
+              <p className="text-gray-600">Nessuna risposta disponibile per questa risposta.</p>
+            </CardContent>
+          </Card>
+        ) : (
               <div className="space-y-6">
                 {response.answers
                   .sort((a, b) => (a.question.order || 0) - (b.question.order || 0))
@@ -311,18 +311,18 @@ export default function ResponseDetailsPage() {
                           </div>
                           <div className="text-base font-medium text-gray-900">
                             {answer.question.text}
-                          </div>
+                  </div>
                           <div className="pt-2 border-t">
-                            <div className="text-sm text-gray-600 mb-1">Risposta:</div>
+                    <div className="text-sm text-gray-600 mb-1">Risposta:</div>
                             <div className="text-base text-gray-900 font-medium">
-                              {formatAnswerValue(answer.value, answer.question.type)}
+                      {formatAnswerValue(answer.value, answer.question.type)}
                             </div>
-                          </div>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  ))}
-              </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
             )}
 
             {/* Indicatore progresso */}

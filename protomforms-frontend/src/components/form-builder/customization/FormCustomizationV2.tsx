@@ -79,7 +79,37 @@ export function FormCustomizationV2({
     (presetId: string) => {
       const presetTheme = applyPreset(presetId);
       if (presetTheme) {
-        setTheme(presetTheme);
+        // Pulisci le proprietà di background non presenti nel preset
+        const cleanedTheme = { ...presetTheme };
+        
+        // Se il preset ha un backgroundType specifico, rimuovi le proprietà degli altri tipi
+        if (cleanedTheme.backgroundType === 'color') {
+          // Rimuovi immagine, gradient e pattern
+          cleanedTheme.backgroundImage = undefined;
+          cleanedTheme.backgroundGradient = undefined;
+          cleanedTheme.backgroundPattern = undefined;
+        } else if (cleanedTheme.backgroundType === 'image') {
+          // Rimuovi gradient e pattern, ma mantieni l'immagine se presente
+          cleanedTheme.backgroundGradient = undefined;
+          cleanedTheme.backgroundPattern = undefined;
+        } else if (cleanedTheme.backgroundType === 'gradient') {
+          // Rimuovi immagine e pattern
+          cleanedTheme.backgroundImage = undefined;
+          cleanedTheme.backgroundPattern = undefined;
+        } else if (cleanedTheme.backgroundType === 'pattern') {
+          // Rimuovi immagine e gradient
+          cleanedTheme.backgroundImage = undefined;
+          cleanedTheme.backgroundGradient = undefined;
+        } else {
+          // Se non c'è backgroundType nel preset, usa quello del preset o 'color' di default
+          cleanedTheme.backgroundType = cleanedTheme.backgroundType || 'color';
+          // Rimuovi tutte le proprietà di background non color
+          cleanedTheme.backgroundImage = undefined;
+          cleanedTheme.backgroundGradient = undefined;
+          cleanedTheme.backgroundPattern = undefined;
+        }
+        
+        setTheme(cleanedTheme);
         toast.success('Preset applicato con successo!');
       }
     },

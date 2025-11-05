@@ -100,7 +100,19 @@ export function useThemeCustomization({
     (updates: ThemeUpdate) => {
       // Aggiorna immediatamente lo stato per l'anteprima in real-time
       setThemeState((prev) => {
-        const newTheme = { ...prev, ...updates };
+        const newTheme = { ...prev };
+        
+        // Applica gli aggiornamenti, rimuovendo le proprietà esplicitamente settate a undefined
+        Object.keys(updates).forEach((key) => {
+          const value = updates[key as keyof ThemeUpdate];
+          if (value === undefined) {
+            // Rimuovi la proprietà se è esplicitamente undefined
+            delete newTheme[key as keyof Partial<ThemeV2>];
+          } else {
+            // Altrimenti aggiorna normalmente
+            (newTheme as any)[key] = value;
+          }
+        });
         
         // Notifica immediatamente il parent
         if (onThemeChange) {
@@ -127,8 +139,20 @@ export function useThemeCustomization({
         
         setHistory((prevHistory) => {
           const newHistory = prevHistory.slice(0, historyIndex + 1);
+          const updatedTheme = { ...theme };
+          
+          // Applica gli aggiornamenti alla cronologia, rimuovendo le proprietà undefined
+          Object.keys(historyUpdates).forEach((key) => {
+            const value = historyUpdates[key as keyof ThemeUpdate];
+            if (value === undefined) {
+              delete updatedTheme[key as keyof Partial<ThemeV2>];
+            } else {
+              (updatedTheme as any)[key] = value;
+            }
+          });
+          
           newHistory.push({
-            theme: { ...theme, ...historyUpdates },
+            theme: updatedTheme,
             timestamp: Date.now(),
           });
 
@@ -157,6 +181,7 @@ export function useThemeCustomization({
         clearTimeout(debounceTimer.current);
       }
 
+      // Il nuovo tema sostituisce completamente quello precedente
       setThemeState(newTheme);
 
       // Add to history

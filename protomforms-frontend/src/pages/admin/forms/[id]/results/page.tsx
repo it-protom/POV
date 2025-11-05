@@ -333,8 +333,8 @@ export default function FormResultsPage() {
           <div className="space-y-6">
             {/* Header con navigazione */}
             <div className="flex items-center justify-between">
-              <Button 
-                variant="ghost" 
+                  <Button
+                    variant="ghost"
                 onClick={() => navigate(-1)}
                 className="text-gray-600"
               >
@@ -345,21 +345,21 @@ export default function FormResultsPage() {
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={goToPrevious}
-                  disabled={currentIndex === 0}
-                >
+                    onClick={goToPrevious}
+                    disabled={currentIndex === 0}
+                  >
                   ←
-                </Button>
-                <Button
+                  </Button>
+                  <Button
                   variant="outline"
                   size="sm"
-                  onClick={goToNext}
-                  disabled={currentIndex === responses.length - 1}
-                >
+                    onClick={goToNext}
+                    disabled={currentIndex === responses.length - 1}
+                  >
                   →
-                </Button>
+                  </Button>
+                </div>
               </div>
-            </div>
 
             {/* Titolo Form e Risposta */}
             <div className="space-y-1">
@@ -380,13 +380,13 @@ export default function FormResultsPage() {
                     <div className="flex items-center gap-2">
                       <span className="text-lg font-medium">{currentResponse?.progressiveNumber}</span>
                       <span className="text-base font-medium">
-                        {form.isAnonymous 
+                      {form.isAnonymous 
                           ? 'Anonimo'
-                          : (currentResponse?.user?.name || `Risposta #${currentResponse?.progressiveNumber}`)}
-                      </span>
-                    </div>
+                        : (currentResponse?.user?.name || `Risposta #${currentResponse?.progressiveNumber}`)}
+                    </span>
                   </div>
-                  <div className="text-right">
+                </div>
+                <div className="text-right">
                     <div className="text-2xl font-medium">{formatCompletionTime(completionTime)}</div>
                     <div className="text-xs text-gray-500">Tempo per il completamento</div>
                   </div>
@@ -396,12 +396,12 @@ export default function FormResultsPage() {
 
             {/* Domande e Risposte */}
             <div className="space-y-6">
-              {form.questions
-                .sort((a, b) => a.order - b.order)
-                .map((question, index) => {
-                  const answer = currentResponse?.answers.find(
-                    (a) => a.questionId === question.id
-                  );
+            {form.questions
+              .sort((a, b) => a.order - b.order)
+              .map((question, index) => {
+                const answer = currentResponse?.answers.find(
+                  (a) => a.questionId === question.id
+                );
 
                   // Formatta il tipo di domanda
                   const questionTypeLabel = question.type === "MULTIPLE_CHOICE" ? "MULTIPLE_CHOICE" :
@@ -433,29 +433,29 @@ export default function FormResultsPage() {
                     answerDisplay = answer?.value ? String(answer.value) : 'Nessuna risposta';
                   }
 
-                  return (
+                return (
                     <Card key={question.id} className="border">
                       <CardContent className="p-6">
-                        <div className="space-y-3">
+                              <div className="space-y-3">
                           <div className="flex items-center gap-2">
                             <span className="text-sm font-medium text-gray-600">Domanda {index + 1}</span>
                             <span className="text-sm text-gray-500">{questionTypeLabel}</span>
-                          </div>
+                                  </div>
                           <div className="text-base font-medium text-gray-900">
                             {question.text}
-                          </div>
+                              </div>
                           <div className="pt-2 border-t">
                             <div className="text-sm text-gray-600 mb-1">Risposta:</div>
                             <div className="text-base text-gray-900 font-medium">
                               {answerDisplay}
                             </div>
-                          </div>
+                            </div>
                         </div>
                       </CardContent>
                     </Card>
-                  );
-                })}
-            </div>
+                );
+              })}
+          </div>
 
             {/* Indicatore progresso */}
             <div className="text-center text-sm text-gray-500">

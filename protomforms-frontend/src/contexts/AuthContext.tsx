@@ -75,13 +75,13 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         localStorage.removeItem('user_data');
       }
     } catch (error: any) {
-      console.error('Session check failed:', error);
+        console.error('Session check failed:', error);
       
       // Only clear session if it's a 401 (Unauthorized) - meaning session is explicitly invalid
       // Don't clear on network errors or other server errors (500, etc)
       if (error.response?.status === 401) {
-        setUser(null);
-        localStorage.removeItem('user_id');
+      setUser(null);
+      localStorage.removeItem('user_id');
         localStorage.removeItem('user_data');
       } else {
         // For network errors or server errors, try to restore from localStorage

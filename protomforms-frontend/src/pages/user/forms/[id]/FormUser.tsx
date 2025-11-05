@@ -38,10 +38,13 @@ interface Theme {
   
   // Tipografia
   fontFamily: string;
+  headingFontFamily?: string;
   questionFontSize?: number;
   optionFontSize?: number;
   questionFontWeight?: 'normal' | 'medium' | 'semibold' | 'bold';
   counterFontSize?: number;
+  lineHeight?: number;
+  letterSpacing?: number;
   
   // Stile domanda
   questionNumberBgColor?: string;
@@ -70,17 +73,28 @@ interface Theme {
   borderRadius: number;
   cardPadding?: number;
   optionSpacing?: number;
+  questionSpacing?: number;
+  sectionSpacing?: number;
   borderWidth?: number;
+  borderStyle?: 'solid' | 'dashed' | 'dotted' | 'double';
+  containerMaxWidth?: number;
   
   // Immagini e layout
   headerImage?: string;
   logo?: string;
   backgroundImage?: string;
+  backgroundType?: 'color' | 'image' | 'gradient' | 'pattern';
   backgroundPosition?: 'center' | 'top' | 'bottom' | 'left' | 'right';
   backgroundSize?: 'cover' | 'contain' | 'auto';
   backgroundAttachment?: 'fixed' | 'scroll';
   backgroundRepeat?: 'no-repeat' | 'repeat' | 'repeat-x' | 'repeat-y';
   backgroundOpacity?: number;
+  backgroundGradient?: {
+    type: 'linear' | 'radial';
+    angle?: number;
+    colors: string[];
+  };
+  backgroundPattern?: 'dots' | 'grid' | 'waves' | 'diagonal' | 'none';
   headerImageHeight?: number;
   logoSize?: number;
   logoPosition?: 'left' | 'center' | 'right' | 'above-title' | 'below-title';
@@ -93,6 +107,19 @@ interface Theme {
   // Effetti
   shadowIntensity?: number;
   hoverEffect?: boolean;
+  hoverScale?: number;
+  animationSpeed?: 'slow' | 'normal' | 'fast';
+  enableTransitions?: boolean;
+  glowEffect?: {
+    enabled: boolean;
+    color: string;
+    intensity: number;
+  };
+  backgroundBlur?: number; // Effetto sfocatura (0-50px)
+  backgroundOverlay?: {
+    color: string; // Colore sovrapposizione
+    opacity: number; // Opacità (0-1)
+  };
 }
 
 interface Form {
@@ -135,6 +162,60 @@ export default function FormUser({ form: initialForm }: { form: Form }) {
       };
     }
   }, [form?.theme?.fontFamily]);
+
+  // Carica il font per le intestazioni se diverso
+  useEffect(() => {
+    if (form?.theme?.headingFontFamily && form.theme.headingFontFamily !== form.theme.fontFamily) {
+      const fontFamilies = form.theme.headingFontFamily.replace(/ /g, '+');
+      const link = document.createElement('link');
+      link.href = `https://fonts.googleapis.com/css2?family=${fontFamilies}:wght@300;400;500;600;700&display=swap`;
+      link.rel = 'stylesheet';
+      document.head.appendChild(link);
+
+      return () => {
+        if (link.parentNode) {
+          link.parentNode.removeChild(link);
+        }
+      };
+    }
+  }, [form?.theme?.headingFontFamily, form?.theme?.fontFamily]);
+
+  // Helper per ottenere lo stile del pattern
+  const getPatternStyle = (pattern: string): string => {
+    switch (pattern) {
+      case 'dots':
+        return `radial-gradient(circle, currentColor 1px, transparent 1px)`;
+      case 'grid':
+        return `linear-gradient(currentColor 1px, transparent 1px), linear-gradient(90deg, currentColor 1px, transparent 1px)`;
+      case 'waves':
+        return `repeating-linear-gradient(45deg, transparent, transparent 10px, currentColor 10px, currentColor 20px)`;
+      case 'diagonal':
+        return `repeating-linear-gradient(45deg, currentColor, currentColor 1px, transparent 1px, transparent 10px)`;
+      default:
+        return 'none';
+    }
+  };
+
+  // Helper per ottenere il background gradient
+  const getGradientBackground = (gradient: Theme['backgroundGradient']): string => {
+    if (!gradient || !gradient.colors || gradient.colors.length === 0) return '';
+    
+    if (gradient.type === 'linear') {
+      const angle = gradient.angle || 135;
+      return `linear-gradient(${angle}deg, ${gradient.colors.join(', ')})`;
+    } else {
+      return `radial-gradient(circle, ${gradient.colors.join(', ')})`;
+    }
+  };
+
+  // Helper per ottenere la velocità dell'animazione
+  const getAnimationDuration = (speed?: 'slow' | 'normal' | 'fast'): string => {
+    switch (speed) {
+      case 'slow': return '500ms';
+      case 'fast': return '150ms';
+      default: return '300ms';
+    }
+  };
 
   useEffect(() => {
     if (form) {
@@ -356,6 +437,9 @@ export default function FormUser({ form: initialForm }: { form: Form }) {
     backgroundOpacity: 100
   };
 
+  // Determina il tipo di background per la pagina di thank you
+  const thankYouBackgroundType = theme.backgroundType || (theme.backgroundImage ? 'image' : theme.backgroundGradient ? 'gradient' : theme.backgroundPattern && theme.backgroundPattern !== 'none' ? 'pattern' : 'color');
+
   // Pagina di ringraziamento dopo submit
   if (submitted) {
     return (
@@ -363,30 +447,121 @@ export default function FormUser({ form: initialForm }: { form: Form }) {
         className="min-h-screen w-full relative"
         style={{
           fontFamily: `"${theme.fontFamily}", sans-serif`,
-          backgroundColor: theme.backgroundColor,
+          lineHeight: theme.lineHeight || undefined,
+          letterSpacing: theme.letterSpacing !== undefined ? `${theme.letterSpacing}px` : undefined,
+          backgroundColor: thankYouBackgroundType === 'color' ? theme.backgroundColor : undefined,
+          backgroundImage: thankYouBackgroundType === 'gradient' ? getGradientBackground(theme.backgroundGradient) : 
+                          thankYouBackgroundType === 'pattern' ? getPatternStyle(theme.backgroundPattern || 'none') : undefined,
+          backgroundSize: thankYouBackgroundType === 'pattern' ? '20px 20px' : undefined,
+          backgroundPosition: thankYouBackgroundType === 'pattern' ? '0 0' : undefined,
           color: theme.textColor,
-          backgroundImage: theme.backgroundImage ? `url(${theme.backgroundImage})` : undefined,
-          backgroundPosition: theme.backgroundPosition || 'center',
-          backgroundSize: theme.backgroundSize || 'cover',
-          backgroundRepeat: theme.backgroundRepeat || 'no-repeat',
-          backgroundAttachment: theme.backgroundAttachment || 'fixed'
+          transition: theme.enableTransitions !== false ? `all ${getAnimationDuration(theme.animationSpeed)}` : undefined,
         }}
       >
-        {theme.backgroundImage && (
+        {/* Background color fallback */}
+        {thankYouBackgroundType === 'color' && (
           <div
             className="absolute inset-0 pointer-events-none z-0"
             style={{
-              backgroundColor: `rgba(255, 255, 255, ${1 - ((theme.backgroundOpacity || 100) / 100)})`,
+              backgroundColor: theme.backgroundColor,
             }}
           />
         )}
-        <div className="relative z-10 max-w-4xl mx-auto p-6 py-12">
-          <Card className="shadow-xl mb-6" style={{ backgroundColor: theme.backgroundColor, borderRadius: `${theme.borderRadius}px` }}>
+
+        {/* Background gradient */}
+        {thankYouBackgroundType === 'gradient' && theme.backgroundGradient && (
+          <div
+            className="absolute inset-0 pointer-events-none z-0"
+            style={{
+              background: getGradientBackground(theme.backgroundGradient),
+              filter: theme.backgroundBlur && theme.backgroundBlur > 0 ? `blur(${theme.backgroundBlur}px)` : undefined,
+            }}
+          />
+        )}
+
+        {/* Background pattern */}
+        {thankYouBackgroundType === 'pattern' && theme.backgroundPattern && theme.backgroundPattern !== 'none' && (
+          <div
+            className="absolute inset-0 pointer-events-none z-0"
+            style={{
+              backgroundImage: getPatternStyle(theme.backgroundPattern),
+              backgroundSize: '20px 20px',
+              opacity: 0.1,
+              filter: theme.backgroundBlur && theme.backgroundBlur > 0 ? `blur(${theme.backgroundBlur}px)` : undefined,
+            }}
+          />
+        )}
+
+        {/* Background image con blur */}
+        {thankYouBackgroundType === 'image' && theme.backgroundImage && (
+          <div
+            className="absolute inset-0 pointer-events-none z-0"
+            style={{
+              backgroundImage: `url(${theme.backgroundImage})`,
+              backgroundPosition: theme.backgroundPosition || 'center',
+              backgroundSize: theme.backgroundSize || 'cover',
+              backgroundRepeat: theme.backgroundRepeat || 'no-repeat',
+              backgroundAttachment: theme.backgroundAttachment || 'fixed',
+              filter: theme.backgroundBlur && theme.backgroundBlur > 0 ? `blur(${theme.backgroundBlur}px)` : undefined,
+            }}
+          />
+        )}
+        
+        {/* Overlay per opacità background */}
+        {(thankYouBackgroundType === 'image' || thankYouBackgroundType === 'gradient' || thankYouBackgroundType === 'pattern') && (
+          <>
+            {/* Overlay opacità backgroundImage */}
+            {thankYouBackgroundType === 'image' && (
+              <div
+                className="absolute inset-0 pointer-events-none z-0"
+                style={{
+                  backgroundColor: `rgba(255, 255, 255, ${1 - ((theme.backgroundOpacity || 100) / 100)})`,
+                }}
+              />
+            )}
+            {/* Overlay colorato personalizzato */}
+            {theme.backgroundOverlay && theme.backgroundOverlay.opacity > 0 && (
+              <div
+                className="absolute inset-0 pointer-events-none z-0"
+                style={{
+                  backgroundColor: theme.backgroundOverlay.color,
+                  opacity: theme.backgroundOverlay.opacity,
+                }}
+              />
+            )}
+          </>
+        )}
+        <div 
+          className="relative z-10 mx-auto p-6 py-12"
+          style={{
+            maxWidth: theme.containerMaxWidth ? `${theme.containerMaxWidth}px` : 'max-w-4xl',
+          }}
+        >
+          <Card 
+            className="shadow-xl mb-6" 
+            style={{ 
+              backgroundColor: theme.backgroundColor, 
+              borderRadius: `${theme.borderRadius}px`,
+              borderStyle: theme.borderStyle || 'solid',
+              boxShadow: theme.glowEffect?.enabled 
+                ? `0 0 ${(theme.glowEffect.intensity || 50) / 5}px ${theme.glowEffect.color || theme.primaryColor}, 0 ${theme.shadowIntensity || 2}px ${(theme.shadowIntensity || 2) * 4}px rgba(0,0,0,0.1)`
+                : `0 ${theme.shadowIntensity || 2}px ${(theme.shadowIntensity || 2) * 4}px rgba(0,0,0,0.1)`,
+              transition: theme.enableTransitions !== false ? `all ${getAnimationDuration(theme.animationSpeed)}` : undefined,
+            }}
+          >
             <CardHeader className="text-center pb-6">
               <div className="mx-auto mb-4 w-20 h-20 rounded-full bg-green-100 flex items-center justify-center">
                 <CheckCircle className="w-12 h-12 text-green-600" />
               </div>
-              <CardTitle className="text-4xl mb-3 font-bold" style={{ color: theme.primaryColor }}>
+              <CardTitle 
+                className="text-4xl mb-3 font-bold" 
+                style={{ 
+                  color: theme.primaryColor,
+                  fontFamily: theme.headingFontFamily ? `"${theme.headingFontFamily}", sans-serif` : undefined,
+                  lineHeight: theme.lineHeight || undefined,
+                  letterSpacing: theme.letterSpacing !== undefined ? `${theme.letterSpacing}px` : undefined,
+                }}
+              >
                 ✅ Risposta Inviata con Successo!
               </CardTitle>
               {form.thankYouMessage ? (
@@ -503,33 +678,112 @@ export default function FormUser({ form: initialForm }: { form: Form }) {
   const currentQuestion = form.questions[currentStep];
   const validQuestions = form.questions.filter(q => q.text && q.text.trim() !== '');
 
+  // Determina il tipo di background
+  const backgroundType = theme.backgroundType || (theme.backgroundImage ? 'image' : theme.backgroundGradient ? 'gradient' : theme.backgroundPattern && theme.backgroundPattern !== 'none' ? 'pattern' : 'color');
+
   return (
     <div 
       className="min-h-screen w-full relative flex items-center justify-center"
       style={{
         fontFamily: `"${theme.fontFamily}", sans-serif`,
-        backgroundColor: theme.backgroundColor,
+        lineHeight: theme.lineHeight || undefined,
+        letterSpacing: theme.letterSpacing !== undefined ? `${theme.letterSpacing}px` : undefined,
+        backgroundColor: backgroundType === 'color' ? theme.backgroundColor : undefined,
+        backgroundImage: backgroundType === 'gradient' ? getGradientBackground(theme.backgroundGradient) : 
+                        backgroundType === 'pattern' ? getPatternStyle(theme.backgroundPattern || 'none') : undefined,
+        backgroundSize: backgroundType === 'pattern' ? '20px 20px' : undefined,
+        backgroundPosition: backgroundType === 'pattern' ? '0 0' : undefined,
         color: theme.textColor,
-        backgroundImage: theme.backgroundImage ? `url(${theme.backgroundImage})` : undefined,
-        backgroundPosition: theme.backgroundPosition || 'center',
-        backgroundSize: theme.backgroundSize || 'cover',
-        backgroundRepeat: theme.backgroundRepeat || 'no-repeat',
-        backgroundAttachment: theme.backgroundAttachment || 'fixed'
+        transition: theme.enableTransitions !== false ? `all ${getAnimationDuration(theme.animationSpeed)}` : undefined,
       }}
     >
-      {/* Overlay per opacità background */}
-      {theme.backgroundImage && (
+      {/* Background color fallback */}
+      {backgroundType === 'color' && (
         <div
           className="absolute inset-0 pointer-events-none z-0"
           style={{
-            backgroundColor: `rgba(255, 255, 255, ${1 - ((theme.backgroundOpacity || 100) / 100)})`,
+            backgroundColor: theme.backgroundColor,
+          }}
+        />
+      )}
+
+      {/* Background gradient */}
+      {backgroundType === 'gradient' && theme.backgroundGradient && (
+        <div
+          className="absolute inset-0 pointer-events-none z-0"
+          style={{
+            background: getGradientBackground(theme.backgroundGradient),
+            filter: theme.backgroundBlur && theme.backgroundBlur > 0 ? `blur(${theme.backgroundBlur}px)` : undefined,
+          }}
+        />
+      )}
+
+      {/* Background pattern */}
+      {backgroundType === 'pattern' && theme.backgroundPattern && theme.backgroundPattern !== 'none' && (
+        <div
+          className="absolute inset-0 pointer-events-none z-0"
+          style={{
+            backgroundImage: getPatternStyle(theme.backgroundPattern),
+            backgroundSize: '20px 20px',
+            opacity: 0.1,
+            filter: theme.backgroundBlur && theme.backgroundBlur > 0 ? `blur(${theme.backgroundBlur}px)` : undefined,
+          }}
+        />
+      )}
+
+      {/* Background image con blur */}
+      {backgroundType === 'image' && theme.backgroundImage && (
+        <div
+          className="absolute inset-0 pointer-events-none z-0"
+          style={{
+            backgroundImage: `url(${theme.backgroundImage})`,
+            backgroundPosition: theme.backgroundPosition || 'center',
+            backgroundSize: theme.backgroundSize || 'cover',
+            backgroundRepeat: theme.backgroundRepeat || 'no-repeat',
+            backgroundAttachment: theme.backgroundAttachment || 'fixed',
+            filter: theme.backgroundBlur && theme.backgroundBlur > 0 ? `blur(${theme.backgroundBlur}px)` : undefined,
           }}
         />
       )}
       
-      <div className="relative z-10 w-full max-w-2xl sm:max-w-4xl lg:max-w-6xl xl:max-w-7xl mx-auto p-4 sm:p-6 lg:p-8">
+      {/* Overlay per opacità background */}
+      {(backgroundType === 'image' || backgroundType === 'gradient' || backgroundType === 'pattern') && (
+        <>
+          {/* Overlay opacità backgroundImage */}
+          {backgroundType === 'image' && (
+            <div
+              className="absolute inset-0 pointer-events-none z-0"
+              style={{
+                backgroundColor: `rgba(255, 255, 255, ${1 - ((theme.backgroundOpacity || 100) / 100)})`,
+              }}
+            />
+          )}
+          {/* Overlay colorato personalizzato */}
+          {theme.backgroundOverlay && theme.backgroundOverlay.opacity > 0 && (
+            <div
+              className="absolute inset-0 pointer-events-none z-0"
+              style={{
+                backgroundColor: theme.backgroundOverlay.color,
+                opacity: theme.backgroundOverlay.opacity,
+              }}
+            />
+          )}
+        </>
+      )}
+      
+      <div 
+        className="relative z-10 w-full mx-auto p-4 sm:p-6 lg:p-8"
+        style={{
+          maxWidth: theme.containerMaxWidth ? `${theme.containerMaxWidth}px` : undefined,
+        }}
+      >
         {/* Header con logo e titolo - ESATTAMENTE COME FormCustomization.tsx */}
-        <div className="space-y-4 mb-6 lg:mb-8">
+        <div 
+          className="space-y-4" 
+          style={{ 
+            marginBottom: theme.sectionSpacing ? `${theme.sectionSpacing}px` : undefined,
+          }}
+        >
           {theme.logo && (
             <div className="mb-4 text-center sm:text-left">
               <img
@@ -542,7 +796,15 @@ export default function FormUser({ form: initialForm }: { form: Form }) {
               />
             </div>
           )}
-          <h2 className="text-xl sm:text-2xl lg:text-3xl xl:text-4xl font-bold text-center sm:text-left" style={{ color: theme.primaryColor }}>
+          <h2 
+            className="text-xl sm:text-2xl lg:text-3xl xl:text-4xl font-bold text-center sm:text-left" 
+            style={{ 
+              color: theme.primaryColor,
+              fontFamily: theme.headingFontFamily ? `"${theme.headingFontFamily}", sans-serif` : undefined,
+              lineHeight: theme.lineHeight || undefined,
+              letterSpacing: theme.letterSpacing !== undefined ? `${theme.letterSpacing}px` : undefined,
+            }}
+          >
             {form.title}
           </h2>
           <p className="text-sm sm:text-base lg:text-lg text-gray-600 text-center sm:text-left" style={{ color: theme.textColor }}>
@@ -553,13 +815,19 @@ export default function FormUser({ form: initialForm }: { form: Form }) {
         {/* Domanda corrente - STRUTTURA IDENTICA A FormCustomization.tsx righe 1633-1928 */}
         {validQuestions.length > 0 && currentQuestion ? (
           <div 
-            className="space-y-6 min-h-[400px] lg:min-h-[500px] flex flex-col"
+            className="min-h-[400px] lg:min-h-[500px] flex flex-col"
             style={{ 
+              gap: theme.questionSpacing ? `${theme.questionSpacing}px` : undefined,
               padding: `${theme.cardPadding || 24}px`,
               backgroundColor: theme.questionBackgroundColor || 'transparent',
               borderRadius: `${theme.borderRadius}px`,
-              border: theme.questionBorderColor ? `${theme.borderWidth || 1}px solid ${theme.questionBorderColor}` : 'none',
-              boxShadow: `0 ${theme.shadowIntensity || 2}px ${(theme.shadowIntensity || 2) * 4}px rgba(0,0,0,0.1)`,
+              border: theme.questionBorderColor ? `${theme.borderWidth || 1}px ${theme.borderStyle || 'solid'} ${theme.questionBorderColor}` : 'none',
+              borderStyle: theme.questionBorderColor ? (theme.borderStyle || 'solid') : undefined,
+              boxShadow: theme.glowEffect?.enabled 
+                ? `0 0 ${(theme.glowEffect.intensity || 50) / 5}px ${theme.glowEffect.color || theme.primaryColor}, 0 ${theme.shadowIntensity || 2}px ${(theme.shadowIntensity || 2) * 4}px rgba(0,0,0,0.1)`
+                : `0 ${theme.shadowIntensity || 2}px ${(theme.shadowIntensity || 2) * 4}px rgba(0,0,0,0.1)`,
+              transition: theme.enableTransitions !== false ? `all ${getAnimationDuration(theme.animationSpeed)}` : undefined,
+              transform: theme.hoverEffect && theme.hoverScale ? `scale(${theme.hoverScale})` : undefined,
               // Padding aumentato su desktop con media query inline non supportata, useremo CSS custom
             }}
           >

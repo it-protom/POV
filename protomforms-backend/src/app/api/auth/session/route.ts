@@ -48,16 +48,16 @@ export async function GET(request: NextRequest) {
     
     // If we have a NextAuth session, use that
     if (session && session.user) {
-      return NextResponse.json({
-        user: {
-          id: (session.user as any).id,
-          email: session.user.email,
-          name: (session.user as any).name || session.user.email?.split('@')[0] || 'User',
-          role: (session.user as any).role,
-          image: (session.user as any).image || null,
-        },
-        isAuthenticated: true,
-      });
+    return NextResponse.json({
+      user: {
+        id: (session.user as any).id,
+        email: session.user.email,
+        name: (session.user as any).name || session.user.email?.split('@')[0] || 'User',
+        role: (session.user as any).role,
+        image: (session.user as any).image || null,
+      },
+      isAuthenticated: true,
+    });
     }
     
     // Fallback: check x-user-id header for custom auth flow (used after /api/auth/login)

@@ -760,7 +760,24 @@ export default function NewFormPage() {
             {currentStep === 'customization' && (
               <FormCustomizationV2
                 initialTheme={theme}
-                onThemeChange={setTheme}
+                onThemeChange={(newTheme) => {
+                  // Crea un nuovo tema partendo da quello corrente
+                  const updatedTheme: Partial<Theme> = { ...theme };
+                  
+                  // Applica gli aggiornamenti, rimuovendo le proprietà esplicitamente settate a undefined
+                  Object.keys(newTheme).forEach((key) => {
+                    const value = (newTheme as any)[key];
+                    if (value === undefined || value === null || (key === 'backgroundImage' && value === '')) {
+                      // Rimuovi la proprietà se è undefined, null o stringa vuota (per backgroundImage)
+                      delete updatedTheme[key as keyof Theme];
+                    } else {
+                      // Altrimenti aggiorna normalmente
+                      (updatedTheme as any)[key] = value;
+                    }
+                  });
+                  
+                  setTheme(updatedTheme as Theme);
+                }}
                 formTitle={title}
                 formDescription={description}
                 questions={questions}

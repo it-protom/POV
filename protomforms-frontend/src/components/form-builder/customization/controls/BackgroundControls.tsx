@@ -32,7 +32,25 @@ export function BackgroundControls({ theme, onUpdate }: BackgroundControlsProps)
   const backgroundType = theme.backgroundType || 'color';
 
   const handleTypeChange = (type: 'color' | 'image' | 'gradient' | 'pattern') => {
-    onUpdate({ backgroundType: type });
+    // Pulisci le proprietà degli altri tipi di background quando si cambia tipo
+    const updates: Partial<ThemeV2> = { backgroundType: type };
+    
+    if (type === 'color') {
+      updates.backgroundImage = undefined;
+      updates.backgroundGradient = undefined;
+      updates.backgroundPattern = undefined;
+    } else if (type === 'image') {
+      updates.backgroundGradient = undefined;
+      updates.backgroundPattern = undefined;
+    } else if (type === 'gradient') {
+      updates.backgroundImage = undefined;
+      updates.backgroundPattern = undefined;
+    } else if (type === 'pattern') {
+      updates.backgroundImage = undefined;
+      updates.backgroundGradient = undefined;
+    }
+    
+    onUpdate(updates);
   };
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -157,7 +175,12 @@ export function BackgroundControls({ theme, onUpdate }: BackgroundControlsProps)
                       size="sm"
                       onClick={(e) => {
                         e.stopPropagation();
-                        onUpdate({ backgroundImage: '', backgroundType: 'color' });
+                        onUpdate({ 
+                          backgroundImage: undefined, 
+                          backgroundType: 'color',
+                          backgroundGradient: undefined,
+                          backgroundPattern: undefined,
+                        });
                       }}
                       className="absolute top-2 right-2"
                     >
@@ -362,10 +385,24 @@ export function BackgroundControls({ theme, onUpdate }: BackgroundControlsProps)
                     key={value}
                     variant={theme.backgroundPattern === value ? 'default' : 'outline'}
                     size="sm"
-                    onClick={() => onUpdate({ 
-                      backgroundPattern: value as any,
-                      backgroundType: value === 'none' ? 'color' : 'pattern'
-                    })}
+                    onClick={() => {
+                      if (value === 'none') {
+                        // Rimuovi pattern e passa a color
+                        onUpdate({ 
+                          backgroundPattern: undefined,
+                          backgroundType: 'color',
+                          backgroundImage: undefined,
+                          backgroundGradient: undefined,
+                        });
+                      } else {
+                        onUpdate({ 
+                          backgroundPattern: value as any,
+                          backgroundType: 'pattern',
+                          backgroundImage: undefined,
+                          backgroundGradient: undefined,
+                        });
+                      }
+                    }}
                   >
                     {label}
                   </Button>

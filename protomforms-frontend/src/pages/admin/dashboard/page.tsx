@@ -303,12 +303,12 @@ export default function DashboardPage() {
               }
 
               return (
-                <MetricCard
-                  key={stat.title}
-                  {...stat}
-                  index={index}
+              <MetricCard
+                key={stat.title}
+                {...stat}
+                index={index}
                   href={href}
-                />
+              />
               );
             })}
           </div>
@@ -681,11 +681,11 @@ export default function DashboardPage() {
                                           {totalForms > 0 ? (
                                             <>
                                               <div className="w-full max-w-[200px] h-2 bg-gray-200 rounded-full overflow-hidden">
-                                                <div 
+                                            <div 
                                                   className="h-full bg-gray-600 transition-all"
-                                                  style={{ width: `${completionRate}%` }}
-                                                />
-                                              </div>
+                                              style={{ width: `${completionRate}%` }}
+                                            />
+                                          </div>
                                               <span className="text-xs text-gray-600">{completionRate}% completati</span>
                                             </>
                                           ) : (
@@ -708,57 +708,57 @@ export default function DashboardPage() {
                                       <tr>
                                         <td colSpan={4} className="p-4 bg-gray-50 border-b border-gray-200">
                                           <div className="space-y-4">
-                                            {/* Completati */}
-                                            {formsByStatus.completed.length > 0 && (
-                                              <div>
+                                              {/* Completati */}
+                                              {formsByStatus.completed.length > 0 && (
+                                                <div>
                                                 <div className="text-sm font-semibold text-gray-700 mb-2">
-                                                  Completati ({formsByStatus.completed.length})
-                                                </div>
+                                                    Completati ({formsByStatus.completed.length})
+                                                  </div>
                                                 <div className="flex flex-wrap gap-2">
-                                                  {formsByStatus.completed.map((form, idx) => (
+                                                    {formsByStatus.completed.map((form, idx) => (
                                                     <Badge key={idx} variant="outline" className="text-xs">
                                                       {form.name}
                                                       {form.isAnonymous && ' (Anonimo)'}
-                                                    </Badge>
-                                                  ))}
+                                                      </Badge>
+                                                    ))}
+                                                  </div>
                                                 </div>
-                                              </div>
-                                            )}
-                                            
-                                            {/* Parziali */}
-                                            {formsByStatus.partial.length > 0 && (
-                                              <div>
+                                              )}
+                                              
+                                              {/* Parziali */}
+                                              {formsByStatus.partial.length > 0 && (
+                                                <div>
                                                 <div className="text-sm font-semibold text-gray-700 mb-2">
-                                                  In corso ({formsByStatus.partial.length})
-                                                </div>
+                                                    In corso ({formsByStatus.partial.length})
+                                                  </div>
                                                 <div className="flex flex-wrap gap-2">
-                                                  {formsByStatus.partial.map((form, idx) => (
+                                                    {formsByStatus.partial.map((form, idx) => (
                                                     <Badge key={idx} variant="outline" className="text-xs">
                                                       {form.name}
                                                       {form.progress && ` (${form.progress})`}
                                                       {form.isAnonymous && ' (Anonimo)'}
-                                                    </Badge>
-                                                  ))}
+                                                      </Badge>
+                                                    ))}
+                                                  </div>
                                                 </div>
-                                              </div>
-                                            )}
-                                            
-                                            {/* Non iniziati */}
-                                            {formsByStatus.notStarted.length > 0 && (
-                                              <div>
+                                              )}
+                                              
+                                              {/* Non iniziati */}
+                                              {formsByStatus.notStarted.length > 0 && (
+                                                <div>
                                                 <div className="text-sm font-semibold text-gray-700 mb-2">
-                                                  Da completare ({formsByStatus.notStarted.length})
-                                                </div>
+                                                    Da completare ({formsByStatus.notStarted.length})
+                                                  </div>
                                                 <div className="flex flex-wrap gap-2">
-                                                  {formsByStatus.notStarted.map((form, idx) => (
+                                                    {formsByStatus.notStarted.map((form, idx) => (
                                                     <Badge key={idx} variant="outline" className="text-xs">
                                                       {form.name}
                                                       {form.isAnonymous && ' (Anonimo)'}
-                                                    </Badge>
-                                                  ))}
+                                                      </Badge>
+                                                    ))}
+                                                  </div>
                                                 </div>
-                                              </div>
-                                            )}
+                                              )}
                                             
                                             {formStatuses.length === 0 && (
                                               <div className="text-sm text-gray-500">Nessun form disponibile</div>
