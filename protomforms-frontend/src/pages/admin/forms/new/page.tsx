@@ -19,6 +19,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { QuestionFormData, QuestionType } from "@/types/question";
 import { v4 as uuidv4 } from 'uuid';
 import { FormCustomization, Theme } from '@/components/form-builder/FormCustomization';
+import { FormCustomizationV2 } from '@/components/form-builder/customization';
 import { authenticatedFetch } from '@/lib/utils';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -750,21 +751,13 @@ export default function NewFormPage() {
             )}
 
             {currentStep === 'customization' && (
-              <motion.div
-                key="customization"
-                initial={{ opacity: 0, x: 20 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: -20 }}
-                transition={{ duration: 0.3 }}
-              >
-                <FormCustomization
-                  theme={theme}
-                  onThemeChange={setTheme}
-                  formTitle={title}
-                  formDescription={description}
-                  questions={questions}
-                />
-              </motion.div>
+              <FormCustomizationV2
+                initialTheme={theme}
+                onThemeChange={setTheme}
+                formTitle={title}
+                formDescription={description}
+                questions={questions}
+              />
             )}
 
             {currentStep === 'settings' && (

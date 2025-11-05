@@ -362,3 +362,172 @@
   height: 2.5rem !important;
   padding: 0 !important;
 }
+
+/* Hide scrollbar for Chrome, Safari and Opera */
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
+/* Hide scrollbar for IE, Edge and Firefox */
+.scrollbar-hide {
+  -ms-overflow-style: none;  /* IE and Edge */
+  scrollbar-width: none;  /* Firefox */
+}
+
+/* Smooth scroll globally */
+html {
+  scroll-behavior: smooth;
+}
+
+/* Hide scrollbar in ScrollArea component */
+[data-slot="scroll-area-scrollbar"] {
+  display: none !important;
+}
+
+/* ========================================
+   CUSTOMIZATION LAYOUT RESPONSIVE STYLES
+   ======================================== */
+
+/* Container principale con altezza responsive */
+.customization-layout-container {
+  height: calc(92vh - 80px);
+  min-height: 500px; /* Altezza minima per garantire usabilità */
+}
+
+/* Layout responsive per sidebar e preview */
+/* Mobile: stacked layout (non implementato in questa versione) */
+@media (max-width: 768px) {
+  .customization-layout-container {
+    flex-direction: column;
+    height: auto;
+    min-height: 600px;
+  }
+  
+  .customization-sidebar {
+    width: 100% !important;
+    height: auto !important;
+    min-height: 400px;
+    border-right: none !important;
+    border-bottom: 1px solid #e5e7eb;
+  }
+  
+  .customization-preview {
+    width: 100% !important;
+    height: 500px !important;
+    min-height: 500px;
+  }
+}
+
+/* Tablet: 40% sidebar, 60% preview */
+@media (min-width: 769px) and (max-width: 1280px) {
+  .customization-layout-container {
+    height: calc(85vh - 80px);
+  }
+  
+  .customization-sidebar {
+    width: 40%;
+    height: 100%;
+    border-right: 1px solid #e5e7eb;
+  }
+  
+  .customization-preview {
+    width: 60%;
+    height: 100%;
+  }
+}
+
+/* Laptop: 35% sidebar, 65% preview */
+@media (min-width: 1281px) and (max-width: 1536px) {
+  .customization-layout-container {
+    height: calc(88vh - 80px);
+  }
+  
+  .customization-sidebar {
+    width: 35%;
+    height: 100%;
+    border-right: 1px solid #e5e7eb;
+  }
+  
+  .customization-preview {
+    width: 65%;
+    height: 100%;
+  }
+}
+
+/* Desktop standard (1536px - 1920px): 30% sidebar, 70% preview */
+@media (min-width: 1537px) and (max-width: 1920px) {
+  .customization-layout-container {
+    height: calc(85vh - 80px);
+    max-height: 850px; /* Limite massimo per evitare troppo spazio */
+  }
+  
+  .customization-sidebar {
+    width: 30%;
+    height: 100%;
+    border-right: 1px solid #e5e7eb;
+  }
+  
+  .customization-preview {
+    width: 70%;
+    height: 100%;
+  }
+}
+
+/* Large Desktop (> 1920px): 25% sidebar, 75% preview con altezza limitata */
+@media (min-width: 1921px) {
+  .customization-layout-container {
+    height: calc(80vh - 80px);
+    max-height: 900px; /* Limite massimo per schermi molto grandi */
+  }
+  
+  .customization-sidebar {
+    width: 25%;
+    min-width: 350px; /* Larghezza minima per mantenere usabilità */
+    max-width: 450px; /* Larghezza massima per evitare troppo spazio */
+    height: 100%;
+    border-right: 1px solid #e5e7eb;
+  }
+  
+  .customization-preview {
+    width: 75%;
+    flex: 1; /* Riempie lo spazio rimanente */
+    height: 100%;
+  }
+}
+
+/* Extra Large Desktop (> 2560px): ulteriore ottimizzazione */
+@media (min-width: 2561px) {
+  .customization-layout-container {
+    height: calc(75vh - 80px);
+    max-height: 1000px;
+  }
+  
+  .customization-sidebar {
+    width: 20%;
+    min-width: 380px;
+    max-width: 500px;
+  }
+  
+  .customization-preview {
+    width: 80%;
+  }
+}
+
+/* Altezza container principale responsive */
+@media (min-height: 900px) {
+  .customization-layout-container {
+    max-height: 850px;
+  }
+}
+
+@media (min-height: 1080px) {
+  .customization-layout-container {
+    max-height: 950px;
+  }
+}
+
+@media (min-height: 1440px) {
+  .customization-layout-container {
+    max-height: 1100px;
+  }
+}

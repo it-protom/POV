@@ -441,6 +441,22 @@ export default function FormPage() {
     return String(value);
   };
 
+  // Helper per ottenere lo stile del pattern (dichiarato prima del return)
+  const getPatternStyleHelper = (pattern: string): string => {
+    switch (pattern) {
+      case 'dots':
+        return `radial-gradient(circle, currentColor 1px, transparent 1px)`;
+      case 'grid':
+        return `linear-gradient(currentColor 1px, transparent 1px), linear-gradient(90deg, currentColor 1px, transparent 1px)`;
+      case 'waves':
+        return `repeating-linear-gradient(45deg, transparent, transparent 10px, currentColor 10px, currentColor 20px)`;
+      case 'diagonal':
+        return `repeating-linear-gradient(45deg, currentColor, currentColor 1px, transparent 1px, transparent 10px)`;
+      default:
+        return 'none';
+    }
+  };
+
   // Mostra messaggio di ringraziamento se il form è stato già compilato
   if (submitted) {
     const theme = form.theme || {
@@ -472,6 +488,17 @@ export default function FormPage() {
             className="absolute inset-0 pointer-events-none z-0"
             style={{
               backgroundColor: `rgba(255, 255, 255, ${1 - ((theme.backgroundOpacity || 100) / 100)})`,
+            }}
+          />
+        )}
+        {/* Background Pattern */}
+        {(theme as any).backgroundPattern && (theme as any).backgroundPattern !== 'none' && (
+          <div
+            className="absolute inset-0 pointer-events-none z-0 opacity-10"
+            style={{
+              backgroundImage: getPatternStyleHelper((theme as any).backgroundPattern),
+              backgroundSize: '30px 30px',
+              color: theme.textColor,
             }}
           />
         )}
@@ -649,6 +676,22 @@ export default function FormPage() {
     });
   }
 
+  // Helper per ottenere lo stile del pattern
+  const getPatternStyle = (pattern: string): string => {
+    switch (pattern) {
+      case 'dots':
+        return `radial-gradient(circle, currentColor 1px, transparent 1px)`;
+      case 'grid':
+        return `linear-gradient(currentColor 1px, transparent 1px), linear-gradient(90deg, currentColor 1px, transparent 1px)`;
+      case 'waves':
+        return `repeating-linear-gradient(45deg, transparent, transparent 10px, currentColor 10px, currentColor 20px)`;
+      case 'diagonal':
+        return `repeating-linear-gradient(45deg, currentColor, currentColor 1px, transparent 1px, transparent 10px)`;
+      default:
+        return 'none';
+    }
+  };
+
   // Helper per ottenere lo stile del bottone
   const getButtonStyle = (variant: 'primary' | 'outline' = 'primary') => {
     if (variant === 'outline') {
@@ -687,6 +730,18 @@ export default function FormPage() {
           className="absolute inset-0 pointer-events-none z-0"
           style={{
             backgroundColor: `rgba(255, 255, 255, ${1 - ((theme.backgroundOpacity || 100) / 100)})`,
+          }}
+        />
+      )}
+
+      {/* Background Pattern */}
+      {(theme as any).backgroundPattern && (theme as any).backgroundPattern !== 'none' && (
+        <div
+          className="absolute inset-0 pointer-events-none z-0 opacity-10"
+          style={{
+            backgroundImage: getPatternStyle((theme as any).backgroundPattern),
+            backgroundSize: '30px 30px',
+            color: theme.textColor,
           }}
         />
       )}

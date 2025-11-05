@@ -11,6 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Switch } from "@/components/ui/switch";
 import { ArrowLeft, Plus, Trash2, Save, Eye, Copy, Palette, Type, Layout, FileText, CheckCircle, Clock, AlertCircle, CalendarIcon } from "lucide-react";
 import { FormCustomization, Theme } from '@/components/form-builder/FormCustomization';
+import { FormCustomizationV2 } from '@/components/form-builder/customization';
 import { Link } from "react-router-dom";
 import { toast } from "sonner";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
@@ -755,19 +756,20 @@ export default function EditFormPage() {
             </CardContent>
           </Card>
 
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Palette className="h-5 w-5" />
+          {/* Personalizzazione Form - Full Screen */}
+          <div className="my-8">
+            <div className="mb-4 px-6">
+              <h2 className="text-2xl font-bold flex items-center gap-2">
+                <Palette className="h-6 w-6" />
                 Personalizzazione
-              </CardTitle>
-              <CardDescription>
+              </h2>
+              <p className="text-sm text-gray-500 mt-1">
                 Personalizza l'aspetto del form che gli utenti vedranno
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <FormCustomization
-                theme={theme}
+              </p>
+            </div>
+            <div className="rounded-lg overflow-hidden border border-gray-200 dark:border-gray-800" style={{ height: '600px' }}>
+              <FormCustomizationV2
+                initialTheme={theme}
                 onThemeChange={(newTheme) => {
                   setTheme(newTheme);
                   handleThemeChange(newTheme);
@@ -776,8 +778,8 @@ export default function EditFormPage() {
                 formDescription={formData.description}
                 questions={form.questions}
               />
-            </CardContent>
-          </Card>
+            </div>
+          </div>
 
           <Card>
             <CardHeader>
