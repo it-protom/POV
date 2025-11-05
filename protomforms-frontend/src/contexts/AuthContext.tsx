@@ -32,7 +32,19 @@ interface AuthProviderProps {
 }
 
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
-  const [user, setUser] = useState<User | null>(null);
+  const [user, setUser] = useState<User | null>(() => {
+    // Try to restore user from localStorage immediately on mount
+    const storedUserData = localStorage.getItem('user_data');
+    if (storedUserData) {
+      try {
+        return JSON.parse(storedUserData);
+      } catch (error) {
+        console.error('Failed to parse stored user data:', error);
+        return null;
+      }
+    }
+    return null;
+  });
   const [loading, setLoading] = useState(true);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
 
@@ -53,20 +65,37 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       const response = await api.get(endpoints.auth.session);
       if (response.data?.isAuthenticated && response.data?.user) {
         setUser(response.data.user);
-        // Store user ID in localStorage for axios interceptor
+        // Store user data in localStorage for persistence across page reloads
         localStorage.setItem('user_id', response.data.user.id);
+        localStorage.setItem('user_data', JSON.stringify(response.data.user));
       } else {
+        // Only clear if explicitly not authenticated (not network error)
         setUser(null);
         localStorage.removeItem('user_id');
+        localStorage.removeItem('user_data');
       }
     } catch (error: any) {
-      // Only log if it's not a network error or 401/404 (expected when not authenticated)
-      if (error.response?.status && ![401, 404, 500].includes(error.response.status)) {
-        console.error('Session check failed:', error);
+      console.error('Session check failed:', error);
+      
+      // Only clear session if it's a 401 (Unauthorized) - meaning session is explicitly invalid
+      // Don't clear on network errors or other server errors (500, etc)
+      if (error.response?.status === 401) {
+        setUser(null);
+        localStorage.removeItem('user_id');
+        localStorage.removeItem('user_data');
+      } else {
+        // For network errors or server errors, try to restore from localStorage
+        const storedUserData = localStorage.getItem('user_data');
+        if (storedUserData && !user) {
+          try {
+            const parsedUser = JSON.parse(storedUserData);
+            console.log('Restoring session from localStorage due to network error');
+            setUser(parsedUser);
+          } catch (parseError) {
+            console.error('Failed to parse stored user data:', parseError);
+          }
+        }
       }
-      // Session doesn't exist or is invalid - this is expected when not logged in
-      setUser(null);
-      localStorage.removeItem('user_id');
     } finally {
       setLoading(false);
     }
@@ -88,10 +117,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
       if (response.data?.user) {
         setUser(response.data.user);
-        // Store user ID in localStorage for axios interceptor and authenticatedFetch
+        // Store user data in localStorage for persistence across page reloads
         // This allows backend endpoints to authenticate via x-user-id header fallback
-        // La sessione persiste tramite localStorage che viene controllato al refresh
         localStorage.setItem('user_id', response.data.user.id);
+        localStorage.setItem('user_data', JSON.stringify(response.data.user));
       } else {
         throw new Error('Invalid credentials');
       }
@@ -110,6 +139,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       // Clear user state immediately
       setUser(null);
       localStorage.removeItem('user_id');
+      localStorage.removeItem('user_data');
       
       // Call logout endpoint to clear server-side session and cookies
       await api.post(endpoints.auth.signout);

@@ -406,18 +406,18 @@ function NavbarContent() {
               {/* Logo */}
               <Link 
                 to={user ? (isAdmin ? "/admin/dashboard" : "/user/forms") : "/"} 
-                className="flex items-center gap-3 group"
+                className="flex items-start gap-3 group"
               >
                 <img
                   src="/logo_pov.png"
                   alt="POV Logo"
-                  className="h-10 w-10 transition-transform group-hover:scale-105 object-contain"
+                  className="h-10 w-10 transition-transform group-hover:scale-105 object-contain mt-0.5"
                 />
                 <div className="flex flex-col">
-                  <span className="text-2xl font-bold text-gray-800 group-hover:text-[#FFCD00] transition-colors">
+                  <span className="text-2xl font-bold text-gray-800 group-hover:text-[#FFCD00] transition-colors leading-none">
                     pov
                   </span>
-                  <span className="text-xs text-gray-500 -mt-1">
+                  <span className="text-xs text-gray-500 mt-0.5">
                     by Protom Group
                   </span>
                 </div>

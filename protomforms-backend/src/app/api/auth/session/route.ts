@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
+import { prisma } from '@/lib/prisma';
 
 export async function GET(request: NextRequest) {
   try {
@@ -45,26 +46,60 @@ export async function GET(request: NextRequest) {
       throw sessionError;
     }
     
-    if (!session || !session.user) {
-      return NextResponse.json(
-        { 
-          user: null,
-          isAuthenticated: false 
+    // If we have a NextAuth session, use that
+    if (session && session.user) {
+      return NextResponse.json({
+        user: {
+          id: (session.user as any).id,
+          email: session.user.email,
+          name: (session.user as any).name || session.user.email?.split('@')[0] || 'User',
+          role: (session.user as any).role,
+          image: (session.user as any).image || null,
         },
-        { status: 200 }
-      );
+        isAuthenticated: true,
+      });
     }
-
-    return NextResponse.json({
-      user: {
-        id: (session.user as any).id,
-        email: session.user.email,
-        name: (session.user as any).name || session.user.email?.split('@')[0] || 'User',
-        role: (session.user as any).role,
-        image: (session.user as any).image || null,
+    
+    // Fallback: check x-user-id header for custom auth flow (used after /api/auth/login)
+    const userIdHeader = request.headers.get('x-user-id');
+    if (userIdHeader) {
+      try {
+        const user = await prisma.user.findUnique({
+          where: { id: userIdHeader },
+          select: {
+            id: true,
+            email: true,
+            name: true,
+            role: true,
+          }
+        });
+        
+        if (user) {
+          console.log('✅ Session restored from x-user-id header:', user.email);
+          return NextResponse.json({
+            user: {
+              id: user.id,
+              email: user.email,
+              name: user.name || user.email?.split('@')[0] || 'User',
+              role: user.role,
+              image: null,
+            },
+            isAuthenticated: true,
+          });
+        }
+      } catch (error) {
+        console.error('Error fetching user from x-user-id header:', error);
+      }
+    }
+    
+    // No session found
+    return NextResponse.json(
+      { 
+        user: null,
+        isAuthenticated: false 
       },
-      isAuthenticated: true,
-    });
+      { status: 200 }
+    );
   } catch (error) {
     console.error('Session check error:', error);
     return NextResponse.json(
