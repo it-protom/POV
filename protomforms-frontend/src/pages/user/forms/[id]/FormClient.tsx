@@ -598,7 +598,7 @@ export default function FormClient({ form: initialForm }: { form: Form }) {
             </CardContent>
           </Card>
         </div>
-      </div>
+        </div>
     );
   }
 
@@ -716,7 +716,7 @@ export default function FormClient({ form: initialForm }: { form: Form }) {
               <div className="space-y-4 mb-6">
                 {form.questions.map((q, index) => (
                   <div 
-                    key={q.id} 
+                key={q.id}
                     className={cn(
                       "p-4 rounded-md cursor-pointer transition-colors",
                       index === currentStep ? "bg-blue-50 border border-blue-200" : "hover:bg-gray-50",
@@ -1114,7 +1114,7 @@ export default function FormClient({ form: initialForm }: { form: Form }) {
                     <div className="border-2 border-dashed rounded-md p-6 text-center" style={{ borderRadius: `${theme.borderRadius}px` }}>
                       <Upload className="mx-auto h-12 w-12 text-gray-400" />
                       <p className="mt-2 text-sm text-gray-500">Trascina un file qui</p>
-                      <input
+                        <input
                         type="file"
                         className="hidden"
                         id={`file-${currentQuestion.id}`}
@@ -1181,9 +1181,9 @@ export default function FormClient({ form: initialForm }: { form: Form }) {
                           </span>
                           <span style={{ color: theme.textColor }}>{option}</span>
                         </div>
-                      ))}
-                    </div>
-                    )}
+                    ))}
+                  </div>
+                )}
 
                     {/* BRANCHING */}
                     {currentQuestion.type === 'BRANCHING' && (
@@ -1238,7 +1238,7 @@ export default function FormClient({ form: initialForm }: { form: Form }) {
                             fontWeight: '600'
                           }}
                         >
-                          {submitting ? 'Invio in corso...' : 'Invia Risposte'}
+            {submitting ? 'Invio in corso...' : 'Invia Risposte'}
                         </Button>
                       );
                     } else {
@@ -1262,10 +1262,10 @@ export default function FormClient({ form: initialForm }: { form: Form }) {
                 </div>
               </div>
             )}
-          </form>
+        </form>
         </CardContent>
         </Card>
       </div>
-    </div>
+      </div>
   );
-}
+} 

@@ -527,9 +527,9 @@ export default function FormUser({ form: initialForm }: { form: Form }) {
         />
       )}
       
-      <div className="relative z-10 w-full max-w-4xl mx-auto p-4 sm:p-6">
+      <div className="relative z-10 w-full max-w-2xl sm:max-w-4xl lg:max-w-6xl xl:max-w-7xl mx-auto p-4 sm:p-6 lg:p-8">
         {/* Header con logo e titolo - ESATTAMENTE COME FormCustomization.tsx */}
-        <div className="space-y-4 mb-6">
+        <div className="space-y-4 mb-6 lg:mb-8">
           {theme.logo && (
             <div className="mb-4 text-center sm:text-left">
               <img
@@ -542,10 +542,10 @@ export default function FormUser({ form: initialForm }: { form: Form }) {
               />
             </div>
           )}
-          <h2 className="text-xl sm:text-2xl font-bold text-center sm:text-left" style={{ color: theme.primaryColor }}>
+          <h2 className="text-xl sm:text-2xl lg:text-3xl xl:text-4xl font-bold text-center sm:text-left" style={{ color: theme.primaryColor }}>
             {form.title}
           </h2>
-          <p className="text-sm sm:text-base text-gray-600 text-center sm:text-left" style={{ color: theme.textColor }}>
+          <p className="text-sm sm:text-base lg:text-lg text-gray-600 text-center sm:text-left" style={{ color: theme.textColor }}>
             {form.description}
           </p>
         </div>
@@ -553,18 +553,19 @@ export default function FormUser({ form: initialForm }: { form: Form }) {
         {/* Domanda corrente - STRUTTURA IDENTICA A FormCustomization.tsx righe 1633-1928 */}
         {validQuestions.length > 0 && currentQuestion ? (
           <div 
-            className="space-y-6 min-h-[400px] flex flex-col"
+            className="space-y-6 min-h-[400px] lg:min-h-[500px] flex flex-col"
             style={{ 
               padding: `${theme.cardPadding || 24}px`,
               backgroundColor: theme.questionBackgroundColor || 'transparent',
               borderRadius: `${theme.borderRadius}px`,
               border: theme.questionBorderColor ? `${theme.borderWidth || 1}px solid ${theme.questionBorderColor}` : 'none',
-              boxShadow: `0 ${theme.shadowIntensity || 2}px ${(theme.shadowIntensity || 2) * 4}px rgba(0,0,0,0.1)`
+              boxShadow: `0 ${theme.shadowIntensity || 2}px ${(theme.shadowIntensity || 2) * 4}px rgba(0,0,0,0.1)`,
+              // Padding aumentato su desktop con media query inline non supportata, useremo CSS custom
             }}
           >
             {/* Domanda corrente */}
-            <div className="flex-1">
-              <div className="flex items-center mb-6">
+            <div className="flex-1 flex flex-col">
+              <div className="flex items-center mb-8 lg:mb-12">
                 <span 
                   className="w-10 h-10 flex items-center justify-center rounded-full mr-4 font-semibold" 
                   style={{ 
@@ -589,10 +590,11 @@ export default function FormUser({ form: initialForm }: { form: Form }) {
                 </Label>
               </div>
 
-              <div className="pl-14" style={{ 
-                fontSize: `${theme.optionFontSize || 16}px`,
-                color: theme.optionTextColor || theme.textColor
-              }}>
+              <div className="flex-1 flex items-center justify-center">
+                <div className="w-full pl-14" style={{ 
+                  fontSize: `${theme.optionFontSize || 16}px`,
+                  color: theme.optionTextColor || theme.textColor
+                }}>
                 {/* TEXT */}
                 {currentQuestion.type === 'TEXT' && (
                   <Input 
@@ -999,6 +1001,7 @@ export default function FormUser({ form: initialForm }: { form: Form }) {
                 {currentQuestion.type === 'BRANCHING' && (
                   <p className="text-sm text-gray-500">Domanda condizionale basata sulle risposte precedenti</p>
                 )}
+                </div>
               </div>
             </div>
 
