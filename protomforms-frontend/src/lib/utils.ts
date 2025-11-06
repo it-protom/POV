@@ -63,7 +63,7 @@ export function getApiUrl() {
 
 /**
  * Helper per fetch che aggiunge automaticamente l'header x-user-id se disponibile
- * @param url URL da chiamare
+ * @param url URL da chiamare (può essere relativo o assoluto)
  * @param options Opzioni fetch standard
  * @returns Promise<Response>
  */
@@ -76,8 +76,22 @@ export async function authenticatedFetch(url: string, options: RequestInit = {})
     headers.set('x-user-id', userId);
   }
   
+  // Costruisci l'URL completo se è relativo
+  let fullUrl = url;
+  if (url.startsWith('/api/') || url.startsWith('/api')) {
+    // URL relativo, costruisci l'URL completo
+    const apiUrl = getApiUrl();
+    // Rimuovi /api se già presente nell'URL relativo
+    const path = url.startsWith('/api') ? url.substring(4) : url;
+    fullUrl = `${apiUrl}${path.startsWith('/') ? path : `/${path}`}`;
+  } else if (!url.startsWith('http://') && !url.startsWith('https://')) {
+    // URL relativo senza /api, aggiungi getApiUrl
+    const apiUrl = getApiUrl();
+    fullUrl = `${apiUrl}${url.startsWith('/') ? url : `/${url}`}`;
+  }
+  
   // Assicurati che credentials sia sempre 'include' per i cookie
-  return fetch(url, {
+  return fetch(fullUrl, {
     ...options,
     credentials: 'include',
     headers,
