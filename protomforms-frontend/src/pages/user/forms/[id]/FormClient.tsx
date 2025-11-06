@@ -489,7 +489,7 @@ export default function FormClient({ form: initialForm }: { form: Form }) {
                 <CheckCircle className="w-12 h-12 text-green-600" />
               </div>
               <CardTitle className="text-4xl mb-3 font-bold" style={{ color: theme.primaryColor }}>
-                ✅ Risposta Inviata con Successo!
+                Risposta Inviata con Successo!
               </CardTitle>
               {form.thankYouMessage ? (
                 <CardDescription className="text-lg mb-2" style={{ color: theme.textColor }}>
@@ -503,7 +503,7 @@ export default function FormClient({ form: initialForm }: { form: Form }) {
               {submittedResponse && (
                 <div className="mt-4 inline-block bg-gradient-to-r from-green-50 to-blue-50 px-6 py-3 rounded-full">
                   <p className="text-sm font-medium text-gray-700">
-                    🎯 Numero di riferimento: <strong className="text-xl" style={{ color: theme.primaryColor }}>#{submittedResponse.progressiveNumber}</strong>
+                    Numero di riferimento: <strong className="text-xl" style={{ color: theme.primaryColor }}>#{submittedResponse.progressiveNumber}</strong>
                   </p>
                 </div>
               )}
@@ -513,7 +513,7 @@ export default function FormClient({ form: initialForm }: { form: Form }) {
           <Card className="shadow-xl mb-6" style={{ backgroundColor: theme.backgroundColor, borderRadius: `${theme.borderRadius}px` }}>
             <CardHeader>
               <CardTitle className="text-2xl flex items-center gap-2" style={{ color: theme.primaryColor }}>
-                📋 Le Tue Risposte
+                Le Tue Risposte
               </CardTitle>
               <CardDescription style={{ color: theme.textColor }}>
                 Ecco un riepilogo delle risposte che hai fornito

@@ -3,7 +3,6 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { QuestionType, FormType } from '@prisma/client';
-import { notifyNewFormCreated } from '@/lib/teams-notification';
 
 interface Question {
   id: string;

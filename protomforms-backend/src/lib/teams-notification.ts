@@ -129,8 +129,10 @@ export async function notifyNewFormCreated(
   formTitle: string, 
   createdBy: string
 ): Promise<boolean> {
-  const baseUrl = process.env.NEXTAUTH_URL || 'http://localhost:3001';
-  const formUrl = `${baseUrl}/admin/forms/${formId}`;
+  // Usa FRONTEND_URL per il link al form pubblico (non admin)
+  const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
+  // Link diretto al form pubblico, non alla pagina admin
+  const formUrl = `${frontendUrl}/forms/${formId}`;
   
   console.log('Invio notifica per nuovo form:', {
     formId,
@@ -145,7 +147,7 @@ export async function notifyNewFormCreated(
     themeColor: 'FFD700', // Colore giallo Protom
     potentialAction: [
       {
-        name: 'Visualizza Form',
+        name: 'Compila Form',
         target: formUrl
       }
     ]

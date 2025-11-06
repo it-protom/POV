@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
+import { notifyNewFormCreated } from '@/lib/teams-notification';
 
 export async function POST(
   request: NextRequest,
@@ -96,6 +97,9 @@ export async function POST(
       return NextResponse.json({ error: 'Form not found' }, { status: 404 });
     }
 
+    // Verifica se il form era già pubblicato prima
+    const wasAlreadyPublished = form.isPublic && form.status === 'PUBLISHED';
+
     // Aggiorna il form per renderlo pubblico
     const updatedForm = await prisma.form.update({
       where: { id: formId },
@@ -128,6 +132,34 @@ export async function POST(
         }
       }
     });
+
+    // Invia notifica Teams solo se il form non era già pubblicato e l'utente è un ADMIN
+    if (!wasAlreadyPublished && userRole === 'ADMIN') {
+      try {
+        const notificationSent = await notifyNewFormCreated(
+          updatedForm.id,
+          updatedForm.title,
+          updatedForm.owner?.name || updatedForm.owner?.email || 'Admin'
+        );
+        
+        if (notificationSent) {
+          // Aggiorna lo stato della notifica nel database
+          await prisma.form.update({
+            where: { id: updatedForm.id },
+            data: {
+              teamsNotificationSent: true,
+              teamsNotificationSentAt: new Date(),
+            }
+          });
+          console.log('✅ Notifica Teams inviata con successo per il form pubblicato:', updatedForm.id);
+        } else {
+          console.warn('⚠️ Invio notifica Teams fallito per il form pubblicato:', updatedForm.id);
+        }
+      } catch (notificationError) {
+        // Non blocchiamo la pubblicazione se la notifica fallisce
+        console.error('❌ Errore nell\'invio della notifica Teams:', notificationError);
+      }
+    }
 
     return NextResponse.json({
       message: 'Form published successfully',

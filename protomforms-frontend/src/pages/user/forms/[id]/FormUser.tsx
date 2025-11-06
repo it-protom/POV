@@ -554,9 +554,6 @@ export default function FormUser({ form: initialForm }: { form: Form }) {
             }}
           >
             <CardHeader className="text-center pb-6">
-              <div className="mx-auto mb-4 w-20 h-20 rounded-full bg-green-100 flex items-center justify-center">
-                <CheckCircle className="w-12 h-12 text-green-600" />
-              </div>
               <CardTitle 
                 className="text-4xl mb-3 font-bold" 
                 style={{ 
@@ -566,7 +563,7 @@ export default function FormUser({ form: initialForm }: { form: Form }) {
                   letterSpacing: theme.letterSpacing !== undefined ? `${theme.letterSpacing}px` : undefined,
                 }}
               >
-                ✅ Risposta Inviata con Successo!
+                Risposta Inviata con Successo!
               </CardTitle>
               {form.thankYouMessage ? (
                 <CardDescription className="text-lg mb-2" style={{ color: theme.textColor }}>
@@ -577,20 +574,13 @@ export default function FormUser({ form: initialForm }: { form: Form }) {
                   Grazie per aver completato il questionario. Le tue risposte sono state registrate.
                 </CardDescription>
               )}
-              {submittedResponse && (
-                <div className="mt-4 inline-block bg-gradient-to-r from-green-50 to-blue-50 px-6 py-3 rounded-full">
-                  <p className="text-sm font-medium text-gray-700">
-                    🎯 Numero di riferimento: <strong className="text-xl" style={{ color: theme.primaryColor }}>#{submittedResponse.progressiveNumber}</strong>
-                  </p>
-                </div>
-              )}
             </CardHeader>
           </Card>
 
           <Card className="shadow-xl mb-6" style={{ backgroundColor: theme.backgroundColor, borderRadius: `${theme.borderRadius}px` }}>
             <CardHeader>
               <CardTitle className="text-2xl flex items-center gap-2" style={{ color: theme.primaryColor }}>
-                📋 Le Tue Risposte
+                Le Tue Risposte
               </CardTitle>
               <CardDescription style={{ color: theme.textColor }}>
                 Ecco un riepilogo delle risposte che hai fornito
@@ -636,44 +626,29 @@ export default function FormUser({ form: initialForm }: { form: Form }) {
             </div>
           </Card>
 
-          <Card className="shadow-xl" style={{ backgroundColor: theme.backgroundColor, borderRadius: `${theme.borderRadius}px` }}>
-            <div className="p-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <Button
-                  onClick={() => navigate('/user/forms')}
-                  size="lg"
-                  className="w-full h-14 text-lg font-semibold"
-                  style={{
-                    backgroundColor: theme.primaryColor,
-                    color: '#ffffff',
-                    borderRadius: `${theme.borderRadius}px`
-                  }}
-                >
-                  🏠 Torna alla Dashboard
-                </Button>
-                {form.showResults && form.slug && (
+          {form.showResults && form.slug && (
+            <Card className="shadow-xl" style={{ backgroundColor: theme.backgroundColor, borderRadius: `${theme.borderRadius}px` }}>
+              <div className="p-6">
+                <div className="flex justify-center">
                   <Button
                     onClick={() => {
                       navigate(`/user/responses/${form.slug}/${submittedResponse?.progressiveNumber || ''}`);
                     }}
                     size="lg"
                     variant="outline"
-                    className="w-full h-14 text-lg font-semibold"
+                    className="h-14 text-lg font-semibold"
                     style={{
                       borderColor: theme.primaryColor,
                       color: theme.primaryColor,
                       borderRadius: `${theme.borderRadius}px`
                     }}
                   >
-                    📊 Visualizza Dettagli
+                    Visualizza Dettagli
                   </Button>
-                )}
+                </div>
               </div>
-              <p className="text-center text-sm text-gray-500 mt-4">
-                💡 Conserva il numero di riferimento per eventuali comunicazioni future
-              </p>
-            </div>
-          </Card>
+            </Card>
+          )}
         </div>
       </div>
     );
@@ -776,7 +751,7 @@ export default function FormUser({ form: initialForm }: { form: Form }) {
       )}
       
       <div 
-        className="relative z-10 w-full mx-auto p-4 sm:p-6 lg:p-8"
+        className="relative z-10 w-full mx-auto px-8 py-4 sm:px-10 sm:py-6 lg:px-16 lg:py-8"
         style={{
           maxWidth: theme.containerMaxWidth ? `${theme.containerMaxWidth}px` : undefined,
         }}

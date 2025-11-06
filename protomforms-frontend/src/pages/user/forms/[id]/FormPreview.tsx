@@ -411,7 +411,7 @@ export default function FormPreview({ form: initialForm }: { form: Form }) {
                 <CheckCircle className="w-12 h-12 text-green-600" />
               </div>
               <CardTitle className="text-4xl mb-3 font-bold" style={{ color: theme.primaryColor }}>
-                ✅ Risposta Inviata con Successo!
+                Risposta Inviata con Successo!
               </CardTitle>
               <CardDescription className="text-lg">
                 {form.thankYouMessage || 'Grazie per aver completato il questionario.'}
@@ -520,7 +520,7 @@ export default function FormPreview({ form: initialForm }: { form: Form }) {
       )}
       
       <div 
-        className="relative z-10 w-full mx-auto p-4 sm:p-6"
+        className="relative z-10 w-full mx-auto px-8 py-4 sm:px-10 sm:py-6 lg:px-16 lg:py-8"
         style={{
           maxWidth: theme.containerMaxWidth ? `${theme.containerMaxWidth}px` : undefined,
         }}
