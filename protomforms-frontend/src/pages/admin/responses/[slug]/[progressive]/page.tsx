@@ -127,26 +127,20 @@ export default function ResponseDetailsPage() {
   };
 
   // Formatta il tempo di completamento
-  const formatCompletionTime = (seconds?: number) => {
-    if (!seconds) {
-      // Calcola dalla differenza tra createdAt e submittedAt
-      if (response?.createdAt && response?.submittedAt) {
-        const created = new Date(response.createdAt);
-        const submitted = new Date(response.submittedAt);
-        const diffInSeconds = Math.floor((submitted.getTime() - created.getTime()) / 1000);
-        seconds = Math.max(diffInSeconds, 13);
-      } else {
-        return "00.00";
-      }
-    }
+  const formatCompletionTime = (seconds: number) => {
     const minutes = Math.floor(seconds / 60);
     const secs = seconds % 60;
     return `${minutes.toString().padStart(2, '0')}.${secs.toString().padStart(2, '0')}`;
   };
 
-  const completionTime = response?.completionTime || (response?.createdAt && response?.submittedAt 
-    ? Math.floor((new Date(response.submittedAt).getTime() - new Date(response.createdAt).getTime()) / 1000)
-    : 13);
+  // Calcola il tempo di completamento solo se abbiamo dati reali
+  const completionTime = response?.completionTime || 
+    (response?.createdAt && response?.submittedAt 
+      ? Math.floor((new Date(response.submittedAt).getTime() - new Date(response.createdAt).getTime()) / 1000)
+      : null);
+  
+  // Verifica se abbiamo un tempo reale (non fake)
+  const hasRealCompletionTime = completionTime !== null && completionTime > 0;
 
   if (loading) {
     return (
@@ -256,10 +250,10 @@ export default function ResponseDetailsPage() {
         </div>
 
         {/* Titolo Form e Risposta */}
-        {response && (
+        {response && form && (
           <>
             <div className="space-y-1">
-              <h1 className="text-xl font-semibold">{response.form.title}</h1>
+              <h1 className="text-xl font-semibold">{form.title}</h1>
               <div className="flex items-center gap-2 text-sm text-gray-600">
                 <span>Risposta #{response.progressiveNumber}</span>
                 <span>•</span>
@@ -276,16 +270,18 @@ export default function ResponseDetailsPage() {
                   <div className="flex items-center gap-2">
                       <span className="text-lg font-medium">{response.progressiveNumber}</span>
                       <span className="text-base font-medium">
-                        {response.form.isAnonymous 
+                        {form.isAnonymous 
                           ? 'Anonimo'
                           : (response.user?.name || `Risposta #${response.progressiveNumber}`)}
                       </span>
                     </div>
                   </div>
-                  <div className="text-right">
-                    <div className="text-2xl font-medium">{formatCompletionTime(completionTime)}</div>
-                    <div className="text-xs text-gray-500">Tempo per il completamento</div>
-                  </div>
+                  {hasRealCompletionTime && (
+                    <div className="text-right">
+                      <div className="text-2xl font-medium">{formatCompletionTime(completionTime!)}</div>
+                      <div className="text-xs text-gray-500">Tempo per il completamento</div>
+                    </div>
+                  )}
                 </div>
               </CardContent>
         </Card>

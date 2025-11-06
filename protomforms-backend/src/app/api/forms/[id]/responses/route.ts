@@ -220,7 +220,30 @@ export async function GET(
     // Verifica l'autenticazione
     const session = await getServerSession(authOptions);
     
-    if (!session) {
+    let userId: string | null = null;
+    let userRole: string | null = null;
+    
+    // Try to get user from session first
+    if (session?.user?.id) {
+      userId = session.user.id;
+      userRole = (session.user as any).role;
+    } else {
+      // Fallback: try to get userId from header (for custom auth flow)
+      const userIdHeader = request.headers.get('x-user-id');
+      if (userIdHeader) {
+        userId = userIdHeader;
+        // Fetch user role from database
+        const user = await prisma.user.findUnique({
+          where: { id: userId },
+          select: { role: true }
+        });
+        if (user) {
+          userRole = user.role;
+        }
+      }
+    }
+    
+    if (!userId) {
       return NextResponse.json(
         { error: 'Non autorizzato' },
         { status: 401 }
@@ -249,7 +272,7 @@ export async function GET(
     }
     
     // Verifica i permessi: admin può vedere tutto, owner può vedere i propri form
-    if (session.user.role !== 'ADMIN' && form.ownerId !== session.user.id) {
+    if (userRole !== 'ADMIN' && form.ownerId !== userId) {
       return NextResponse.json(
         { error: 'Accesso negato' },
         { status: 403 }

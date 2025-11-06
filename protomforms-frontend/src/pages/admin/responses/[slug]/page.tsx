@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { useParams } from "react-router-dom";
 import { Eye } from "lucide-react";
+import { authenticatedFetch } from '@/lib/utils';
 
 interface Answer {
   id: string;
@@ -43,7 +44,7 @@ export default function FormResponsesPage() {
     try {
       console.log("Fetching form for slug:", params.slug);
       // 1. Trova il form tramite slug
-      const formRes = await fetch(`/api/forms/by-slug/${params.slug}`);
+      const formRes = await authenticatedFetch(`/api/forms/by-slug/${params.slug}`);
       if (!formRes.ok) throw new Error("Form non trovato");
       const formData = await formRes.json();
       console.log("Form found:", formData);
@@ -51,7 +52,7 @@ export default function FormResponsesPage() {
       
       // 2. Prendi tutte le risposte di quel form
       console.log("Fetching responses for form ID:", formData.id);
-      const respRes = await fetch(`/api/forms/${formData.id}/responses`);
+      const respRes = await authenticatedFetch(`/api/forms/${formData.id}/responses`);
       if (!respRes.ok) throw new Error("Errore nel recupero risposte");
       const respData = await respRes.json();
       console.log("Responses found:", respData);
