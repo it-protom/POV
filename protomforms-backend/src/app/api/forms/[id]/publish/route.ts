@@ -100,6 +100,16 @@ export async function POST(
     // Verifica se il form era già pubblicato prima
     const wasAlreadyPublished = form.isPublic && form.status === 'PUBLISHED';
 
+    // Leggi il body per vedere se inviare il webhook
+    let sendWebhook = false;
+    try {
+      const body = await request.json();
+      sendWebhook = body.sendWebhook === true;
+    } catch (e) {
+      // Se non c'è body o è malformato, non inviare webhook (comportamento predefinito)
+      console.log('⚠️ Nessun body nella richiesta o body malformato, webhook non verrà inviato');
+    }
+
     // Aggiorna il form per renderlo pubblico
     const updatedForm = await prisma.form.update({
       where: { id: formId },
@@ -133,8 +143,11 @@ export async function POST(
       }
     });
 
-    // Invia notifica Teams solo se il form non era già pubblicato e l'utente è un ADMIN
-    if (!wasAlreadyPublished && userRole === 'ADMIN') {
+    // Invia notifica Teams solo se:
+    // 1. Il form non era già pubblicato
+    // 2. L'utente è un ADMIN
+    // 3. L'utente ha esplicitamente richiesto di inviare il webhook
+    if (!wasAlreadyPublished && userRole === 'ADMIN' && sendWebhook) {
       try {
         const notificationSent = await notifyNewFormCreated(
           updatedForm.id,

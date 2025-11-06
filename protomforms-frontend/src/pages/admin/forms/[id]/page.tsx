@@ -86,6 +86,7 @@ export default function FormDetailPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isPublishing, setIsPublishing] = useState(false);
+  const [showWebhookDialog, setShowWebhookDialog] = useState(false);
   const [isTeamsDialogOpen, setIsTeamsDialogOpen] = useState(false);
   const [teamsTitle, setTeamsTitle] = useState('');
   const [teamsText, setTeamsText] = useState('');
@@ -230,13 +231,17 @@ export default function FormDetailPage() {
   const StatusIcon = statusConfig[status].icon;
   const stats = calculateStats(form);
 
-  const handlePublish = async () => {
+  const handlePublish = async (sendWebhook: boolean = false) => {
     if (!form) return;
     
     try {
       setIsPublishing(true);
       const response = await authenticatedFetch(`/api/forms/${form.id}/publish`, {
         method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ sendWebhook }),
       });
 
       if (response.ok) {
@@ -451,23 +456,58 @@ export default function FormDetailPage() {
         
         <div className="mt-4 lg:mt-0 flex items-center space-x-3">
           {!form.isPublic && (
-            <Button 
-              onClick={handlePublish}
-              disabled={isPublishing}
-              className="bg-green-600 hover:bg-green-700"
-            >
-              {isPublishing ? (
-                <>
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                  Pubblicando...
-                </>
-              ) : (
-                <>
-                  <CheckCircle className="h-4 w-4 mr-2" />
-                  Pubblica
-                </>
-              )}
-            </Button>
+            <>
+              <Button 
+                onClick={() => setShowWebhookDialog(true)}
+                disabled={isPublishing}
+                className="bg-green-600 hover:bg-green-700"
+              >
+                {isPublishing ? (
+                  <>
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                    Pubblicando...
+                  </>
+                ) : (
+                  <>
+                    <CheckCircle className="h-4 w-4 mr-2" />
+                    Pubblica
+                  </>
+                )}
+              </Button>
+              
+              <Dialog open={showWebhookDialog} onOpenChange={setShowWebhookDialog}>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>Pubblica Form</DialogTitle>
+                    <DialogDescription>
+                      Vuoi inviare una notifica su Microsoft Teams quando pubblichi questo form?
+                    </DialogDescription>
+                  </DialogHeader>
+                  <DialogFooter className="flex gap-2 sm:gap-0">
+                    <Button
+                      variant="outline"
+                      onClick={() => {
+                        setShowWebhookDialog(false);
+                        handlePublish(false);
+                      }}
+                      disabled={isPublishing}
+                    >
+                      Pubblica senza notifica
+                    </Button>
+                    <Button
+                      onClick={() => {
+                        setShowWebhookDialog(false);
+                        handlePublish(true);
+                      }}
+                      disabled={isPublishing}
+                      className="bg-green-600 hover:bg-green-700"
+                    >
+                      Pubblica e invia notifica
+                    </Button>
+                  </DialogFooter>
+                </DialogContent>
+              </Dialog>
+            </>
           )}
           <Button variant="outline" size="sm" asChild>
             <Link to={`/admin/forms/${form.id}/preview`}>
