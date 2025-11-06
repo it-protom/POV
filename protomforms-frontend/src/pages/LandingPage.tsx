@@ -61,9 +61,14 @@ const LandingPage: React.FC = () => {
                 alt="POV Logo"
                 className="w-10 h-10 object-contain"
               />
-              <span className="text-2xl font-bold text-gray-900">
-                pov
-              </span>
+              <div className="flex flex-col -mt-1 text-left items-start">
+                <span className="text-4xl font-bold text-gray-900 leading-none block -ml-0.5">
+                  pov
+                </span>
+                <span className="text-xs text-gray-500 mt-1 block">
+                  by Protom Group
+                </span>
+              </div>
             </div>
             <div className="flex items-center space-x-4">
               <Button 
@@ -245,9 +250,16 @@ const LandingPage: React.FC = () => {
               <img
                 src="/logo_pov.png"
                 alt="POV Logo"
-                className="w-8 h-8 object-contain"
+                className="h-14 w-14 object-contain mt-0.5"
               />
-              <span className="text-xl font-bold text-gray-900">pov</span>
+              <div className="flex flex-col -mt-1 text-left items-start">
+                <span className="text-4xl font-bold text-gray-900 leading-none block -ml-0.5">
+                  pov
+                </span>
+                <span className="text-xs text-gray-500 mt-1 block">
+                  by Protom Group
+                </span>
+              </div>
             </div>
             <p className="text-gray-600">
               © 2024 ProtomForms by Protom Group. Piattaforma professionale per questionari aziendali.

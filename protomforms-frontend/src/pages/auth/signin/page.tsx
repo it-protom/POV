@@ -174,11 +174,16 @@ export default function SignInPage() {
               <img
                 src="/logo_pov.png"
                 alt="POV Logo"
-                className="w-12 h-12 object-contain"
+                className="h-14 w-14 object-contain mt-0.5"
               />
-              <h1 className="text-4xl font-bold text-gray-900">
-                pov
-              </h1>
+              <div className="flex flex-col -mt-1 text-left items-start">
+                <span className="text-4xl font-bold text-gray-900 leading-none block -ml-0.5">
+                  pov
+                </span>
+                <span className="text-xs text-gray-500 mt-1 block">
+                  by Protom Group
+                </span>
+              </div>
             </div>
             <p className="text-gray-600 text-lg">
               Benvenuto nella piattaforma di gestione form
