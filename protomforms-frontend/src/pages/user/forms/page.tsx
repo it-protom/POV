@@ -122,6 +122,8 @@ export default function UserFormsPage() {
       
       // Fetch forms (critical - must work)
       let formsData: any[] = [];
+      let userResponses: any[] = [];
+      
       try {
         // Usa sempre il percorso relativo /api/... per passare attraverso il proxy Vite
         // Il proxy Vite reindirizza /api/* a http://localhost:3001/api/*
@@ -144,8 +146,6 @@ export default function UserFormsPage() {
         if (formsResponse.ok) {
           formsData = await formsResponse.json();
           console.log('✅ Forms loaded:', formsData.length);
-          setForms(formsData);
-          setFilteredForms(formsData);
         } else {
           const errorText = await formsResponse.text().catch(() => 'Unknown error');
           console.error('❌ Forms response not OK:', formsResponse.status, formsResponse.statusText, errorText);
@@ -163,6 +163,41 @@ export default function UserFormsPage() {
           variant: 'destructive'
         });
       }
+
+      // Fetch user responses to filter out already completed forms
+      try {
+        const responsesUrl = '/api/users/responses';
+        const responsesResponse = await fetch(responsesUrl, {
+          method: 'GET',
+          credentials: 'include',
+          headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json'
+          },
+          cache: 'no-cache'
+        });
+
+        if (responsesResponse.ok) {
+          userResponses = await responsesResponse.json();
+          console.log('✅ User responses loaded:', userResponses.length);
+          
+          // Extract form IDs from user responses
+          const completedFormIds = new Set(userResponses.map((response: any) => response.form?.id).filter(Boolean));
+          
+          // Filter out forms that user has already completed
+          formsData = formsData.filter((form: Form) => !completedFormIds.has(form.id));
+          console.log('✅ Forms after filtering completed ones:', formsData.length);
+        } else {
+          console.log('ℹ️ Could not fetch user responses (user might not be authenticated)');
+        }
+      } catch (responsesError: any) {
+        console.log('ℹ️ Error fetching user responses (non-critical):', responsesError);
+        // Non bloccare se non riusciamo a caricare le risposte - il backend dovrebbe già filtrare
+      }
+
+      // Set the filtered forms
+      setForms(formsData);
+      setFilteredForms(formsData);
 
       // Fetch stats (optional - can fail silently)
       try {

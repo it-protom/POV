@@ -12,7 +12,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { cn } from "@/lib/utils";
 import { format } from 'date-fns';
 import { it } from 'date-fns/locale';
-import { CalendarIcon, Upload, GripVertical, CheckCircle } from 'lucide-react';
+import { CalendarIcon, Upload, GripVertical, CheckCircle, ArrowLeft } from 'lucide-react';
 import { toast } from 'sonner';
 import { authenticatedFetch } from '@/lib/utils';
 
@@ -541,6 +541,25 @@ export default function FormUser({ form: initialForm }: { form: Form }) {
             maxWidth: theme.containerMaxWidth ? `${theme.containerMaxWidth}px` : 'max-w-4xl',
           }}
         >
+          {/* Bottone per tornare indietro */}
+          <div className="mb-4 sm:mb-6">
+            <Button
+              type="button"
+              variant="ghost"
+              onClick={() => navigate('/user/forms')}
+              className="flex items-center gap-2 transition-colors"
+              style={{
+                fontFamily: `"${theme.fontFamily}", sans-serif`,
+                color: theme.textColor,
+                fontSize: `${theme.optionFontSize || 16}px`,
+                borderRadius: `${theme.borderRadius}px`,
+              }}
+            >
+              <ArrowLeft className="h-4 w-4" />
+              Torna ai Form
+            </Button>
+          </div>
+
           <Card 
             className="shadow-xl mb-6" 
             style={{ 
@@ -1276,26 +1295,28 @@ export default function FormUser({ form: initialForm }: { form: Form }) {
 
             {/* Bottoni navigazione */}
             <div className="flex justify-between items-center pt-6 border-t mt-auto">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={prevStep}
-                disabled={currentStep === 0}
-                className="px-6 py-2 transition-all"
-                style={{
-                  backgroundColor: currentStep === 0 
-                    ? (theme.disabledButtonColor || '#e5e7eb')
-                    : (theme.navigationButtonBgColor || 'transparent'),
-                  color: currentStep === 0
-                    ? '#9ca3af'
-                    : (theme.navigationButtonTextColor || theme.textColor),
-                  border: `${theme.borderWidth || 1}px solid ${theme.navigationButtonBorderColor || theme.primaryColor}`,
-                  borderRadius: `${theme.borderRadius}px`,
-                  cursor: currentStep === 0 ? 'not-allowed' : 'pointer'
-                }}
-              >
-                Precedente
-              </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={prevStep}
+                  disabled={currentStep === 0}
+                  className="px-6 py-2 transition-all"
+                  style={{
+                    fontFamily: `"${theme.fontFamily}", sans-serif`,
+                    backgroundColor: currentStep === 0 
+                      ? (theme.disabledButtonColor || '#e5e7eb')
+                      : (theme.navigationButtonBgColor || 'transparent'),
+                    color: currentStep === 0
+                      ? '#9ca3af'
+                      : (theme.navigationButtonTextColor || theme.textColor),
+                    border: `${theme.borderWidth || 1}px solid ${theme.navigationButtonBorderColor || theme.primaryColor}`,
+                    borderRadius: `${theme.borderRadius}px`,
+                    cursor: currentStep === 0 ? 'not-allowed' : 'pointer',
+                    fontSize: `${theme.optionFontSize || 16}px`,
+                  }}
+                >
+                  Precedente
+                </Button>
               <div 
                 className="px-4 py-2 rounded"
                 style={{
@@ -1321,11 +1342,13 @@ export default function FormUser({ form: initialForm }: { form: Form }) {
                       disabled={submitting}
                       className="px-6 py-2 transition-all" 
                       style={{ 
+                        fontFamily: `"${theme.fontFamily}", sans-serif`,
                         backgroundColor: theme.buttonStyle === 'filled' ? theme.primaryColor : 'transparent',
                         color: theme.buttonTextColor || (theme.buttonStyle === 'filled' ? '#fff' : theme.primaryColor),
                         border: theme.buttonStyle === 'outlined' ? `${theme.borderWidth || 2}px solid ${theme.primaryColor}` : 'none',
                         borderRadius: `${theme.borderRadius}px`,
-                        fontWeight: '600'
+                        fontWeight: '600',
+                        fontSize: `${theme.optionFontSize || 16}px`,
                       }}
                     >
                       {submitting ? 'Invio in corso...' : 'Invia Risposte'}
@@ -1340,6 +1363,7 @@ export default function FormUser({ form: initialForm }: { form: Form }) {
                       disabled={isDisabled}
                       className="px-6 py-2 transition-all"
                       style={{ 
+                        fontFamily: `"${theme.fontFamily}", sans-serif`,
                         backgroundColor: isDisabled 
                           ? (theme.disabledButtonColor || '#e5e7eb')
                           : (theme.buttonStyle === 'filled' ? theme.primaryColor : 'transparent'),
@@ -1349,7 +1373,8 @@ export default function FormUser({ form: initialForm }: { form: Form }) {
                         border: theme.buttonStyle === 'outlined' ? `${theme.borderWidth || 2}px solid ${theme.primaryColor}` : 'none',
                         borderRadius: `${theme.borderRadius}px`,
                         fontWeight: '600',
-                        cursor: isDisabled ? 'not-allowed' : 'pointer'
+                        cursor: isDisabled ? 'not-allowed' : 'pointer',
+                        fontSize: `${theme.optionFontSize || 16}px`,
                       }}
                     >
                       Successiva
@@ -1364,6 +1389,28 @@ export default function FormUser({ form: initialForm }: { form: Form }) {
             <p className="text-sm text-gray-500 font-medium">Nessuna domanda disponibile</p>
           </div>
         )}
+        
+        {/* Bottone Torna indietro - fuori dal contenitore della domanda */}
+        <div className="mt-12 mb-8 flex justify-start">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => navigate(-1)}
+            className="px-6 py-2 transition-all flex items-center gap-2"
+            style={{
+              fontFamily: `"${theme.fontFamily}", sans-serif`,
+              backgroundColor: theme.navigationButtonBgColor || 'transparent',
+              color: theme.navigationButtonTextColor || theme.textColor,
+              border: `${theme.borderWidth || 1}px solid ${theme.navigationButtonBorderColor || theme.primaryColor}`,
+              borderRadius: `${theme.borderRadius}px`,
+              fontSize: `${theme.optionFontSize || 16}px`,
+              cursor: 'pointer',
+            }}
+          >
+            <ArrowLeft className="h-4 w-4" />
+            Torna indietro
+          </Button>
+        </div>
       </div>
     </div>
   );
