@@ -138,9 +138,6 @@ export function SortableQuestion({ question, onEdit, onDelete, onUpdate }: Sorta
               <GripVertical className="h-5 w-5" />
             </button>
             <h3 className="font-semibold text-black">{question.text}</h3>
-            {question.required && (
-              <span className="text-red-500 text-sm">*</span>
-            )}
           </div>
           <div className="flex items-center space-x-2">
             <Button

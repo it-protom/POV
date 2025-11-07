@@ -562,31 +562,47 @@ export default function UserFormsPage() {
                     layout
                     className="h-full"
                   >
-                    <Card className="border-0 shadow-lg hover:shadow-xl transition-all duration-300 group relative overflow-hidden bg-white hover:border-b-4 hover:border-[#FFCD00] h-full flex flex-col">
+                    <Card className="border-0 shadow-lg hover:shadow-2xl transition-all duration-300 group relative overflow-hidden bg-white h-full flex flex-col border border-gray-100 hover:border-[#FFCD00] hover:border-2">
+                      {/* Gradient overlay on hover */}
+                      <div className="absolute inset-0 bg-gradient-to-br from-[#FFCD00]/5 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
+                      
                       {/* Status indicator */}
                       {isExpired && (
-                        <div className="absolute top-4 right-4 z-10">
-                          <Badge variant="destructive" className="text-xs">
+                        <motion.div 
+                          className="absolute top-4 right-4 z-10"
+                          initial={{ scale: 0 }}
+                          animate={{ scale: 1 }}
+                          transition={{ type: 'spring', stiffness: 200 }}
+                        >
+                          <Badge variant="destructive" className="text-xs shadow-md">
                             Scaduto
                           </Badge>
-                        </div>
+                        </motion.div>
                       )}
                       
                       <CardHeader className="pb-3 relative z-10">
                         <div className="flex items-start justify-between mb-3">
                           <div className="flex-1 pr-4">
-                            <div className="flex items-center space-x-2 mb-2">
-                              <div className={`p-2 rounded-lg ${form.type === 'SURVEY' ? 'bg-[#FFCD00]/20' : 'bg-black/10'}`}>
+                            <motion.div 
+                              className="flex items-center space-x-2 mb-2"
+                              whileHover={{ scale: 1.05 }}
+                              transition={{ duration: 0.2 }}
+                            >
+                              <motion.div 
+                                className={`p-2 rounded-lg ${form.type === 'SURVEY' ? 'bg-[#FFCD00]/20' : 'bg-black/10'}`}
+                                whileHover={{ rotate: [0, -5, 5, 0] }}
+                                transition={{ duration: 0.3 }}
+                              >
                                 <TypeIcon className={`h-4 w-4 ${form.type === 'SURVEY' ? 'text-[#FFCD00]' : 'text-black'}`} />
-                              </div>
+                              </motion.div>
                               <Badge 
                                 variant="outline" 
-                                className={`text-xs ${typeConfig[form.type].color}`}
+                                className={`text-xs ${typeConfig[form.type].color} shadow-sm`}
                               >
                                 {typeConfig[form.type].label}
                               </Badge>
-                            </div>
-                            <CardTitle className="text-lg leading-tight group-hover:text-[#FFCD00] transition-colors line-clamp-2">
+                            </motion.div>
+                            <CardTitle className="text-lg leading-tight group-hover:text-[#FFCD00] transition-colors line-clamp-2 font-semibold">
                               {form.title}
                             </CardTitle>
                           </div>
@@ -600,16 +616,27 @@ export default function UserFormsPage() {
                       <CardContent className="pt-0 relative z-10 flex-1 flex flex-col">
                         <div className="flex-1 flex flex-col">
                           {/* Stats */}
-                          <div className="grid grid-cols-2 gap-4 text-sm mb-4">
-                            <div className="flex items-center space-x-2">
+                          <motion.div 
+                            className="grid grid-cols-2 gap-4 text-sm mb-4"
+                            initial={{ opacity: 0, y: 10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ delay: 0.1 }}
+                          >
+                            <motion.div 
+                              className="flex items-center space-x-2 p-2 rounded-lg bg-gray-50 group-hover:bg-[#FFCD00]/10 transition-colors"
+                              whileHover={{ scale: 1.05 }}
+                            >
                               <MessageSquare className="h-4 w-4 text-[#FFCD00]" />
-                              <span className="text-gray-600">{form.responses.length} risposte</span>
-                            </div>
-                            <div className="flex items-center space-x-2">
+                              <span className="text-gray-600 font-medium">{form.responses.length} risposte</span>
+                            </motion.div>
+                            <motion.div 
+                              className="flex items-center space-x-2 p-2 rounded-lg bg-gray-50 group-hover:bg-[#FFCD00]/10 transition-colors"
+                              whileHover={{ scale: 1.05 }}
+                            >
                               <Target className="h-4 w-4 text-[#FFCD00]" />
-                              <span className="text-gray-600">{form.questions.length} domande</span>
-                            </div>
-                          </div>
+                              <span className="text-gray-600 font-medium">{form.questions.length} domande</span>
+                            </motion.div>
+                          </motion.div>
 
                           {/* Time remaining */}
                           {timeRemaining && !isExpired && (
@@ -633,25 +660,30 @@ export default function UserFormsPage() {
                           </div>
 
                           {/* Action Button - Always at bottom */}
-                          <Button 
-                            asChild
-                            className="w-full bg-white border-2 border-black text-black hover:bg-[#FFCD00] hover:border-[#FFCD00] hover:text-black font-medium transition-all duration-300"
-                            disabled={!!isExpired}
+                          <motion.div
+                            whileHover={{ scale: 1.02 }}
+                            whileTap={{ scale: 0.98 }}
                           >
-                            <Link to={`/forms/${form.id}`}>
-                              {isExpired ? (
-                                <>
-                                  <Eye className="mr-2 h-4 w-4" />
-                                  Visualizza
-                                </>
-                              ) : (
-                                <>
-                                  <Play className="mr-2 h-4 w-4" />
-                                  Inizia
-                                </>
-                              )}
-                            </Link>
-                          </Button>
+                            <Button 
+                              asChild
+                              className="w-full bg-white border-2 border-black text-black hover:bg-[#FFCD00] hover:border-[#FFCD00] hover:text-black font-medium transition-all duration-300 shadow-md hover:shadow-lg"
+                              disabled={!!isExpired}
+                            >
+                              <Link to={`/forms/${form.id}`}>
+                                {isExpired ? (
+                                  <>
+                                    <Eye className="mr-2 h-4 w-4" />
+                                    Visualizza
+                                  </>
+                                ) : (
+                                  <>
+                                    <Play className="mr-2 h-4 w-4" />
+                                    Inizia
+                                  </>
+                                )}
+                              </Link>
+                            </Button>
+                          </motion.div>
                         </div>
                       </CardContent>
                     </Card>

@@ -3,7 +3,7 @@
  * Layout moderno con Header categorie, Sidebar laterale e Preview centrale
  */
 
-import React, { useState, useCallback, useMemo } from 'react';
+import React, { useState, useCallback, useMemo, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { CategoryHeader, CategoryId } from './CategoryHeader';
 import { CustomizationSidebar } from './CustomizationSidebar';
@@ -303,10 +303,70 @@ function FormPreview({ theme, title, description, questions }: FormPreviewProps)
     }
   };
 
+  // Helper per estrarre il nome del font dalla stringa completa
+  const extractFontName = (fontFamily: string | undefined): string | null => {
+    if (!fontFamily) return null;
+    // Estrae il primo nome del font prima della virgola (es. "Inter, system-ui, sans-serif" -> "Inter")
+    const match = fontFamily.match(/^([^,]+)/);
+    return match ? match[1].trim() : null;
+  };
+
+  // Carica il font se il form ha un tema personalizzato
+  useEffect(() => {
+    const fontName = extractFontName(theme.fontFamily);
+    if (fontName && fontName !== 'system-ui') {
+      const fontId = `preview-font-${fontName}`;
+      const existingLink = document.querySelector(`link[data-font-loader="${fontId}"]`);
+      
+      if (!existingLink) {
+        const fontFamilies = fontName.replace(/ /g, '+');
+        const link = document.createElement('link');
+        link.href = `https://fonts.googleapis.com/css2?family=${fontFamilies}:wght@300;400;500;600;700&display=swap`;
+        link.rel = 'stylesheet';
+        link.setAttribute('data-font-loader', fontId);
+        document.head.appendChild(link);
+      }
+
+      return () => {
+        const link = document.querySelector(`link[data-font-loader="${fontId}"]`);
+        if (link && link.parentNode) {
+          link.parentNode.removeChild(link);
+        }
+      };
+    }
+  }, [theme.fontFamily]);
+
+  // Carica il font per le intestazioni se diverso
+  useEffect(() => {
+    const headingFontName = extractFontName(theme.headingFontFamily || theme.fontFamily);
+    const bodyFontName = extractFontName(theme.fontFamily);
+    
+    if (headingFontName && headingFontName !== 'system-ui' && headingFontName !== bodyFontName) {
+      const fontId = `preview-heading-font-${headingFontName}`;
+      const existingLink = document.querySelector(`link[data-font-loader="${fontId}"]`);
+      
+      if (!existingLink) {
+        const fontFamilies = headingFontName.replace(/ /g, '+');
+        const link = document.createElement('link');
+        link.href = `https://fonts.googleapis.com/css2?family=${fontFamilies}:wght@300;400;500;600;700&display=swap`;
+        link.rel = 'stylesheet';
+        link.setAttribute('data-font-loader', fontId);
+        document.head.appendChild(link);
+      }
+
+      return () => {
+        const link = document.querySelector(`link[data-font-loader="${fontId}"]`);
+        if (link && link.parentNode) {
+          link.parentNode.removeChild(link);
+        }
+      };
+    }
+  }, [theme.headingFontFamily, theme.fontFamily]);
+
   // Determina il tipo di background
   const backgroundType = theme.backgroundType || (theme.backgroundImage ? 'image' : theme.backgroundGradient ? 'gradient' : theme.backgroundPattern && theme.backgroundPattern !== 'none' ? 'pattern' : 'color');
 
-  // Domande di esempio per TUTTI i tipi configurabili
+  // Domande di esempio per i tipi realmente implementati
   const sampleQuestions: QuestionFormData[] = useMemo(() => [
     {
       id: 'sample-text',
@@ -343,35 +403,6 @@ function FormPreview({ theme, title, description, questions }: FormPreviewProps)
       type: QuestionType.DATE,
       required: false,
       order: 4,
-    },
-    {
-      id: 'sample-ranking',
-      text: 'Ordina per importanza le seguenti caratteristiche:',
-      type: QuestionType.RANKING,
-      required: true,
-      options: ['Qualità', 'Prezzo', 'Servizio', 'Design'],
-      order: 5,
-    },
-    {
-      id: 'sample-file',
-      text: 'Carica un documento di supporto (opzionale)',
-      type: QuestionType.FILE_UPLOAD,
-      required: false,
-      order: 6,
-    },
-    {
-      id: 'sample-nps',
-      text: 'Quanto probabilmente consiglieresti questo prodotto?',
-      type: QuestionType.NPS,
-      required: true,
-      order: 7,
-    },
-    {
-      id: 'sample-branching',
-      text: 'Questa domanda appare solo se hai risposto positivamente alla precedente',
-      type: QuestionType.BRANCHING,
-      required: false,
-      order: 8,
     },
   ], []);
 
@@ -591,8 +622,10 @@ function FormPreview({ theme, title, description, questions }: FormPreviewProps)
                 className="text-lg"
                 style={{
                   color: theme.textColor || '#1f2937',
+                  fontFamily: theme.fontFamily || 'Inter, system-ui, sans-serif',
                   fontSize: theme.optionFontSize ? `${theme.optionFontSize * 1.1}px` : '17px',
                   lineHeight: theme.lineHeight || 1.5,
+                  letterSpacing: theme.letterSpacing !== undefined ? `${theme.letterSpacing}px` : undefined,
                 }}
               >
                 {description}
@@ -732,53 +765,93 @@ interface QuestionPreviewProps {
 }
 
 function QuestionPreview({ question, index, theme }: QuestionPreviewProps) {
+  const primaryColor = theme.primaryColor || '#3b82f6';
+  const borderRadius = theme.borderRadius || 8;
+
   return (
-    <div
+    <motion.div
       className="rounded-xl border w-full max-w-full"
       style={{
         gap: theme.questionSpacing ? `${theme.questionSpacing}px` : undefined,
         padding: `${theme.cardPadding || 24}px`,
-        backgroundColor: theme.questionBackgroundColor || '#f9fafb',
+        backgroundColor: theme.questionBackgroundColor || '#ffffff',
         borderColor: theme.questionBorderColor || '#e5e7eb',
-        borderRadius: theme.borderRadius ? `${theme.borderRadius}px` : '8px',
+        borderRadius: `${borderRadius}px`,
         borderWidth: theme.borderWidth ? `${theme.borderWidth}px` : '1px',
         borderStyle: theme.borderStyle || 'solid',
-        boxShadow: theme.glowEffect?.enabled 
-          ? `0 0 ${(theme.glowEffect.intensity || 50) / 5}px ${theme.glowEffect.color || theme.primaryColor}, 0 ${theme.shadowIntensity || 2}px ${(theme.shadowIntensity || 2) * 4}px rgba(0,0,0,0.1)`
-          : `0 ${theme.shadowIntensity || 2}px ${(theme.shadowIntensity || 2) * 4}px rgba(0,0,0,0.1)`,
-        transition: theme.enableTransitions !== false ? 'all 300ms' : undefined,
+        boxShadow: 'none',
+        transition: theme.enableTransitions !== false ? 'all 300ms cubic-bezier(0.4, 0, 0.2, 1)' : undefined,
       }}
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.3, ease: 'easeOut' }}
+      whileHover={theme.hoverEffect ? {
+        y: -2,
+      } : {}}
     >
-      <div className="flex items-start gap-4 mb-4">
-        <div
-          className="w-8 h-8 rounded-full flex items-center justify-center font-semibold text-sm shrink-0"
+      <div className="flex items-start gap-4 mb-6">
+        <motion.div
+          className="w-10 h-10 rounded-full flex items-center justify-center font-semibold text-sm shrink-0 relative"
           style={{
-            backgroundColor: theme.primaryColor || '#3b82f6',
+            backgroundColor: primaryColor,
             color: theme.questionNumberTextColor || '#ffffff',
+            boxShadow: `0 2px 8px ${primaryColor}40`,
           }}
+          initial={{ scale: 0 }}
+          animate={{ scale: 1 }}
+          transition={{ delay: index * 0.1, type: 'spring', stiffness: 200 }}
+          whileHover={{ scale: 1.1 }}
         >
           {index + 1}
-        </div>
+          {/* Glow effect sul numero */}
+          {theme.glowEffect?.enabled && (
+            <motion.div
+              className="absolute inset-0 rounded-full -z-10"
+              style={{
+                backgroundColor: primaryColor,
+                opacity: 0.3,
+              }}
+              animate={{
+                scale: [1, 1.3, 1],
+                opacity: [0.3, 0, 0.3],
+              }}
+              transition={{
+                duration: 2,
+                repeat: Infinity,
+                ease: 'easeInOut',
+              }}
+            />
+          )}
+        </motion.div>
         <div className="flex-1">
-          <h3
+          <motion.h3
             style={{
               fontFamily: theme.headingFontFamily || theme.fontFamily || 'Inter, system-ui, sans-serif',
               color: theme.questionTextColor || theme.textColor || '#1f2937',
-              fontSize: theme.questionFontSize ? `${theme.questionFontSize}px` : '18px',
+              fontSize: theme.questionFontSize ? `${theme.questionFontSize}px` : '20px',
               fontWeight: theme.questionFontWeight === 'normal' ? 400 : theme.questionFontWeight === 'medium' ? 500 : theme.questionFontWeight === 'bold' ? 700 : 600,
-              lineHeight: theme.lineHeight || 1.5,
+              lineHeight: theme.lineHeight || 1.6,
               letterSpacing: theme.letterSpacing ? `${theme.letterSpacing}px` : '0',
+              textShadow: theme.textShadow || 'none',
             }}
+            initial={{ opacity: 0, x: -10 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ delay: index * 0.1 + 0.1 }}
           >
             {question.text}
-            {question.required && <span className="text-red-500 ml-1">*</span>}
-          </h3>
+          </motion.h3>
         </div>
       </div>
 
       {/* Render diversi tipi di input in base al tipo di domanda */}
-      {renderQuestionInput(question, theme)}
-    </div>
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ delay: index * 0.1 + 0.2 }}
+      >
+        {renderQuestionInput(question, theme)}
+      </motion.div>
+    </motion.div>
   );
 }
 
@@ -847,10 +920,10 @@ function renderQuestionInput(question: QuestionFormData, theme: Partial<ThemeV2>
       return (
         <div className="space-y-4">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-sm" style={{ color: theme.textColor || '#6b7280' }}>
+            <span className="text-sm" style={{ color: theme.textColor || '#6b7280', fontFamily: theme.fontFamily || 'Inter, system-ui, sans-serif' }}>
               Per niente d'accordo
             </span>
-            <span className="text-sm" style={{ color: theme.textColor || '#6b7280' }}>
+            <span className="text-sm" style={{ color: theme.textColor || '#6b7280', fontFamily: theme.fontFamily || 'Inter, system-ui, sans-serif' }}>
               Completamente d'accordo
             </span>
           </div>
@@ -867,9 +940,10 @@ function renderQuestionInput(question: QuestionFormData, theme: Partial<ThemeV2>
                   borderColor: theme.optionBorderColor || '#d1d5db',
                   borderRadius: theme.borderRadius ? `${theme.borderRadius}px` : '8px',
                   color: theme.optionTextColor || theme.textColor || '#1f2937',
+                  fontFamily: theme.fontFamily || 'Inter, system-ui, sans-serif',
                 }}
               >
-                <span className="text-sm font-medium">{value}</span>
+                <span className="text-sm font-medium" style={{ fontFamily: theme.fontFamily || 'Inter, system-ui, sans-serif' }}>{value}</span>
               </motion.button>
             ))}
           </div>
@@ -956,10 +1030,10 @@ function renderQuestionInput(question: QuestionFormData, theme: Partial<ThemeV2>
             className="mx-auto h-12 w-12 mb-4"
             style={{ color: theme.primaryColor || '#3b82f6' }}
           />
-          <p className="text-sm mb-2" style={{ color: theme.textColor || '#1f2937' }}>
+          <p className="text-sm mb-2" style={{ color: theme.textColor || '#1f2937', fontFamily: theme.fontFamily || 'Inter, system-ui, sans-serif' }}>
             Trascina un file qui o clicca per selezionarlo
           </p>
-          <p className="text-xs" style={{ color: theme.textColor || '#6b7280' }}>
+          <p className="text-xs" style={{ color: theme.textColor || '#6b7280', fontFamily: theme.fontFamily || 'Inter, system-ui, sans-serif' }}>
             Supporto per un singolo file
           </p>
         </motion.div>
@@ -969,10 +1043,10 @@ function renderQuestionInput(question: QuestionFormData, theme: Partial<ThemeV2>
       return (
         <div className="space-y-4">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-sm" style={{ color: theme.textColor || '#6b7280' }}>
+            <span className="text-sm" style={{ color: theme.textColor || '#6b7280', fontFamily: theme.fontFamily || 'Inter, system-ui, sans-serif' }}>
               Per niente probabile
             </span>
-            <span className="text-sm" style={{ color: theme.textColor || '#6b7280' }}>
+            <span className="text-sm" style={{ color: theme.textColor || '#6b7280', fontFamily: theme.fontFamily || 'Inter, system-ui, sans-serif' }}>
               Estremamente probabile
             </span>
           </div>
@@ -989,6 +1063,7 @@ function renderQuestionInput(question: QuestionFormData, theme: Partial<ThemeV2>
                   borderColor: theme.optionBorderColor || '#d1d5db',
                   borderRadius: theme.borderRadius ? `${theme.borderRadius}px` : '50%',
                   color: theme.optionTextColor || theme.textColor || '#1f2937',
+                  fontFamily: theme.fontFamily || 'Inter, system-ui, sans-serif',
                 }}
               >
                 {i}
@@ -1005,10 +1080,10 @@ function renderQuestionInput(question: QuestionFormData, theme: Partial<ThemeV2>
           borderRadius: theme.borderRadius ? `${theme.borderRadius}px` : '8px',
           backgroundColor: theme.questionBackgroundColor || '#f9fafb',
         }}>
-          <p className="text-sm mb-2" style={{ color: theme.textColor || '#1f2937' }}>
+          <p className="text-sm mb-2" style={{ color: theme.textColor || '#1f2937', fontFamily: theme.fontFamily || 'Inter, system-ui, sans-serif' }}>
             Domanda condizionale
           </p>
-          <p className="text-xs" style={{ color: theme.textColor || '#6b7280' }}>
+          <p className="text-xs" style={{ color: theme.textColor || '#6b7280', fontFamily: theme.fontFamily || 'Inter, system-ui, sans-serif' }}>
             Questa domanda appare solo se hai risposto positivamente alla precedente
           </p>
         </div>

@@ -17,6 +17,8 @@ import { it } from 'date-fns/locale';
 import { CalendarIcon, Upload, Star, ThumbsUp, ThumbsDown, GripVertical, CheckCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import { authenticatedFetch } from '@/lib/utils';
+import { ProgressBarWithCheckpoints } from '@/components/survey/ProgressBarWithCheckpoints';
+import ThankYouModal from '@/components/survey/ThankYouModal';
 
 interface Question {
   id: string;
@@ -118,11 +120,18 @@ export default function FormClient({ form: initialForm }: { form: Form }) {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [currentStep, setCurrentStep] = useState(0);
-  const [showProgress, setShowProgress] = useState(false);
   const [rankingAnswers, setRankingAnswers] = useState<Record<string, string[]>>({});
   const [visibleQuestions, setVisibleQuestions] = useState<string[]>([]);
   const [submittedResponse, setSubmittedResponse] = useState<{ responseId: string; progressiveNumber: number } | null>(null);
   const [submittedAnswers, setSubmittedAnswers] = useState<Record<string, string | string[] | number | Date | null>>({});
+  const [showThankYouModal, setShowThankYouModal] = useState(false);
+
+  // Mostra il modal di ringraziamento quando il form viene inviato
+  useEffect(() => {
+    if (submitted) {
+      setShowThankYouModal(true);
+    }
+  }, [submitted]);
 
   // Carica il font se il form ha un tema personalizzato
   useEffect(() => {
@@ -334,9 +343,6 @@ export default function FormClient({ form: initialForm }: { form: Form }) {
     }
   };
 
-  const toggleProgress = () => {
-    setShowProgress(prev => !prev);
-  };
 
   // Helper per formattare il valore della risposta
   const formatAnswerValue = (value: any, questionType: string): string => {
@@ -405,7 +411,7 @@ export default function FormClient({ form: initialForm }: { form: Form }) {
       return {
         backgroundColor: theme.disabledButtonColor || '#e5e7eb',
         color: '#9ca3af',
-        border: `${theme.borderWidth || 1}px solid ${theme.navigationButtonBorderColor || theme.primaryColor}`,
+        border: `${Math.min(theme.borderWidth || 1, 2)}px solid ${theme.navigationButtonBorderColor || theme.primaryColor}`,
         borderRadius: `${theme.borderRadius}px`,
         cursor: 'not-allowed'
       };
@@ -426,7 +432,7 @@ export default function FormClient({ form: initialForm }: { form: Form }) {
       return {
         backgroundColor: theme.navigationButtonBgColor || 'transparent',
         color: theme.navigationButtonTextColor || theme.textColor,
-        border: `${theme.borderWidth || 1}px solid ${theme.navigationButtonBorderColor || theme.primaryColor}`,
+        border: `${Math.min(theme.borderWidth || 1, 2)}px solid ${theme.navigationButtonBorderColor || theme.primaryColor}`,
         borderRadius: `${theme.borderRadius}px`
       };
     }
@@ -451,159 +457,175 @@ export default function FormClient({ form: initialForm }: { form: Form }) {
   // Mostra messaggio di ringraziamento se il form è stato già compilato
   if (submitted) {
     return (
-      <div 
-        className="min-h-screen w-full relative -mx-6 -my-8"
-        style={{
-          fontFamily: `"${theme.fontFamily}", sans-serif`,
-          backgroundColor: theme.backgroundColor,
-          color: theme.textColor,
-          backgroundImage: theme.backgroundImage ? `url(${theme.backgroundImage})` : undefined,
-          backgroundPosition: theme.backgroundPosition || 'center',
-          backgroundSize: theme.backgroundSize || 'cover',
-          backgroundRepeat: theme.backgroundRepeat || 'no-repeat',
-          backgroundAttachment: theme.backgroundAttachment || 'fixed'
-        }}
-      >
-        {theme.backgroundImage && (
-          <div
-            className="absolute inset-0 pointer-events-none z-0"
-            style={{
-              backgroundColor: `rgba(255, 255, 255, ${1 - ((theme.backgroundOpacity || 100) / 100)})`,
-            }}
-          />
-        )}
-        {(theme as any).backgroundPattern && (theme as any).backgroundPattern !== 'none' && (
-          <div
-            className="absolute inset-0 pointer-events-none z-0 opacity-10"
-            style={{
-              backgroundImage: getPatternStyle((theme as any).backgroundPattern),
-              backgroundSize: '30px 30px',
-              color: theme.textColor,
-            }}
-          />
-        )}
-        <div className="relative z-10 max-w-4xl mx-auto p-6 py-12">
-          <Card className="shadow-xl mb-6" style={{ backgroundColor: theme.backgroundColor, borderRadius: `${theme.borderRadius}px` }}>
-            <CardHeader className="text-center pb-6">
-              <div className="mx-auto mb-4 w-20 h-20 rounded-full bg-green-100 flex items-center justify-center">
-                <CheckCircle className="w-12 h-12 text-green-600" />
-              </div>
-              <CardTitle className="text-4xl mb-3 font-bold" style={{ color: theme.primaryColor }}>
-                Risposta Inviata con Successo!
-              </CardTitle>
-              {form.thankYouMessage ? (
-                <CardDescription className="text-lg mb-2" style={{ color: theme.textColor }}>
-                  {form.thankYouMessage}
-                </CardDescription>
-              ) : (
-                <CardDescription className="text-lg mb-2" style={{ color: theme.textColor }}>
-                  Grazie per aver completato il questionario. Le tue risposte sono state registrate.
-                </CardDescription>
-              )}
-              {submittedResponse && (
-                <div className="mt-4 inline-block bg-gradient-to-r from-green-50 to-blue-50 px-6 py-3 rounded-full">
-                  <p className="text-sm font-medium text-gray-700">
-                    Numero di riferimento: <strong className="text-xl" style={{ color: theme.primaryColor }}>#{submittedResponse.progressiveNumber}</strong>
-                  </p>
-                </div>
-              )}
-            </CardHeader>
-          </Card>
+      <>
+        {/* Thank You Modal */}
+        <ThankYouModal
+          isOpen={showThankYouModal}
+          onClose={() => setShowThankYouModal(false)}
+          message={form.thankYouMessage}
+          progressiveNumber={submittedResponse?.progressiveNumber}
+        />
 
-          <Card className="shadow-xl mb-6" style={{ backgroundColor: theme.backgroundColor, borderRadius: `${theme.borderRadius}px` }}>
-            <CardHeader>
-              <CardTitle className="text-2xl flex items-center gap-2" style={{ color: theme.primaryColor }}>
-                Le Tue Risposte
-              </CardTitle>
-              <CardDescription style={{ color: theme.textColor }}>
-                Ecco un riepilogo delle risposte che hai fornito
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {form.questions.map((question, index) => {
-                const answer = submittedAnswers[question.id];
-                return (
-                  <div 
-                    key={question.id} 
-                    className="p-4 rounded-lg border-l-4 hover:shadow-md transition-shadow"
-                    style={{ 
-                      backgroundColor: index % 2 === 0 ? 'rgba(0,0,0,0.02)' : 'transparent',
-                      borderLeftColor: theme.accentColor
-                    }}
-                  >
-                    <div className="flex items-start gap-3">
-                      <div 
-                        className="flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center text-white font-semibold text-sm"
-                        style={{ backgroundColor: theme.primaryColor }}
+        {/* Success Screen */}
+        <div
+          className="min-h-screen w-full relative -mx-6 -my-8"
+          style={{
+            fontFamily: `"${theme.fontFamily}", sans-serif`,
+            backgroundColor: theme.backgroundColor,
+            color: theme.textColor,
+            backgroundImage: theme.backgroundImage ? `url(${theme.backgroundImage})` : undefined,
+            backgroundPosition: theme.backgroundPosition || 'center',
+            backgroundSize: theme.backgroundSize || 'cover',
+            backgroundRepeat: theme.backgroundRepeat || 'no-repeat',
+            backgroundAttachment: theme.backgroundAttachment || 'fixed'
+          }}
+        >
+          {theme.backgroundImage && (
+            <div
+              className="absolute inset-0 pointer-events-none z-0"
+              style={{
+                backgroundColor: `rgba(255, 255, 255, ${1 - ((theme.backgroundOpacity || 100) / 100)})`,
+              }}
+            />
+          )}
+          {(theme as any).backgroundPattern && (theme as any).backgroundPattern !== 'none' && (
+            <div
+              className="absolute inset-0 pointer-events-none z-0 opacity-10"
+              style={{
+                backgroundImage: getPatternStyle((theme as any).backgroundPattern),
+                backgroundSize: '30px 30px',
+                color: theme.textColor,
+              }}
+            />
+          )}
+
+          {/* Compact Response Summary */}
+          <div className="relative z-10 max-w-3xl mx-auto p-6 py-8">
+            {/* Back Button */}
+            <Button
+              onClick={() => navigate('/user/forms')}
+              variant="ghost"
+              className="mb-4 hover:bg-white/10"
+              style={{ color: theme.textColor }}
+            >
+              ← Torna alla Dashboard
+            </Button>
+
+            <Card
+              className="shadow-xl overflow-hidden"
+              style={{
+                backgroundColor: theme.backgroundColor,
+                borderRadius: `${theme.borderRadius}px`,
+                borderStyle: theme.borderStyle || 'solid',
+                boxShadow: theme.glowEffect?.enabled
+                  ? `0 0 ${(theme.glowEffect.intensity || 50) / 5}px ${theme.glowEffect.color || theme.primaryColor}, 0 ${theme.shadowIntensity || 2}px ${(theme.shadowIntensity || 2) * 4}px rgba(0,0,0,0.1)`
+                  : `0 ${theme.shadowIntensity || 2}px ${(theme.shadowIntensity || 2) * 4}px rgba(0,0,0,0.1)`,
+              }}
+            >
+              {/* Header */}
+              <CardHeader className="pb-4 space-y-1">
+                <CardTitle className="text-xl font-bold flex items-center gap-2" style={{ color: theme.primaryColor }}>
+                  <CheckCircle className="w-5 h-5" />
+                  Riepilogo Risposte
+                </CardTitle>
+                <CardDescription className="text-sm" style={{ color: theme.textColor, opacity: 0.7 }}>
+                  Riferimento #{submittedResponse?.progressiveNumber}
+                </CardDescription>
+              </CardHeader>
+
+              {/* Responses Grid */}
+              <CardContent className="p-6 pt-2">
+                <div className="space-y-3">
+                  {form.questions.map((question, index) => {
+                    const answer = submittedAnswers[question.id];
+                    return (
+                      <motion.div
+                        key={question.id}
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: index * 0.05 }}
+                        className="p-4 rounded-lg border"
+                        style={{
+                          backgroundColor: `${theme.primaryColor}05`,
+                          borderColor: `${theme.primaryColor}15`,
+                        }}
                       >
-                        {index + 1}
-                      </div>
-                      <div className="flex-1">
-                        <h4 className="font-semibold text-lg mb-2" style={{ color: theme.textColor }}>
-                          {question.text}
-                        </h4>
-                        <div 
-                          className="p-3 rounded-md font-medium"
-                          style={{ 
-                            backgroundColor: 'rgba(0,0,0,0.05)',
-                            color: theme.textColor
-                          }}
-                        >
-                          {formatAnswerValue(answer, question.type)}
+                        <div className="flex gap-3">
+                          <div
+                            className="flex-shrink-0 w-7 h-7 rounded-md flex items-center justify-center font-semibold text-xs"
+                            style={{
+                              backgroundColor: theme.primaryColor,
+                              color: theme.buttonTextColor || '#ffffff',
+                            }}
+                          >
+                            {index + 1}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <h4
+                              className="font-medium text-sm mb-2 leading-snug"
+                              style={{ color: theme.textColor }}
+                            >
+                              {question.text}
+                            </h4>
+                            <div
+                              className="text-sm font-medium px-3 py-2 rounded-md"
+                              style={{
+                                backgroundColor: theme.backgroundColor,
+                                color: theme.textColor,
+                              }}
+                            >
+                              {formatAnswerValue(answer, question.type)}
+                            </div>
+                          </div>
                         </div>
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
-            </CardContent>
-          </Card>
+                      </motion.div>
+                    );
+                  })}
+                </div>
+              </CardContent>
 
-          <Card className="shadow-xl" style={{ backgroundColor: theme.backgroundColor, borderRadius: `${theme.borderRadius}px` }}>
-            <CardContent className="pt-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <Button
-                  onClick={() => navigate('/user/forms')}
-                  size="lg"
-                  className="w-full h-14 text-lg font-semibold"
-                  style={{
-                    backgroundColor: theme.primaryColor,
-                    color: '#ffffff',
-                    borderRadius: `${theme.borderRadius}px`
-                  }}
-                >
-                  🏠 Torna alla Dashboard
-                </Button>
+              {/* Footer Actions */}
+              <CardFooter className="flex flex-col gap-3 p-6 pt-4 border-t" style={{ borderColor: `${theme.primaryColor}15` }}>
                 {form.showResults && form.slug && (
                   <Button
                     onClick={() => {
                       navigate(`/user/responses/${form.slug}/${submittedResponse?.progressiveNumber || ''}`);
                     }}
                     size="lg"
-                    variant="outline"
-                    className="w-full h-14 text-lg font-semibold"
+                    className="w-full"
                     style={{
-                      borderColor: theme.primaryColor,
-                      color: theme.primaryColor,
+                      backgroundColor: theme.primaryColor,
+                      color: theme.buttonTextColor || '#ffffff',
                       borderRadius: `${theme.borderRadius}px`
                     }}
                   >
-                    📊 Visualizza Dettagli
+                    Visualizza Dettagli Completi
                   </Button>
                 )}
-              </div>
-              <p className="text-center text-sm text-gray-500 mt-4">
-                💡 Conserva il numero di riferimento per eventuali comunicazioni future
-              </p>
-            </CardContent>
-          </Card>
+                <p className="text-center text-xs opacity-60" style={{ color: theme.textColor }}>
+                  Conserva il numero di riferimento per eventuali comunicazioni future
+                </p>
+              </CardFooter>
+            </Card>
+          </div>
         </div>
-        </div>
+      </>
     );
   }
 
   const currentQuestion = form.questions[currentStep];
   const progress = ((currentStep + 1) / form.questions.length) * 100;
+  
+  // Calcola le domande completate per la progress bar
+  const completedQuestions = form.questions
+    .map((q, index) => {
+      const answer = answers[q.id];
+      if (!answer) return null;
+      if (Array.isArray(answer) && answer.length === 0) return null;
+      if (typeof answer === 'string' && answer.trim() === '') return null;
+      return index;
+    })
+    .filter((index): index is number => index !== null);
 
   return (
     <div 
@@ -676,30 +698,20 @@ export default function FormClient({ form: initialForm }: { form: Form }) {
               />
             </div>
           )}
-          <CardTitle className="text-3xl mb-2" style={{ color: theme.primaryColor }}>{form.title}</CardTitle>
-          <CardDescription className="text-lg mb-4" style={{ color: theme.textColor }}>{form.description}</CardDescription>
-          <div 
-            className="w-full rounded-full h-3 mt-4"
-            style={{ backgroundColor: `${theme.accentColor}20` }}
-          >
-            <div 
-              className="h-3 rounded-full transition-all duration-300" 
-              style={{ 
-                width: `${progress}%`,
-                backgroundColor: theme.primaryColor
+          
+          {/* Progress Bar con Checkpoint */}
+          <div className="mt-6">
+            <ProgressBarWithCheckpoints
+              totalQuestions={form.questions.length}
+              currentQuestion={currentStep}
+              completedQuestions={completedQuestions}
+              theme={theme}
+              onCheckpointClick={(index) => {
+                if (visibleQuestions.includes(form.questions[index].id)) {
+                  setCurrentStep(index);
+                }
               }}
-            ></div>
-          </div>
-          <div className="flex justify-between mt-3" style={{ fontSize: `${theme.counterFontSize || 14}px` }}>
-            <span style={{ color: theme.counterTextColor || theme.textColor }}>Domanda {currentStep + 1} di {form.questions.length}</span>
-            <button 
-              type="button" 
-              onClick={toggleProgress}
-              className="hover:underline"
-              style={{ color: theme.primaryColor }}
-            >
-              {showProgress ? 'Nascondi progresso' : 'Mostra progresso'}
-            </button>
+            />
           </div>
         </CardHeader>
         <CardContent className="flex-1 flex flex-col px-6 py-8">
@@ -710,85 +722,63 @@ export default function FormClient({ form: initialForm }: { form: Form }) {
                 e.preventDefault();
               }
             }}
-            className="flex-1 flex flex-col space-y-6 max-w-4xl mx-auto w-full"
+            className="flex-1 flex flex-col space-y-4 max-w-3xl mx-auto w-full"
           >
-            {showProgress ? (
-              <div className="space-y-4 mb-6">
-                {form.questions.map((q, index) => (
-                  <div 
-                key={q.id}
-                    className={cn(
-                      "p-4 rounded-md cursor-pointer transition-colors",
-                      index === currentStep ? "bg-blue-50 border border-blue-200" : "hover:bg-gray-50",
-                      answers[q.id] ? "border-l-4 border-green-500" : "border-l-4 border-gray-200"
-                    )}
-                    onClick={() => setCurrentStep(index)}
-                  >
-                    <div className="flex items-center">
-                      <span className="w-8 h-8 flex items-center justify-center rounded-full bg-gray-200 mr-3">
-                        {index + 1}
-                      </span>
-                      <span className="font-medium text-lg">{q.text}</span>
-                      {q.required && <span className="text-red-500 ml-1">*</span>}
-                      {answers[q.id] && (
-                        <span className="ml-auto text-green-500 text-sm">Risposto</span>
-                      )}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div 
-                key={currentQuestion.id} 
-                className="space-y-6 min-h-[400px] flex flex-col"
-                style={{ 
-                  padding: `${theme.cardPadding || 24}px`,
-                  backgroundColor: theme.questionBackgroundColor || 'transparent',
-                  borderRadius: `${theme.borderRadius}px`,
-                  border: theme.questionBorderColor ? `${theme.borderWidth || 1}px solid ${theme.questionBorderColor}` : 'none',
-                  boxShadow: `0 ${theme.shadowIntensity || 2}px ${(theme.shadowIntensity || 2) * 4}px rgba(0,0,0,0.1)`
-                }}
-              >
+            <motion.div
+              key={currentQuestion.id}
+              className="min-h-[280px] flex flex-col"
+              style={{
+                padding: `${theme.cardPadding || 32}px`,
+                backgroundColor: theme.questionBackgroundColor || '#ffffff',
+                borderRadius: `${theme.borderRadius || 12}px`,
+                border: theme.questionBorderColor ? `${theme.borderWidth || 1}px solid ${theme.questionBorderColor}` : '1px solid #e5e7eb',
+                borderStyle: theme.borderStyle || 'solid',
+                boxShadow: '0 2px 8px rgba(0,0,0,0.06)',
+                transition: theme.enableTransitions !== false ? 'all 300ms cubic-bezier(0.4, 0, 0.2, 1)' : undefined,
+              }}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.3, ease: 'easeOut' }}
+            >
                 {/* Domanda corrente */}
-                <div className="flex-1">
-                  <div className="flex items-center mb-6">
-                    <span 
-                      className="w-10 h-10 flex items-center justify-center rounded-full mr-4 font-semibold" 
-                      style={{ 
-                        backgroundColor: theme.questionNumberBgColor || theme.primaryColor,
-                        color: theme.questionNumberTextColor || '#ffffff',
-                        fontSize: `${theme.questionFontSize || 20}px`,
-                        fontWeight: theme.questionFontWeight || 'semibold'
-                      }}
-                    >
-                      {currentStep + 1}
-                    </span>
-                    <Label 
-                      className="font-semibold flex-1"
-                      style={{ 
+                <div className="flex-1 flex flex-col gap-6 justify-center">
+                  {/* Titolo domanda centrato */}
+                  <motion.div
+                    className="w-full text-center"
+                    initial={{ opacity: 0, y: -10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.1 }}
+                  >
+                    <Label
+                      className="text-xl sm:text-2xl lg:text-3xl font-semibold text-center block leading-tight"
+                      style={{
+                        fontFamily: theme.fontFamily || 'Inter, system-ui, sans-serif',
                         color: theme.questionTextColor || theme.textColor,
-                        fontSize: `${theme.questionFontSize || 20}px`,
-                        fontWeight: theme.questionFontWeight || 'semibold'
+                        fontSize: `${(theme.questionFontSize || 22) * 1.15}px`,
+                        fontWeight: theme.questionFontWeight || '600',
+                        lineHeight: (theme as any).lineHeight || 1.4,
+                        letterSpacing: (theme as any).letterSpacing ? `${(theme as any).letterSpacing}px` : '-0.02em',
+                        textShadow: (theme as any).textShadow || 'none',
                       }}
                     >
                       {currentQuestion.text}
-                      {currentQuestion.required && <span className="text-red-500 ml-1">*</span>}
                     </Label>
-                  </div>
+                  </motion.div>
 
-                  <div className="pl-14" style={{ 
-                    fontSize: `${theme.optionFontSize || 16}px`,
+                  {/* Opzioni centrate e ottimizzate */}
+                  <div className="w-full max-w-2xl mx-auto" style={{
+                    fontSize: `${theme.optionFontSize || 18}px`,
                     color: theme.optionTextColor || theme.textColor
                   }}>
                     {/* TEXT */}
                     {currentQuestion.type === 'TEXT' && (
-                      <Input 
+                      <Input
                         value={answers[currentQuestion.id] as string || ''}
                         onChange={(e) => handleAnswerChange(currentQuestion.id, e.target.value)}
                         onKeyDown={(e) => {
                           if (e.key === 'Enter') {
                             e.preventDefault();
-                            const lastVisibleQuestionIndex = visibleQuestions.length > 0 
+                            const lastVisibleQuestionIndex = visibleQuestions.length > 0
                               ? form.questions.findIndex(q => q.id === visibleQuestions[visibleQuestions.length - 1])
                               : -1;
                             if (currentStep !== lastVisibleQuestionIndex) {
@@ -796,8 +786,8 @@ export default function FormClient({ form: initialForm }: { form: Form }) {
                             }
                           }
                         }}
-                        placeholder="Inserisci la tua risposta..." 
-                        className="w-full" 
+                        placeholder="Inserisci la tua risposta..."
+                        className="w-full text-base sm:text-lg px-4 py-3"
                         readOnly={false}
                       />
                     )}
@@ -811,28 +801,33 @@ export default function FormClient({ form: initialForm }: { form: Form }) {
                       
                       if (isMultiple) {
                         return (
-                          <div style={{ gap: `${theme.optionSpacing || 12}px`, display: 'flex', flexDirection: 'column' }}>
+                          <div className="flex flex-wrap justify-center gap-4 w-full">
                             {choices.map((option: string, index: number) => (
-                              <div 
-                                key={index} 
-                                className="flex items-center space-x-2 p-3 rounded-md transition-colors cursor-pointer"
-                                style={{ 
-                                  borderWidth: `${theme.borderWidth || 1}px`,
+                              <motion.div
+                                key={index}
+                                className="flex flex-col items-center justify-center p-5 rounded-xl transition-all cursor-pointer min-w-[140px] flex-1"
+                                style={{
+                                  borderWidth: `${theme.borderWidth || 2}px`,
                                   borderStyle: 'solid',
-                                  borderColor: theme.optionBorderColor || 'transparent',
-                                  backgroundColor: (answers[currentQuestion.id] as string[] || []).includes(option) 
-                                    ? theme.optionSelectedColor || `${theme.primaryColor}15` 
-                                    : 'transparent'
+                                  borderColor: (answers[currentQuestion.id] as string[] || []).includes(option)
+                                    ? theme.primaryColor
+                                    : (theme.optionBorderColor || '#e5e7eb'),
+                                  backgroundColor: (answers[currentQuestion.id] as string[] || []).includes(option)
+                                    ? theme.optionSelectedColor || `${theme.primaryColor}18`
+                                    : 'transparent',
+                                  borderRadius: `${theme.borderRadius || 12}px`,
+                                  maxWidth: '180px',
                                 }}
-                                onMouseEnter={(e) => {
-                                  if (theme.hoverEffect && !(answers[currentQuestion.id] as string[] || []).includes(option)) {
-                                    e.currentTarget.style.backgroundColor = theme.optionHoverColor || `${theme.primaryColor}10`;
-                                  }
-                                }}
-                                onMouseLeave={(e) => {
-                                  if (!(answers[currentQuestion.id] as string[] || []).includes(option)) {
-                                    e.currentTarget.style.backgroundColor = 'transparent';
-                                  }
+                                whileHover={{ scale: 1.03, y: -2 }}
+                                whileTap={{ scale: 0.98 }}
+                                onClick={() => {
+                                  const currentAnswers = (answers[currentQuestion.id] as string[]) || [];
+                                  handleAnswerChange(
+                                    currentQuestion.id,
+                                    (answers[currentQuestion.id] as string[] || []).includes(option)
+                                      ? currentAnswers.filter(a => a !== option)
+                                      : [...currentAnswers, option]
+                                  );
                                 }}
                               >
                                 <Checkbox
@@ -847,22 +842,25 @@ export default function FormClient({ form: initialForm }: { form: Form }) {
                                         : currentAnswers.filter(a => a !== option)
                                     );
                                   }}
-                                  style={{ 
+                                  style={{
                                     borderColor: theme.radioCheckColor || theme.primaryColor,
-                                    accentColor: theme.radioCheckColor || theme.primaryColor
+                                    accentColor: theme.radioCheckColor || theme.primaryColor,
+                                    width: '20px',
+                                    height: '20px',
                                   }}
+                                  className="mb-3"
                                 />
-                                <Label 
-                                  htmlFor={`${currentQuestion.id}-${index}`} 
-                                  className="cursor-pointer flex-1" 
-                                  style={{ 
+                                <Label
+                                  htmlFor={`${currentQuestion.id}-${index}`}
+                                  className="cursor-pointer text-center font-medium leading-tight"
+                                  style={{
                                     color: theme.optionTextColor || theme.textColor,
-                                    fontSize: `${theme.optionFontSize || 16}px`
+                                    fontSize: `${(theme.optionFontSize || 16) * 1.05}px`
                                   }}
                                 >
                                   {option}
                                 </Label>
-                              </div>
+                              </motion.div>
                             ))}
                           </div>
                         );
@@ -872,50 +870,51 @@ export default function FormClient({ form: initialForm }: { form: Form }) {
                             value={answers[currentQuestion.id] as string || ''}
                             onValueChange={(value) => handleAnswerChange(currentQuestion.id, value)}
                             required={currentQuestion.required}
-                            style={{ gap: `${theme.optionSpacing || 12}px`, display: 'flex', flexDirection: 'column' }}
+                            className="flex flex-col gap-3 w-full"
                           >
                             {choices.map((option: string, index: number) => (
-                              <div 
-                                key={index} 
-                                className="flex items-center space-x-2 p-3 rounded-md transition-colors cursor-pointer"
-                                style={{ 
+                              <motion.label
+                                key={index}
+                                htmlFor={`${currentQuestion.id}-${index}`}
+                                className="flex items-center gap-4 p-4 rounded-lg transition-all cursor-pointer border hover:shadow-sm"
+                                style={{
                                   borderWidth: `${theme.borderWidth || 1}px`,
                                   borderStyle: 'solid',
-                                  borderColor: theme.optionBorderColor || 'transparent',
-                                  backgroundColor: answers[currentQuestion.id] === option 
-                                    ? theme.optionSelectedColor || `${theme.primaryColor}15` 
-                                    : 'transparent'
+                                  borderColor: answers[currentQuestion.id] === option
+                                    ? theme.primaryColor || '#3b82f6'
+                                    : (theme.optionBorderColor || '#e5e7eb'),
+                                  backgroundColor: answers[currentQuestion.id] === option
+                                    ? theme.optionSelectedColor || `${theme.primaryColor || '#3b82f6'}15`
+                                    : 'transparent',
+                                  borderRadius: `${theme.borderRadius || 8}px`,
                                 }}
-                                onMouseEnter={(e) => {
-                                  if (theme.hoverEffect && answers[currentQuestion.id] !== option) {
-                                    e.currentTarget.style.backgroundColor = theme.optionHoverColor || `${theme.primaryColor}10`;
-                                  }
+                                whileHover={{ 
+                                  backgroundColor: answers[currentQuestion.id] === option
+                                    ? theme.optionSelectedColor || `${theme.primaryColor || '#3b82f6'}20`
+                                    : (theme.optionHoverColor || '#f9fafb'),
+                                  borderColor: theme.primaryColor || '#3b82f6',
                                 }}
-                                onMouseLeave={(e) => {
-                                  if (answers[currentQuestion.id] !== option) {
-                                    e.currentTarget.style.backgroundColor = 'transparent';
-                                  }
-                                }}
+                                whileTap={{ scale: 0.99 }}
                               >
-                                <RadioGroupItem 
-                                  value={option} 
+                                <RadioGroupItem
+                                  value={option}
                                   id={`${currentQuestion.id}-${index}`}
-                                  style={{ 
-                                    borderColor: theme.radioCheckColor || theme.primaryColor,
-                                    color: theme.radioCheckColor || theme.primaryColor
+                                  style={{
+                                    borderColor: theme.radioCheckColor || theme.primaryColor || '#3b82f6',
+                                    color: theme.radioCheckColor || theme.primaryColor || '#3b82f6',
                                   }}
+                                  className="flex-shrink-0"
                                 />
-                                <Label 
-                                  htmlFor={`${currentQuestion.id}-${index}`} 
-                                  className="cursor-pointer flex-1" 
-                                  style={{ 
-                                    color: theme.optionTextColor || theme.textColor,
+                                <span
+                                  className="flex-1 font-normal leading-relaxed"
+                                  style={{
+                                    color: theme.optionTextColor || theme.textColor || '#1f2937',
                                     fontSize: `${theme.optionFontSize || 16}px`
                                   }}
                                 >
                                   {option}
-                                </Label>
-                              </div>
+                                </span>
+                              </motion.label>
                             ))}
                           </RadioGroup>
                         );
@@ -988,24 +987,27 @@ export default function FormClient({ form: initialForm }: { form: Form }) {
 
                     {/* RATING */}
                     {currentQuestion.type === 'RATING' && (
-                    <div className="flex items-center space-x-2">
+                    <div className="flex items-center justify-center gap-3">
                       {[1, 2, 3, 4, 5].map((rating) => (
                         <Button
                           key={rating}
                           type="button"
-                          variant="outline"
+                          variant="ghost"
                           onClick={() => handleAnswerChange(currentQuestion.id, rating.toString())}
-                          className="w-12 h-12"
-                          style={{ 
-                            borderRadius: `${theme.borderRadius}px`,
-                            ...(answers[currentQuestion.id] === rating.toString() && {
-                              backgroundColor: theme.primaryColor,
-                              color: theme.buttonTextColor || '#ffffff',
-                              borderColor: theme.primaryColor
-                            })
-                          }}
+                          className="w-14 h-14 transition-all hover:scale-110 p-0"
                         >
-                          {rating}
+                          <Star
+                            className="w-10 h-10"
+                            style={{
+                              fill: answers[currentQuestion.id] && parseInt(answers[currentQuestion.id]) >= rating 
+                                ? theme.primaryColor || '#FFCD00'
+                                : 'none',
+                              color: answers[currentQuestion.id] && parseInt(answers[currentQuestion.id]) >= rating 
+                                ? theme.primaryColor || '#FFCD00'
+                                : '#d1d5db',
+                              transition: 'all 0.2s'
+                            }}
+                          />
                         </Button>
                       ))}
                     </div>
@@ -1046,23 +1048,24 @@ export default function FormClient({ form: initialForm }: { form: Form }) {
                     {currentQuestion.type === 'LIKERT' && (() => {
                       const scale = currentQuestion.options?.scale || 5;
                       const labels = currentQuestion.options?.labels || [];
-                      
+
                       return (
-                        <div className="space-y-4">
-                          <div className="flex items-center justify-between mb-2">
-                            <span className="text-sm text-gray-500">{labels[0] || "Per niente d'accordo"}</span>
-                            <span className="text-sm text-gray-500">{labels[scale - 1] || "Completamente d'accordo"}</span>
+                        <div className="space-y-4 w-full">
+                          <div className="flex items-center justify-between mb-3 px-2">
+                            <span className="text-xs sm:text-sm text-gray-500 font-medium">{labels[0] || "Per niente d'accordo"}</span>
+                            <span className="text-xs sm:text-sm text-gray-500 font-medium">{labels[scale - 1] || "Completamente d'accordo"}</span>
                           </div>
-                          <div className="grid grid-cols-5 gap-2">
+                          <div className="flex items-center justify-center gap-3">
                             {Array.from({ length: scale }, (_, index) => (
-                              <Button 
-                                key={index} 
-                                type="button" 
-                                variant="outline" 
-                                className="h-12" 
+                              <Button
+                                key={index}
+                                type="button"
+                                variant="outline"
+                                className="w-14 h-14 text-lg font-semibold transition-all hover:scale-105"
                                 onClick={() => handleAnswerChange(currentQuestion.id, (index + 1).toString())}
-                                style={{ 
+                                style={{
                                   borderRadius: `${theme.borderRadius}px`,
+                                  borderWidth: '2px',
                                   ...(answers[currentQuestion.id] === (index + 1).toString() && {
                                     backgroundColor: theme.primaryColor,
                                     color: theme.buttonTextColor || '#ffffff',
@@ -1070,7 +1073,7 @@ export default function FormClient({ form: initialForm }: { form: Form }) {
                                   })
                                 }}
                               >
-                                <span className="text-sm">{index + 1}</span>
+                                <span>{index + 1}</span>
                               </Button>
                             ))}
                           </div>
@@ -1080,21 +1083,22 @@ export default function FormClient({ form: initialForm }: { form: Form }) {
 
                     {/* NPS */}
                     {currentQuestion.type === 'NPS' && (
-                      <div>
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="text-sm text-gray-500">0 - Non lo consiglierei</span>
-                      <span className="text-sm text-gray-500">10 - Lo consiglierei sicuramente</span>
+                      <div className="w-full space-y-3">
+                    <div className="flex items-center justify-between mb-3 px-2">
+                      <span className="text-xs sm:text-sm text-gray-500 font-medium">0 - Non lo consiglierei</span>
+                      <span className="text-xs sm:text-sm text-gray-500 font-medium">10 - Lo consiglierei sicuramente</span>
                     </div>
-                    <div className="flex items-center space-x-2">
+                    <div className="flex flex-wrap items-center justify-center gap-2">
                       {[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((rating) => (
                         <Button
                           key={rating}
                           type="button"
                           variant="outline"
                           onClick={() => handleAnswerChange(currentQuestion.id, rating.toString())}
-                          className="w-10 h-10"
-                          style={{ 
+                          className="w-12 h-12 text-base font-semibold transition-all hover:scale-105"
+                          style={{
                             borderRadius: `${theme.borderRadius}px`,
+                            borderWidth: '2px',
                             ...(answers[currentQuestion.id] === rating.toString() && {
                               backgroundColor: theme.primaryColor,
                               color: theme.buttonTextColor || '#ffffff',
@@ -1193,25 +1197,25 @@ export default function FormClient({ form: initialForm }: { form: Form }) {
                 </div>
 
                 {/* Bottoni navigazione all'interno della card */}
-                <div className="flex justify-between items-center pt-6 border-t mt-auto">
+                <div className="flex justify-between items-center pt-5 mt-auto">
                   <Button
                     type="button"
                     variant="outline"
                     onClick={prevStep}
                     disabled={currentStep === 0}
                     style={getButtonStyle('navigation', currentStep === 0)}
-                    className="px-6 py-2 transition-all"
+                    className="px-5 py-2.5 text-sm sm:text-base font-medium transition-all"
                   >
                     Precedente
                   </Button>
-                  
-                  <div 
-                    className="px-4 py-2 rounded"
+
+                  <div
+                    className="px-3 py-1.5 rounded text-center"
                     style={{
                       color: theme.counterTextColor || theme.textColor,
-                      fontSize: `${theme.counterFontSize || 14}px`,
+                      fontSize: `${theme.counterFontSize || 13}px`,
                       backgroundColor: theme.counterBgColor || 'transparent',
-                      fontWeight: 'medium'
+                      fontWeight: '500'
                     }}
                   >
                     Domanda {currentStep + 1} di {form.questions.length}
@@ -1225,14 +1229,14 @@ export default function FormClient({ form: initialForm }: { form: Form }) {
                     
                     if (isLastVisibleQuestion) {
                       return (
-                        <Button 
-                          type="button" 
+                        <Button
+                          type="button"
                           onClick={(e) => {
                             e.preventDefault();
                             handleSubmit(e as any);
                           }}
                           disabled={submitting}
-                          className="px-6 py-2 transition-all"
+                          className="px-5 py-2.5 text-sm sm:text-base font-semibold transition-all"
                           style={{
                             ...getButtonStyle('primary', submitting),
                             fontWeight: '600'
@@ -1248,7 +1252,7 @@ export default function FormClient({ form: initialForm }: { form: Form }) {
                           type="button"
                           onClick={nextStep}
                           disabled={isDisabled}
-                          className="px-6 py-2 transition-all"
+                          className="px-5 py-2.5 text-sm sm:text-base font-semibold transition-all"
                           style={{
                             ...getButtonStyle('primary', isDisabled),
                             fontWeight: '600'

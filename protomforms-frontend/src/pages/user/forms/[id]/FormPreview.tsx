@@ -405,17 +405,59 @@ export default function FormPreview({ form: initialForm }: { form: Form }) {
         }}
       >
         <div className="max-w-4xl mx-auto p-6 py-12">
-          <Card className="shadow-xl">
-            <CardHeader className="text-center pb-6">
-              <div className="mx-auto mb-4 w-20 h-20 rounded-full bg-green-100 flex items-center justify-center">
-                <CheckCircle className="w-12 h-12 text-green-600" />
-              </div>
-              <CardTitle className="text-4xl mb-3 font-bold" style={{ color: theme.primaryColor }}>
+          <Card 
+            className="shadow-xl overflow-hidden" 
+            style={{ 
+              backgroundColor: theme.backgroundColor, 
+              borderRadius: `${theme.borderRadius}px`,
+            }}
+          >
+            <CardHeader className="text-center pb-8 pt-8">
+              <motion.div
+                initial={{ scale: 0 }}
+                animate={{ scale: 1 }}
+                transition={{ type: "spring", duration: 0.5 }}
+                className="mx-auto mb-6 w-24 h-24 rounded-full flex items-center justify-center shadow-lg"
+                style={{ 
+                  backgroundColor: `${theme.primaryColor}15`,
+                }}
+              >
+                <CheckCircle className="w-14 h-14" style={{ color: theme.primaryColor }} />
+              </motion.div>
+              <CardTitle 
+                className="text-3xl sm:text-4xl mb-4 font-bold" 
+                style={{ color: theme.primaryColor }}
+              >
                 Risposta Inviata con Successo!
               </CardTitle>
-              <CardDescription className="text-lg">
+              <CardDescription className="text-base sm:text-lg">
                 {form.thankYouMessage || 'Grazie per aver completato il questionario.'}
               </CardDescription>
+              {submittedResponse && (
+                <motion.div 
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.2 }}
+                  className="mt-6 inline-flex items-center gap-3 px-6 py-4 rounded-xl shadow-md"
+                  style={{ 
+                    background: `linear-gradient(135deg, ${theme.primaryColor}15 0%, ${theme.accentColor || theme.primaryColor}15 100%)`,
+                    border: `2px solid ${theme.primaryColor}30`,
+                  }}
+                >
+                  <div className="text-sm font-medium" style={{ color: theme.textColor }}>
+                    Sei il numero
+                  </div>
+                  <div 
+                    className="text-3xl font-bold px-4 py-2 rounded-lg"
+                    style={{ 
+                      backgroundColor: theme.primaryColor,
+                      color: theme.buttonTextColor || '#ffffff',
+                    }}
+                  >
+                    {submittedResponse.progressiveNumber}
+                  </div>
+                </motion.div>
+              )}
             </CardHeader>
           </Card>
         </div>
@@ -544,20 +586,6 @@ export default function FormPreview({ form: initialForm }: { form: Form }) {
               />
             </div>
           )}
-          <h2 
-            className="text-xl sm:text-2xl font-bold text-center sm:text-left" 
-            style={{ 
-              color: theme.primaryColor,
-              fontFamily: theme.headingFontFamily ? `"${theme.headingFontFamily}", sans-serif` : undefined,
-              lineHeight: theme.lineHeight || undefined,
-              letterSpacing: theme.letterSpacing !== undefined ? `${theme.letterSpacing}px` : undefined,
-            }}
-          >
-            {form.title}
-          </h2>
-          <p className="text-sm sm:text-base text-gray-600 text-center sm:text-left" style={{ color: theme.textColor }}>
-            {form.description}
-          </p>
         </div>
 
         {/* Domanda corrente - STRUTTURA IDENTICA A FormCustomization.tsx righe 1633-1928 */}
@@ -623,7 +651,6 @@ export default function FormPreview({ form: initialForm }: { form: Form }) {
                   }}
                 >
                   {currentQuestion.text}
-                  {currentQuestion.required && <span className="text-red-500 ml-1">*</span>}
                 </Label>
               </div>
 
@@ -775,7 +802,7 @@ export default function FormPreview({ form: initialForm }: { form: Form }) {
             </AnimatePresence>
 
             {/* Bottoni navigazione */}
-            <div className="flex justify-between items-center pt-6 border-t mt-auto">
+            <div className="flex justify-between items-center pt-6 mt-auto">
               <Button
                 type="button"
                 variant="outline"
@@ -789,7 +816,7 @@ export default function FormPreview({ form: initialForm }: { form: Form }) {
                   color: currentStep === 0
                     ? '#9ca3af'
                     : (theme.navigationButtonTextColor || theme.textColor),
-                  border: `${theme.borderWidth || 1}px solid ${theme.navigationButtonBorderColor || theme.primaryColor}`,
+                  border: `${Math.min(theme.borderWidth || 1, 2)}px solid ${theme.navigationButtonBorderColor || theme.primaryColor}`,
                   borderRadius: `${theme.borderRadius}px`,
                   cursor: currentStep === 0 ? 'not-allowed' : 'pointer'
                 }}

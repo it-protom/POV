@@ -35,7 +35,8 @@ import {
   MousePointer2,
   Maximize2,
   Wand2,
-  Settings
+  Settings,
+  Star
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
@@ -1675,11 +1676,10 @@ export function FormCustomization({
                            fontSize: `${theme.questionFontSize || 20}px`,
                            fontWeight: theme.questionFontWeight || 'semibold'
                          }}
-                         onClick={(e) => handleElementClick(e, 'questionText')}
-                       >
-                         {currentQuestion.text}
-                         {currentQuestion.required && <span className="text-red-500 ml-1">*</span>}
-                         {(clickToEditMode || isEditMode) && (
+                        onClick={(e) => handleElementClick(e, 'questionText')}
+                      >
+                        {currentQuestion.text}
+                        {(clickToEditMode || isEditMode) && (
                            <span className="ml-2 text-xs bg-[#FFCD00] text-black px-2 py-1 rounded">✏️ Clicca per modificare</span>
                          )}
                        </Label>
@@ -1764,8 +1764,14 @@ export function FormCustomization({
                            onClick={(e) => handleElementClick(e, 'optionStyle')}
                          >
                            {[1, 2, 3, 4, 5].map((rating) => (
-                             <Button key={rating} type="button" variant="outline" className="w-12 h-12" style={{ borderRadius: `${theme.borderRadius}px` }}>
-                               {rating}
+                             <Button key={rating} type="button" variant="ghost" className="w-12 h-12 p-0 hover:scale-110 transition-all">
+                               <Star
+                                 className="w-8 h-8"
+                                 style={{
+                                   fill: rating <= 3 ? theme.primaryColor || '#FFCD00' : 'none',
+                                   color: rating <= 3 ? theme.primaryColor || '#FFCD00' : '#d1d5db',
+                                 }}
+                               />
                              </Button>
                            ))}
                            {(clickToEditMode || isEditMode) && (
