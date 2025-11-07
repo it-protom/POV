@@ -101,19 +101,6 @@ const ThankYouModal: React.FC<ThankYouModalProps> = ({
             {displayMessage}
           </p>
 
-          {/* Progressive Number */}
-          {progressiveNumber && (
-            <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl p-4 mb-6 animate-in slide-in-from-bottom-2 duration-500 delay-500">
-              <div className="flex items-center justify-center gap-2">
-                <span className="text-gray-600 text-sm font-medium">
-                  Sei il numero
-                </span>
-                <span className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
-                  {progressiveNumber}
-                </span>
-              </div>
-            </div>
-          )}
 
           {/* Action Button */}
           <button
