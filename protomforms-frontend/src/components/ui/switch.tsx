@@ -7,11 +7,24 @@ import { cn } from '../../lib/utils'
 
 function Switch({
   className,
+  checked,
   ...props
 }: React.ComponentProps<typeof SwitchPrimitive.Root>) {
+  // Assicurati che checked sia sempre un booleano esplicito
+  const isChecked = Boolean(checked);
+  
+  // Forza il re-render quando cambia checked usando un ref
+  const [forceUpdate, setForceUpdate] = React.useState(0);
+  
+  React.useEffect(() => {
+    setForceUpdate(prev => prev + 1);
+  }, [checked]);
+  
   return (
     <SwitchPrimitive.Root
+      key={forceUpdate}
       data-slot="switch"
+      checked={isChecked}
       className={cn(
         "peer data-[state=checked]:bg-primary data-[state=unchecked]:bg-input focus-visible:border-ring focus-visible:ring-ring/50 dark:data-[state=unchecked]:bg-input/80 inline-flex h-[1.15rem] w-8 shrink-0 items-center rounded-full border border-transparent shadow-xs transition-all outline-none focus-visible:ring-[3px] disabled:cursor-not-allowed disabled:opacity-50",
         className

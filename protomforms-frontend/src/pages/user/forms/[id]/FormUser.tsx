@@ -1295,28 +1295,28 @@ export default function FormUser({ form: initialForm }: { form: Form }) {
 
             {/* Bottoni navigazione */}
             <div className="flex justify-between items-center pt-6 border-t mt-auto">
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={prevStep}
-                  disabled={currentStep === 0}
-                  className="px-6 py-2 transition-all"
-                  style={{
+              <Button
+                type="button"
+                variant="outline"
+                onClick={prevStep}
+                disabled={currentStep === 0}
+                className="px-6 py-2 transition-all"
+                style={{
                     fontFamily: `"${theme.fontFamily}", sans-serif`,
-                    backgroundColor: currentStep === 0 
-                      ? (theme.disabledButtonColor || '#e5e7eb')
-                      : (theme.navigationButtonBgColor || 'transparent'),
-                    color: currentStep === 0
-                      ? '#9ca3af'
-                      : (theme.navigationButtonTextColor || theme.textColor),
-                    border: `${theme.borderWidth || 1}px solid ${theme.navigationButtonBorderColor || theme.primaryColor}`,
-                    borderRadius: `${theme.borderRadius}px`,
+                  backgroundColor: currentStep === 0 
+                    ? (theme.disabledButtonColor || '#e5e7eb')
+                    : (theme.navigationButtonBgColor || 'transparent'),
+                  color: currentStep === 0
+                    ? '#9ca3af'
+                    : (theme.navigationButtonTextColor || theme.textColor),
+                  border: `${theme.borderWidth || 1}px solid ${theme.navigationButtonBorderColor || theme.primaryColor}`,
+                  borderRadius: `${theme.borderRadius}px`,
                     cursor: currentStep === 0 ? 'not-allowed' : 'pointer',
                     fontSize: `${theme.optionFontSize || 16}px`,
-                  }}
-                >
-                  Precedente
-                </Button>
+                }}
+              >
+                Precedente
+              </Button>
               <div 
                 className="px-4 py-2 rounded"
                 style={{

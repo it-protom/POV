@@ -9,13 +9,15 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
-import { PlusCircle, Save, ArrowLeft, Type, Check, FileText, Settings, Users, Upload, FileText as FileTextIcon, Palette, CalendarIcon } from 'lucide-react';
+import { PlusCircle, Save, ArrowLeft, Type, Check, FileText, Settings, Users, Upload, FileText as FileTextIcon, Palette, CalendarIcon, Eye } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { QuestionBuilder } from '@/components/form-builder/QuestionBuilder';
 import { toast } from 'sonner';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import FormPreview from '@/pages/user/forms/[id]/FormPreview';
+import { Monitor, Tablet, Smartphone, X } from 'lucide-react';
 import { QuestionFormData, QuestionType } from "@/types/question";
 import { v4 as uuidv4 } from 'uuid';
 import { FormCustomization, Theme } from '@/components/form-builder/FormCustomization';
@@ -42,7 +44,7 @@ export default function NewFormPage() {
   const [type, setType] = useState<'SURVEY' | 'QUIZ'>('SURVEY');
   const [isAnonymous, setIsAnonymous] = useState(false);
   const [allowEdit, setAllowEdit] = useState(false);
-  const [showResults, setShowResults] = useState(false);
+  const [switchKey, setSwitchKey] = useState(0);
   const [thankYouMessage, setThankYouMessage] = useState('Grazie per la tua risposta!');
   const [opensAt, setOpensAt] = useState<Date | undefined>(undefined);
   const [closesAt, setClosesAt] = useState<Date | undefined>(undefined);
@@ -51,6 +53,8 @@ export default function NewFormPage() {
   const [isImporting, setIsImporting] = useState(false);
   const [importPreview, setImportPreview] = useState<QuestionFormData[]>([]);
   const [showImportPreview, setShowImportPreview] = useState(false);
+  const [showFormPreview, setShowFormPreview] = useState(false);
+  const [previewMode, setPreviewMode] = useState<"desktop" | "tablet" | "mobile">("desktop");
   const [theme, setTheme] = useState<Theme>({
     primaryColor: '#000000',
     backgroundColor: '#ffffff',
@@ -68,6 +72,11 @@ export default function NewFormPage() {
     backgroundRepeat: 'no-repeat',
     backgroundOpacity: 100
   });
+
+  // Forza il re-render degli switch quando cambia la sezione
+  useEffect(() => {
+    setSwitchKey(prev => prev + 1);
+  }, [currentStep]);
 
   const createNewQuestion = (type: QuestionType): QuestionFormData => {
     return {
@@ -199,7 +208,7 @@ export default function NewFormPage() {
           type,
           isAnonymous,
           allowEdit,
-          showResults,
+          showResults: true, // I rispondenti vedono sempre i propri risultati
           thankYouMessage,
           opensAt: opensAt?.toISOString(),
           closesAt: closesAt?.toISOString(),
@@ -282,12 +291,16 @@ export default function NewFormPage() {
               
               <div className="flex gap-2">
                 <Button 
-                  onClick={handleSubmit}
-                  disabled={!canProceed() || isSubmitting}
+                  onClick={() => {
+                    if (title && questions.length > 0) {
+                      setShowFormPreview(true);
+                    }
+                  }}
+                  disabled={!title || questions.length === 0}
                   className="bg-[#FFCD00] hover:bg-[#FFCD00]/90 text-black"
                 >
-                  <Save className="h-4 w-4 mr-2" />
-                  {isSubmitting ? 'Creando...' : 'Crea Form'}
+                  <Eye className="h-4 w-4 mr-2" />
+                  Vedi Anteprima
                 </Button>
               </div>
             </div>
@@ -818,9 +831,12 @@ export default function NewFormPage() {
                                 </p>
                               </div>
                           <Switch 
+                            key={`isAnonymous-${switchKey}-${currentStep}`}
                             id="isAnonymous" 
-                            checked={isAnonymous} 
-                            onCheckedChange={setIsAnonymous} 
+                            checked={isAnonymous === true} 
+                            onCheckedChange={(checked) => {
+                              setIsAnonymous(checked);
+                            }} 
                           />
                             </div>
                           </div>
@@ -839,27 +855,14 @@ export default function NewFormPage() {
                                 </p>
                               </div>
                           <Switch 
+                            key={`allowEdit-${switchKey}-${currentStep}`}
                             id="allowEdit" 
-                            checked={allowEdit} 
-                            onCheckedChange={setAllowEdit} 
+                            checked={allowEdit === true} 
+                            onCheckedChange={(checked) => {
+                              setAllowEdit(checked);
+                            }} 
                           />
                         </div>
-                        
-                            <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
-                              <div>
-                                <Label htmlFor="showResults" className="font-medium">
-                                  Mostra Risultati
-                                </Label>
-                                <p className="text-sm text-gray-500">
-                                  I rispondenti vedono i risultati dopo l'invio
-                                </p>
-                              </div>
-                          <Switch 
-                            id="showResults" 
-                            checked={showResults} 
-                            onCheckedChange={setShowResults} 
-                          />
-                            </div>
                           </div>
                         </div>
                       </div>
@@ -1126,6 +1129,93 @@ export default function NewFormPage() {
                 Importa {importPreview.length} Domande
               </Button>
             </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Form Preview Modal */}
+        <Dialog open={showFormPreview} onOpenChange={setShowFormPreview}>
+          <DialogContent className="!max-w-[50rem] !w-[50rem] h-[98vh] max-h-[98vh] p-0 overflow-hidden !translate-x-[-50%] !translate-y-[-50%] [&>button]:hidden sm:!max-w-[50rem]">
+            <div className="flex flex-col h-full">
+              {/* Header con controlli */}
+              <div className="flex items-center justify-between p-3 border-b bg-white flex-shrink-0">
+                <DialogHeader>
+                  <DialogTitle>Anteprima Form</DialogTitle>
+                  <DialogDescription>
+                    Visualizza come apparirà il form ai rispondenti
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-1 border rounded-lg p-1">
+                    <Button
+                      variant={previewMode === "desktop" ? "default" : "ghost"}
+                      size="sm"
+                      onClick={() => setPreviewMode("desktop")}
+                      className="h-8 text-xs"
+                    >
+                      <Monitor className="h-3 w-3 mr-1" />
+                      Desktop
+                    </Button>
+                    <Button
+                      variant={previewMode === "tablet" ? "default" : "ghost"}
+                      size="sm"
+                      onClick={() => setPreviewMode("tablet")}
+                      className="h-8 text-xs"
+                    >
+                      <Tablet className="h-3 w-3 mr-1" />
+                      Tablet
+                    </Button>
+                    <Button
+                      variant={previewMode === "mobile" ? "default" : "ghost"}
+                      size="sm"
+                      onClick={() => setPreviewMode("mobile")}
+                      className="h-8 text-xs"
+                    >
+                      <Smartphone className="h-3 w-3 mr-1" />
+                      Mobile
+                    </Button>
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => setShowFormPreview(false)}
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+
+              {/* Contenuto preview */}
+              <div className="flex-1 overflow-auto bg-gray-50 min-h-0 w-full">
+                <div className={`transition-all duration-300 ${
+                  previewMode === "desktop" ? "w-full [&_div]:!max-w-none" :
+                  previewMode === "tablet" ? "w-full max-w-4xl mx-auto" :
+                  "w-full max-w-md mx-auto"
+                }`}>
+                  <div className={previewMode === "desktop" ? "[&_div]:!max-w-none [&_div]:!mx-0 [&_div[style*='maxWidth']]:!max-w-none" : ""}>
+                    <FormPreview 
+                      form={{
+                        id: 'preview-temp',
+                        title: title || 'Titolo Form',
+                        description: description || '',
+                        type: type,
+                        isAnonymous: isAnonymous,
+                        allowEdit: allowEdit,
+                        showResults: true,
+                        thankYouMessage: thankYouMessage,
+                        questions: questions.map(q => ({
+                          id: q.id,
+                          text: q.text,
+                          type: q.type,
+                          required: q.required || false,
+                          options: q.options
+                        })),
+                        theme: theme as any
+                      } as any}
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
           </DialogContent>
         </Dialog>
         </div>
