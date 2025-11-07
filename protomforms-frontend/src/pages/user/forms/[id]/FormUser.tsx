@@ -12,9 +12,11 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { cn } from "@/lib/utils";
 import { format } from 'date-fns';
 import { it } from 'date-fns/locale';
-import { CalendarIcon, Upload, GripVertical, CheckCircle, ArrowLeft } from 'lucide-react';
+import { CalendarIcon, Upload, GripVertical, CheckCircle, ArrowLeft, Star } from 'lucide-react';
 import { toast } from 'sonner';
 import { authenticatedFetch } from '@/lib/utils';
+import { ProgressBarWithCheckpoints } from '@/components/survey/ProgressBarWithCheckpoints';
+import ThankYouModal from '@/components/survey/ThankYouModal';
 
 interface Question {
   id: string;
@@ -147,6 +149,14 @@ export default function FormUser({ form: initialForm }: { form: Form }) {
   const [submittedResponse, setSubmittedResponse] = useState<{ responseId: string; progressiveNumber: number } | null>(null);
   const [submittedAnswers, setSubmittedAnswers] = useState<Record<string, string | string[] | number | Date | null>>({});
   const [slideDirection, setSlideDirection] = useState<'left' | 'right'>('right');
+  const [showThankYouModal, setShowThankYouModal] = useState(false);
+
+  // Mostra il modal di ringraziamento quando il form viene inviato
+  useEffect(() => {
+    if (submitted) {
+      setShowThankYouModal(true);
+    }
+  }, [submitted]);
 
   // Carica il font se il form ha un tema personalizzato
   useEffect(() => {
@@ -447,107 +457,118 @@ export default function FormUser({ form: initialForm }: { form: Form }) {
   // Pagina di ringraziamento dopo submit
   if (submitted) {
     return (
-      <div 
-        className="min-h-screen w-full relative"
-        style={{
-          fontFamily: `"${theme.fontFamily}", sans-serif`,
-          lineHeight: theme.lineHeight || undefined,
-          letterSpacing: theme.letterSpacing !== undefined ? `${theme.letterSpacing}px` : undefined,
-          backgroundColor: thankYouBackgroundType === 'color' ? theme.backgroundColor : undefined,
-          backgroundImage: thankYouBackgroundType === 'gradient' ? getGradientBackground(theme.backgroundGradient) : 
-                          thankYouBackgroundType === 'pattern' ? getPatternStyle(theme.backgroundPattern || 'none') : undefined,
-          backgroundSize: thankYouBackgroundType === 'pattern' ? '20px 20px' : undefined,
-          backgroundPosition: thankYouBackgroundType === 'pattern' ? '0 0' : undefined,
-          color: theme.textColor,
-          transition: theme.enableTransitions !== false ? `all ${getAnimationDuration(theme.animationSpeed)}` : undefined,
-        }}
-      >
-        {/* Background color fallback */}
-        {thankYouBackgroundType === 'color' && (
-          <div
-            className="absolute inset-0 pointer-events-none z-0"
-            style={{
-              backgroundColor: theme.backgroundColor,
-            }}
-          />
-        )}
+      <>
+        {/* Thank You Modal */}
+        <ThankYouModal
+          isOpen={showThankYouModal}
+          onClose={() => setShowThankYouModal(false)}
+          message={form.thankYouMessage}
+          progressiveNumber={submittedResponse?.progressiveNumber}
+        />
 
-        {/* Background gradient */}
-        {thankYouBackgroundType === 'gradient' && theme.backgroundGradient && (
-          <div
-            className="absolute inset-0 pointer-events-none z-0"
-            style={{
-              background: getGradientBackground(theme.backgroundGradient),
-              filter: theme.backgroundBlur && theme.backgroundBlur > 0 ? `blur(${theme.backgroundBlur}px)` : undefined,
-            }}
-          />
-        )}
-
-        {/* Background pattern */}
-        {thankYouBackgroundType === 'pattern' && theme.backgroundPattern && theme.backgroundPattern !== 'none' && (
-          <div
-            className="absolute inset-0 pointer-events-none z-0"
-            style={{
-              backgroundImage: getPatternStyle(theme.backgroundPattern),
-              backgroundSize: '20px 20px',
-              opacity: 0.1,
-              filter: theme.backgroundBlur && theme.backgroundBlur > 0 ? `blur(${theme.backgroundBlur}px)` : undefined,
-            }}
-          />
-        )}
-
-        {/* Background image con blur */}
-        {thankYouBackgroundType === 'image' && theme.backgroundImage && (
-          <div
-            className="absolute inset-0 pointer-events-none z-0"
-            style={{
-              backgroundImage: `url(${theme.backgroundImage})`,
-              backgroundPosition: theme.backgroundPosition || 'center',
-              backgroundSize: theme.backgroundSize || 'cover',
-              backgroundRepeat: theme.backgroundRepeat || 'no-repeat',
-              backgroundAttachment: theme.backgroundAttachment || 'fixed',
-              filter: theme.backgroundBlur && theme.backgroundBlur > 0 ? `blur(${theme.backgroundBlur}px)` : undefined,
-            }}
-          />
-        )}
-        
-        {/* Overlay per opacità background */}
-        {(thankYouBackgroundType === 'image' || thankYouBackgroundType === 'gradient' || thankYouBackgroundType === 'pattern') && (
-          <>
-            {/* Overlay opacità backgroundImage */}
-            {thankYouBackgroundType === 'image' && (
-              <div
-                className="absolute inset-0 pointer-events-none z-0"
-                style={{
-                  backgroundColor: `rgba(255, 255, 255, ${1 - ((theme.backgroundOpacity || 100) / 100)})`,
-                }}
-              />
-            )}
-            {/* Overlay colorato personalizzato */}
-            {theme.backgroundOverlay && theme.backgroundOverlay.opacity > 0 && (
-              <div
-                className="absolute inset-0 pointer-events-none z-0"
-                style={{
-                  backgroundColor: theme.backgroundOverlay.color,
-                  opacity: theme.backgroundOverlay.opacity,
-                }}
-              />
-            )}
-          </>
-        )}
-        <div 
-          className="relative z-10 mx-auto p-6 py-12"
+        {/* Success Screen */}
+        <div
+          className="min-h-screen w-full relative"
           style={{
-            maxWidth: theme.containerMaxWidth ? `${theme.containerMaxWidth}px` : 'max-w-4xl',
+            fontFamily: `"${theme.fontFamily}", sans-serif`,
+            lineHeight: theme.lineHeight || undefined,
+            letterSpacing: theme.letterSpacing !== undefined ? `${theme.letterSpacing}px` : undefined,
+            backgroundColor: thankYouBackgroundType === 'color' ? theme.backgroundColor : undefined,
+            backgroundImage: thankYouBackgroundType === 'gradient' ? getGradientBackground(theme.backgroundGradient) :
+              thankYouBackgroundType === 'pattern' ? getPatternStyle(theme.backgroundPattern || 'none') : undefined,
+            backgroundSize: thankYouBackgroundType === 'pattern' ? '20px 20px' : undefined,
+            backgroundPosition: thankYouBackgroundType === 'pattern' ? '0 0' : undefined,
+            color: theme.textColor,
+            transition: theme.enableTransitions !== false ? `all ${getAnimationDuration(theme.animationSpeed)}` : undefined,
           }}
         >
-          {/* Bottone per tornare indietro */}
-          <div className="mb-4 sm:mb-6">
+          {/* Background color fallback */}
+          {thankYouBackgroundType === 'color' && (
+            <div
+              className="absolute inset-0 pointer-events-none z-0"
+              style={{
+                backgroundColor: theme.backgroundColor,
+              }}
+            />
+          )}
+
+          {/* Background gradient */}
+          {thankYouBackgroundType === 'gradient' && theme.backgroundGradient && (
+            <div
+              className="absolute inset-0 pointer-events-none z-0"
+              style={{
+                background: getGradientBackground(theme.backgroundGradient),
+                filter: theme.backgroundBlur && theme.backgroundBlur > 0 ? `blur(${theme.backgroundBlur}px)` : undefined,
+              }}
+            />
+          )}
+
+          {/* Background pattern */}
+          {thankYouBackgroundType === 'pattern' && theme.backgroundPattern && theme.backgroundPattern !== 'none' && (
+            <div
+              className="absolute inset-0 pointer-events-none z-0"
+              style={{
+                backgroundImage: getPatternStyle(theme.backgroundPattern),
+                backgroundSize: '20px 20px',
+                opacity: 0.1,
+                filter: theme.backgroundBlur && theme.backgroundBlur > 0 ? `blur(${theme.backgroundBlur}px)` : undefined,
+              }}
+            />
+          )}
+
+          {/* Background image con blur */}
+          {thankYouBackgroundType === 'image' && theme.backgroundImage && (
+            <div
+              className="absolute inset-0 pointer-events-none z-0"
+              style={{
+                backgroundImage: `url(${theme.backgroundImage})`,
+                backgroundPosition: theme.backgroundPosition || 'center',
+                backgroundSize: theme.backgroundSize || 'cover',
+                backgroundRepeat: theme.backgroundRepeat || 'no-repeat',
+                backgroundAttachment: theme.backgroundAttachment || 'fixed',
+                filter: theme.backgroundBlur && theme.backgroundBlur > 0 ? `blur(${theme.backgroundBlur}px)` : undefined,
+              }}
+            />
+          )}
+
+          {/* Overlay per opacità background */}
+          {(thankYouBackgroundType === 'image' || thankYouBackgroundType === 'gradient' || thankYouBackgroundType === 'pattern') && (
+            <>
+              {/* Overlay opacità backgroundImage */}
+              {thankYouBackgroundType === 'image' && (
+                <div
+                  className="absolute inset-0 pointer-events-none z-0"
+                  style={{
+                    backgroundColor: `rgba(255, 255, 255, ${1 - ((theme.backgroundOpacity || 100) / 100)})`,
+                  }}
+                />
+              )}
+              {/* Overlay colorato personalizzato */}
+              {theme.backgroundOverlay && theme.backgroundOverlay.opacity > 0 && (
+                <div
+                  className="absolute inset-0 pointer-events-none z-0"
+                  style={{
+                    backgroundColor: theme.backgroundOverlay.color,
+                    opacity: theme.backgroundOverlay.opacity,
+                  }}
+                />
+              )}
+            </>
+          )}
+
+          {/* Compact Response Summary */}
+          <div
+            className="relative z-10 mx-auto p-6 py-8"
+            style={{
+              maxWidth: theme.containerMaxWidth ? `${theme.containerMaxWidth}px` : '768px',
+            }}
+          >
+            {/* Back Button */}
             <Button
               type="button"
               variant="ghost"
               onClick={() => navigate('/user/forms')}
-              className="flex items-center gap-2 transition-colors"
+              className="mb-4 hover:bg-white/10 transition-colors"
               style={{
                 fontFamily: `"${theme.fontFamily}", sans-serif`,
                 color: theme.textColor,
@@ -555,126 +576,137 @@ export default function FormUser({ form: initialForm }: { form: Form }) {
                 borderRadius: `${theme.borderRadius}px`,
               }}
             >
-              <ArrowLeft className="h-4 w-4" />
-              Torna ai Form
+              <ArrowLeft className="h-4 w-4 mr-2" />
+              Torna alla Dashboard
             </Button>
-          </div>
 
-          <Card 
-            className="shadow-xl mb-6" 
-            style={{ 
-              backgroundColor: theme.backgroundColor, 
-              borderRadius: `${theme.borderRadius}px`,
-              borderStyle: theme.borderStyle || 'solid',
-              boxShadow: theme.glowEffect?.enabled 
-                ? `0 0 ${(theme.glowEffect.intensity || 50) / 5}px ${theme.glowEffect.color || theme.primaryColor}, 0 ${theme.shadowIntensity || 2}px ${(theme.shadowIntensity || 2) * 4}px rgba(0,0,0,0.1)`
-                : `0 ${theme.shadowIntensity || 2}px ${(theme.shadowIntensity || 2) * 4}px rgba(0,0,0,0.1)`,
-              transition: theme.enableTransitions !== false ? `all ${getAnimationDuration(theme.animationSpeed)}` : undefined,
-            }}
-          >
-            <CardHeader className="text-center pb-6">
-              <CardTitle 
-                className="text-4xl mb-3 font-bold" 
-                style={{ 
-                  color: theme.primaryColor,
-                  fontFamily: theme.headingFontFamily ? `"${theme.headingFontFamily}", sans-serif` : undefined,
-                  lineHeight: theme.lineHeight || undefined,
-                  letterSpacing: theme.letterSpacing !== undefined ? `${theme.letterSpacing}px` : undefined,
-                }}
-              >
-                Risposta Inviata con Successo!
-              </CardTitle>
-              {form.thankYouMessage ? (
-                <CardDescription className="text-lg mb-2" style={{ color: theme.textColor }}>
-                  {form.thankYouMessage}
+            <Card
+              className="shadow-xl overflow-hidden"
+              style={{
+                backgroundColor: theme.backgroundColor,
+                borderRadius: `${theme.borderRadius}px`,
+                borderStyle: theme.borderStyle || 'solid',
+                boxShadow: theme.glowEffect?.enabled
+                  ? `0 0 ${(theme.glowEffect.intensity || 50) / 5}px ${theme.glowEffect.color || theme.primaryColor}, 0 ${theme.shadowIntensity || 2}px ${(theme.shadowIntensity || 2) * 4}px rgba(0,0,0,0.1)`
+                  : `0 ${theme.shadowIntensity || 2}px ${(theme.shadowIntensity || 2) * 4}px rgba(0,0,0,0.1)`,
+                transition: theme.enableTransitions !== false ? `all ${getAnimationDuration(theme.animationSpeed)}` : undefined,
+              }}
+            >
+              {/* Header */}
+              <CardHeader className="pb-4 space-y-1">
+                <CardTitle
+                  className="text-xl font-bold flex items-center gap-2"
+                  style={{
+                    color: theme.primaryColor,
+                    fontFamily: theme.headingFontFamily ? `"${theme.headingFontFamily}", sans-serif` : undefined,
+                  }}
+                >
+                  <CheckCircle className="w-5 h-5" />
+                  Riepilogo Risposte
+                </CardTitle>
+                <CardDescription className="text-sm" style={{ color: theme.textColor, opacity: 0.7 }}>
+                  Riferimento #{submittedResponse?.progressiveNumber}
                 </CardDescription>
-              ) : (
-                <CardDescription className="text-lg mb-2" style={{ color: theme.textColor }}>
-                  Grazie per aver completato il questionario. Le tue risposte sono state registrate.
-                </CardDescription>
-              )}
-            </CardHeader>
-          </Card>
+              </CardHeader>
 
-          <Card className="shadow-xl mb-6" style={{ backgroundColor: theme.backgroundColor, borderRadius: `${theme.borderRadius}px` }}>
-            <CardHeader>
-              <CardTitle className="text-2xl flex items-center gap-2" style={{ color: theme.primaryColor }}>
-                Le Tue Risposte
-              </CardTitle>
-              <CardDescription style={{ color: theme.textColor }}>
-                Ecco un riepilogo delle risposte che hai fornito
-              </CardDescription>
-            </CardHeader>
-            <div className="p-6 space-y-4">
-              {form.questions.map((question, index) => {
-                const answer = submittedAnswers[question.id];
-                return (
-                  <div 
-                    key={question.id} 
-                    className="p-4 rounded-lg border-l-4 hover:shadow-md transition-shadow"
-                    style={{ 
-                      backgroundColor: index % 2 === 0 ? 'rgba(0,0,0,0.02)' : 'transparent',
-                      borderLeftColor: theme.accentColor
-                    }}
-                  >
-                    <div className="flex items-start gap-3">
-                      <div 
-                        className="flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center text-white font-semibold text-sm"
-                        style={{ backgroundColor: theme.primaryColor }}
+              {/* Responses Grid */}
+              <CardContent className="p-6 pt-2">
+                <div className="space-y-3">
+                  {form.questions.map((question, index) => {
+                    const answer = submittedAnswers[question.id];
+                    return (
+                      <motion.div
+                        key={question.id}
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: index * 0.05 }}
+                        className="p-4 rounded-lg border"
+                        style={{
+                          backgroundColor: `${theme.primaryColor}05`,
+                          borderColor: `${theme.primaryColor}15`,
+                          transition: theme.enableTransitions !== false ? `all ${getAnimationDuration(theme.animationSpeed)}` : undefined,
+                        }}
                       >
-                        {index + 1}
-                      </div>
-                      <div className="flex-1">
-                        <h4 className="font-semibold text-lg mb-2" style={{ color: theme.textColor }}>
-                          {question.text}
-                        </h4>
-                        <div 
-                          className="p-3 rounded-md font-medium"
-                          style={{ 
-                            backgroundColor: 'rgba(0,0,0,0.05)',
-                            color: theme.textColor
-                          }}
-                        >
-                          {formatAnswerValue(answer, question.type)}
+                        <div className="flex gap-3">
+                          <div
+                            className="flex-shrink-0 w-7 h-7 rounded-md flex items-center justify-center font-semibold text-xs"
+                            style={{
+                              backgroundColor: theme.primaryColor,
+                              color: theme.buttonTextColor || '#ffffff',
+                            }}
+                          >
+                            {index + 1}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <h4
+                              className="font-medium text-sm mb-2 leading-snug"
+                              style={{
+                                color: theme.textColor,
+                                fontFamily: theme.headingFontFamily ? `"${theme.headingFontFamily}", sans-serif` : undefined,
+                              }}
+                            >
+                              {question.text}
+                            </h4>
+                            <div
+                              className="text-sm font-medium px-3 py-2 rounded-md"
+                              style={{
+                                backgroundColor: theme.backgroundColor,
+                                color: theme.textColor,
+                              }}
+                            >
+                              {formatAnswerValue(answer, question.type)}
+                            </div>
+                          </div>
                         </div>
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </Card>
+                      </motion.div>
+                    );
+                  })}
+                </div>
+              </CardContent>
 
-          {form.showResults && form.slug && (
-            <Card className="shadow-xl" style={{ backgroundColor: theme.backgroundColor, borderRadius: `${theme.borderRadius}px` }}>
-              <div className="p-6">
-                <div className="flex justify-center">
+              {/* Footer Actions */}
+              {form.showResults && form.slug && (
+                <div className="p-6 pt-4 border-t flex flex-col gap-3" style={{ borderColor: `${theme.primaryColor}15` }}>
                   <Button
                     onClick={() => {
                       navigate(`/user/responses/${form.slug}/${submittedResponse?.progressiveNumber || ''}`);
                     }}
                     size="lg"
-                    variant="outline"
-                    className="h-14 text-lg font-semibold"
+                    className="w-full"
                     style={{
-                      borderColor: theme.primaryColor,
-                      color: theme.primaryColor,
-                      borderRadius: `${theme.borderRadius}px`
+                      backgroundColor: theme.primaryColor,
+                      color: theme.buttonTextColor || '#ffffff',
+                      borderRadius: `${theme.borderRadius}px`,
+                      transition: theme.enableTransitions !== false ? `all ${getAnimationDuration(theme.animationSpeed)}` : undefined,
                     }}
                   >
-                    Visualizza Dettagli
+                    Visualizza Dettagli Completi
                   </Button>
+                  <p className="text-center text-xs opacity-60" style={{ color: theme.textColor }}>
+                    Conserva il numero di riferimento per eventuali comunicazioni future
+                  </p>
                 </div>
-              </div>
+              )}
             </Card>
-          )}
+          </div>
         </div>
-      </div>
+      </>
     );
   }
 
   const currentQuestion = form.questions[currentStep];
   const validQuestions = form.questions.filter(q => q.text && q.text.trim() !== '');
+  
+  // Calcola le domande completate per la progress bar
+  const completedQuestions = form.questions
+    .map((q, index) => {
+      const answer = answers[q.id];
+      if (!answer) return null;
+      if (Array.isArray(answer) && answer.length === 0) return null;
+      if (typeof answer === 'string' && answer.trim() === '') return null;
+      return index;
+    })
+    .filter((index): index is number => index !== null);
 
   // Determina il tipo di background
   const backgroundType = theme.backgroundType || (theme.backgroundImage ? 'image' : theme.backgroundGradient ? 'gradient' : theme.backgroundPattern && theme.backgroundPattern !== 'none' ? 'pattern' : 'color');
@@ -769,8 +801,55 @@ export default function FormUser({ form: initialForm }: { form: Form }) {
         </>
       )}
       
+      {/* Header minimale integrato - Torna indietro + Progress */}
+      <div className="fixed top-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-sm">
+        {/* Link Torna indietro - angolo superiore sinistro, centrato verticalmente */}
+        <button
+          type="button"
+          onClick={() => navigate(-1)}
+          className="absolute left-6 top-1/2 -translate-y-1/2 text-sm text-gray-400 hover:text-gray-600 transition-colors"
+          style={{
+            color: theme.textColor || '#1f2937',
+          }}
+        >
+          &lt; indietro
+        </button>
+        
+        {/* Contatore e Progress Bar centrati */}
+        <div className="max-w-5xl mx-auto px-6 py-5">
+          <div className="flex flex-col items-center gap-2">
+            {/* Contatore centrato */}
+            <div 
+              className="text-sm font-normal"
+              style={{
+                color: theme.textColor || '#1f2937',
+              }}
+            >
+              {currentStep + 1} / {form.questions.length}
+            </div>
+            
+            {/* Progress Bar semplice con glow */}
+            <div className="relative h-[7px] w-full max-w-2xl rounded-full overflow-hidden"
+              style={{
+                backgroundColor: 'rgba(229, 231, 235, 0.6)',
+              }}>
+              <motion.div
+                className="absolute top-0 left-0 h-full rounded-full"
+                style={{
+                  backgroundColor: theme.primaryColor || '#3b82f6',
+                  boxShadow: `0 0 6px ${theme.primaryColor || '#3b82f6'}60`,
+                }}
+                initial={{ width: 0 }}
+                animate={{ width: `${((currentStep + 1) / form.questions.length) * 100}%` }}
+                transition={{ duration: 0.4, ease: 'easeOut' }}
+              />
+            </div>
+          </div>
+        </div>
+      </div>
+
       <div 
-        className="relative z-10 w-full mx-auto px-8 py-4 sm:px-10 sm:py-6 lg:px-16 lg:py-8"
+        className="relative z-10 w-full mx-auto px-8 py-4 sm:px-10 sm:py-6 lg:px-16 lg:py-8 pt-24"
         style={{
           maxWidth: theme.containerMaxWidth ? `${theme.containerMaxWidth}px` : undefined,
         }}
@@ -794,40 +873,28 @@ export default function FormUser({ form: initialForm }: { form: Form }) {
               />
             </div>
           )}
-          <h2 
-            className="text-xl sm:text-2xl lg:text-3xl xl:text-4xl font-bold text-center sm:text-left" 
-            style={{ 
-              color: theme.primaryColor,
-              fontFamily: theme.headingFontFamily ? `"${theme.headingFontFamily}", sans-serif` : undefined,
-              lineHeight: theme.lineHeight || undefined,
-              letterSpacing: theme.letterSpacing !== undefined ? `${theme.letterSpacing}px` : undefined,
-            }}
-          >
-            {form.title}
-          </h2>
-          <p className="text-sm sm:text-base lg:text-lg text-gray-600 text-center sm:text-left" style={{ color: theme.textColor }}>
-            {form.description}
-          </p>
         </div>
 
-        {/* Domanda corrente - STRUTTURA IDENTICA A FormCustomization.tsx righe 1633-1928 */}
+        {/* Domanda corrente - Layout ottimizzato e moderno */}
         {validQuestions.length > 0 && currentQuestion ? (
-          <div 
-            className="rounded-xl border w-full min-h-[400px] lg:min-h-[500px] flex flex-col"
-            style={{ 
-              gap: theme.questionSpacing ? `${theme.questionSpacing}px` : undefined,
-              padding: `${theme.cardPadding || 24}px`,
-              backgroundColor: theme.questionBackgroundColor || '#f9fafb',
+          <motion.div
+            className="rounded-xl border w-full max-w-3xl mx-auto min-h-[280px] lg:min-h-[320px] flex flex-col"
+            style={{
+              padding: `${theme.cardPadding || 32}px`,
+              backgroundColor: theme.questionBackgroundColor || '#ffffff',
               borderColor: theme.questionBorderColor || '#e5e7eb',
-              borderRadius: theme.borderRadius ? `${theme.borderRadius}px` : '8px',
+              borderRadius: theme.borderRadius ? `${theme.borderRadius}px` : '12px',
               borderWidth: theme.borderWidth ? `${theme.borderWidth}px` : '1px',
               borderStyle: theme.borderStyle || 'solid',
-              boxShadow: theme.glowEffect?.enabled 
-                ? `0 0 ${(theme.glowEffect.intensity || 50) / 5}px ${theme.glowEffect.color || theme.primaryColor}, 0 ${theme.shadowIntensity || 2}px ${(theme.shadowIntensity || 2) * 4}px rgba(0,0,0,0.1)`
-                : `0 ${theme.shadowIntensity || 2}px ${(theme.shadowIntensity || 2) * 4}px rgba(0,0,0,0.1)`,
-              transition: theme.enableTransitions !== false ? `all ${getAnimationDuration(theme.animationSpeed)}` : undefined,
-              transform: theme.hoverEffect && theme.hoverScale ? `scale(${theme.hoverScale})` : undefined,
+              boxShadow: '0 2px 8px rgba(0,0,0,0.06)',
+              transition: theme.enableTransitions !== false ? 'all 300ms cubic-bezier(0.4, 0, 0.2, 1)' : undefined,
             }}
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3, ease: 'easeOut' }}
+            whileHover={theme.hoverEffect ? {
+              y: -2,
+            } : {}}
           >
             {/* Domanda corrente con animazione */}
             <AnimatePresence mode="wait" custom={slideDirection}>
@@ -850,47 +917,45 @@ export default function FormUser({ form: initialForm }: { form: Form }) {
                   duration: theme.enableTransitions !== false ? (theme.animationSpeed === 'slow' ? 0.5 : theme.animationSpeed === 'fast' ? 0.15 : 0.3) : 0, 
                   ease: [0.4, 0, 0.2, 1]
                 }}
-                className="flex-1 flex flex-col"
+                className="flex-1 flex flex-col gap-6 justify-center"
               >
-              <div className="flex items-center mb-8 lg:mb-12">
-                <span 
-                  className="w-10 h-10 flex items-center justify-center rounded-full mr-4 font-semibold" 
-                  style={{ 
-                    backgroundColor: theme.questionNumberBgColor || theme.primaryColor,
-                    color: theme.questionNumberTextColor || '#ffffff',
-                    fontSize: `${theme.questionFontSize || 20}px`,
-                    fontWeight: theme.questionFontWeight || 'semibold'
-                  }}
-                >
-                  {currentStep + 1}
-                </span>
-                <Label 
-                  className="font-semibold flex-1"
-                  style={{ 
+              {/* Titolo domanda centrato */}
+              <motion.div
+                className="w-full text-center"
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.1 }}
+              >
+                <Label
+                  className="text-xl sm:text-2xl lg:text-3xl font-semibold text-center block leading-tight"
+                  style={{
+                    fontFamily: theme.fontFamily || 'Inter, system-ui, sans-serif',
                     color: theme.questionTextColor || theme.textColor,
-                    fontSize: `${theme.questionFontSize || 20}px`,
-                    fontWeight: theme.questionFontWeight || 'semibold'
+                    fontSize: `${(theme.questionFontSize || 22) * 1.15}px`,
+                    fontWeight: theme.questionFontWeight || '600',
+                    lineHeight: theme.lineHeight || 1.4,
+                    letterSpacing: theme.letterSpacing ? `${theme.letterSpacing}px` : '-0.02em',
+                    textShadow: theme.textShadow || 'none',
                   }}
                 >
                   {currentQuestion.text}
-                  {currentQuestion.required && <span className="text-red-500 ml-1">*</span>}
                 </Label>
-              </div>
+              </motion.div>
 
-              <div className="flex-1 flex items-center justify-center">
-                <div className="w-full pl-14" style={{ 
-                  fontSize: `${theme.optionFontSize || 16}px`,
-                  color: theme.optionTextColor || theme.textColor
-                }}>
+              {/* Opzioni centrate e ottimizzate */}
+              <div className="w-full max-w-2xl mx-auto" style={{
+                fontSize: `${theme.optionFontSize || 18}px`,
+                color: theme.optionTextColor || theme.textColor
+              }}>
                 {/* TEXT */}
                 {currentQuestion.type === 'TEXT' && (
-                  <Input 
+                  <Input
                     value={answers[currentQuestion.id] as string || ''}
                     onChange={(e) => handleAnswerChange(currentQuestion.id, e.target.value)}
                     onKeyDown={(e) => {
                       if (e.key === 'Enter') {
                         e.preventDefault();
-                        const lastVisibleQuestionIndex = visibleQuestions.length > 0 
+                        const lastVisibleQuestionIndex = visibleQuestions.length > 0
                           ? form.questions.findIndex(q => q.id === visibleQuestions[visibleQuestions.length - 1])
                           : -1;
                         if (currentStep !== lastVisibleQuestionIndex) {
@@ -898,8 +963,8 @@ export default function FormUser({ form: initialForm }: { form: Form }) {
                         }
                       }
                     }}
-                    placeholder="Inserisci la tua risposta..." 
-                    className="w-full"
+                    placeholder="Inserisci la tua risposta..."
+                    className="w-full text-base sm:text-lg px-4 py-3"
                   />
                 )}
 
@@ -912,27 +977,39 @@ export default function FormUser({ form: initialForm }: { form: Form }) {
                       
                       if (isMultiple) {
                         return (
-                          <div style={{ gap: `${theme.optionSpacing || 12}px`, display: 'flex', flexDirection: 'column' }}>
+                          <div className="flex flex-col gap-3 w-full">
                             {choices.map((option: string, index: number) => (
-                              <div 
-                                key={index} 
-                                className="flex items-center space-x-2 p-3 rounded transition-colors cursor-pointer" 
-                                style={{ 
-                                  border: `${theme.borderWidth || 1}px solid ${theme.optionBorderColor || theme.accentColor}`,
-                                  borderRadius: `${theme.borderRadius}px`,
-                                  backgroundColor: (answers[currentQuestion.id] as string[] || []).includes(option) 
-                                    ? theme.optionSelectedColor || `${theme.primaryColor}15` 
-                                    : 'transparent'
+                              <motion.label
+                                key={index}
+                                htmlFor={`${currentQuestion.id}-${index}`}
+                                className="flex items-center gap-4 p-4 rounded-lg transition-all cursor-pointer border hover:shadow-sm"
+                                style={{
+                                  borderWidth: `${theme.borderWidth || 1}px`,
+                                  borderStyle: 'solid',
+                                  borderColor: (answers[currentQuestion.id] as string[] || []).includes(option)
+                                    ? theme.primaryColor || '#3b82f6'
+                                    : (theme.optionBorderColor || '#e5e7eb'),
+                                  backgroundColor: (answers[currentQuestion.id] as string[] || []).includes(option)
+                                    ? theme.optionSelectedColor || `${theme.primaryColor || '#3b82f6'}15`
+                                    : 'transparent',
+                                  borderRadius: `${theme.borderRadius || 8}px`,
                                 }}
-                                onMouseEnter={(e) => {
-                                  if (theme.hoverEffect && !(answers[currentQuestion.id] as string[] || []).includes(option)) {
-                                    e.currentTarget.style.backgroundColor = theme.optionHoverColor || `${theme.primaryColor}10`;
-                                  }
+                                whileHover={{ 
+                                  backgroundColor: (answers[currentQuestion.id] as string[] || []).includes(option)
+                                    ? theme.optionSelectedColor || `${theme.primaryColor || '#3b82f6'}20`
+                                    : (theme.optionHoverColor || '#f9fafb'),
+                                  borderColor: theme.primaryColor || '#3b82f6',
                                 }}
-                                onMouseLeave={(e) => {
-                                  if (!(answers[currentQuestion.id] as string[] || []).includes(option)) {
-                                    e.currentTarget.style.backgroundColor = 'transparent';
-                                  }
+                                whileTap={{ scale: 0.99 }}
+                                onClick={(e) => {
+                                  e.preventDefault();
+                                  const currentAnswers = (answers[currentQuestion.id] as string[]) || [];
+                                  handleAnswerChange(
+                                    currentQuestion.id,
+                                    (answers[currentQuestion.id] as string[] || []).includes(option)
+                                      ? currentAnswers.filter(a => a !== option)
+                                      : [...currentAnswers, option]
+                                  );
                                 }}
                               >
                                 <Checkbox
@@ -947,22 +1024,22 @@ export default function FormUser({ form: initialForm }: { form: Form }) {
                                         : currentAnswers.filter(a => a !== option)
                                     );
                                   }}
-                                  style={{ 
-                                    borderColor: theme.radioCheckColor || theme.primaryColor,
-                                    accentColor: theme.radioCheckColor || theme.primaryColor
+                                  style={{
+                                    borderColor: theme.radioCheckColor || theme.primaryColor || '#3b82f6',
+                                    accentColor: theme.radioCheckColor || theme.primaryColor || '#3b82f6',
                                   }}
+                                  className="flex-shrink-0"
                                 />
-                                <Label 
-                                  htmlFor={`${currentQuestion.id}-${index}`} 
-                                  className="cursor-pointer flex-1" 
-                                  style={{ 
-                                    color: theme.optionTextColor || theme.textColor,
+                                <span
+                                  className="flex-1 font-normal leading-relaxed"
+                                  style={{
+                                    color: theme.optionTextColor || theme.textColor || '#1f2937',
                                     fontSize: `${theme.optionFontSize || 16}px`
                                   }}
                                 >
                                   {option}
-                                </Label>
-                              </div>
+                                </span>
+                              </motion.label>
                             ))}
                           </div>
                         );
@@ -972,49 +1049,51 @@ export default function FormUser({ form: initialForm }: { form: Form }) {
                             value={answers[currentQuestion.id] as string || ''}
                             onValueChange={(value) => handleAnswerChange(currentQuestion.id, value)}
                             required={currentQuestion.required}
-                            style={{ gap: `${theme.optionSpacing || 12}px`, display: 'flex', flexDirection: 'column' }}
+                            className="flex flex-col gap-3 w-full"
                           >
                             {choices.map((option: string, index: number) => (
-                              <div 
-                                key={index} 
-                                className="flex items-center space-x-2 p-3 rounded transition-colors cursor-pointer"
-                                style={{ 
-                                  border: `${theme.borderWidth || 1}px solid ${theme.optionBorderColor || theme.accentColor}`,
-                                  borderRadius: `${theme.borderRadius}px`,
-                                  backgroundColor: answers[currentQuestion.id] === option 
-                                    ? theme.optionSelectedColor || `${theme.primaryColor}15` 
-                                    : 'transparent'
+                              <motion.label
+                                key={index}
+                                htmlFor={`${currentQuestion.id}-${index}`}
+                                className="flex items-center gap-4 p-4 rounded-lg transition-all cursor-pointer border hover:shadow-sm"
+                                style={{
+                                  borderWidth: `${theme.borderWidth || 1}px`,
+                                  borderStyle: 'solid',
+                                  borderColor: answers[currentQuestion.id] === option
+                                    ? theme.primaryColor || '#3b82f6'
+                                    : (theme.optionBorderColor || '#e5e7eb'),
+                                  backgroundColor: answers[currentQuestion.id] === option
+                                    ? theme.optionSelectedColor || `${theme.primaryColor || '#3b82f6'}15`
+                                    : 'transparent',
+                                  borderRadius: `${theme.borderRadius || 8}px`,
                                 }}
-                                onMouseEnter={(e) => {
-                                  if (theme.hoverEffect && answers[currentQuestion.id] !== option) {
-                                    e.currentTarget.style.backgroundColor = theme.optionHoverColor || `${theme.primaryColor}10`;
-                                  }
+                                whileHover={{ 
+                                  backgroundColor: answers[currentQuestion.id] === option
+                                    ? theme.optionSelectedColor || `${theme.primaryColor || '#3b82f6'}20`
+                                    : (theme.optionHoverColor || '#f9fafb'),
+                                  borderColor: theme.primaryColor || '#3b82f6',
                                 }}
-                                onMouseLeave={(e) => {
-                                  if (answers[currentQuestion.id] !== option) {
-                                    e.currentTarget.style.backgroundColor = 'transparent';
-                                  }
-                                }}
+                                whileTap={{ scale: 0.99 }}
                               >
-                                <RadioGroupItem 
-                                  value={option} 
+                                <RadioGroupItem
+                                  value={option}
                                   id={`${currentQuestion.id}-${index}`}
-                                  style={{ 
-                                    borderColor: theme.radioCheckColor || theme.primaryColor,
-                                    color: theme.radioCheckColor || theme.primaryColor
+                                  style={{
+                                    borderColor: theme.radioCheckColor || theme.primaryColor || '#3b82f6',
+                                    color: theme.radioCheckColor || theme.primaryColor || '#3b82f6',
                                   }}
+                                  className="flex-shrink-0"
                                 />
-                                <Label 
-                                  htmlFor={`${currentQuestion.id}-${index}`} 
-                                  className="cursor-pointer flex-1" 
-                                  style={{ 
-                                    color: theme.optionTextColor || theme.textColor,
+                                <span
+                                  className="flex-1 font-normal leading-relaxed"
+                                  style={{
+                                    color: theme.optionTextColor || theme.textColor || '#1f2937',
                                     fontSize: `${theme.optionFontSize || 16}px`
                                   }}
                                 >
                                   {option}
-                                </Label>
-                              </div>
+                                </span>
+                              </motion.label>
                             ))}
                           </RadioGroup>
                         );
@@ -1086,24 +1165,27 @@ export default function FormUser({ form: initialForm }: { form: Form }) {
 
                 {/* RATING */}
                 {currentQuestion.type === 'RATING' && (
-                  <div className="flex items-center space-x-2">
+                  <div className="flex items-center justify-center gap-3">
                     {[1, 2, 3, 4, 5].map((rating) => (
-                      <Button 
-                        key={rating} 
-                        type="button" 
-                        variant="outline" 
-                        className="w-12 h-12"
+                      <Button
+                        key={rating}
+                        type="button"
+                        variant="ghost"
+                        className="w-14 h-14 transition-all hover:scale-110 p-0"
                         onClick={() => handleAnswerChange(currentQuestion.id, rating.toString())}
-                        style={{ 
-                          borderRadius: `${theme.borderRadius}px`,
-                          ...(answers[currentQuestion.id] === rating.toString() && {
-                            backgroundColor: theme.primaryColor,
-                            color: theme.buttonTextColor || '#ffffff',
-                            borderColor: theme.primaryColor
-                          })
-                        }}
                       >
-                        {rating}
+                        <Star
+                          className="w-10 h-10"
+                          style={{
+                            fill: answers[currentQuestion.id] && parseInt(answers[currentQuestion.id]) >= rating 
+                              ? theme.primaryColor || '#FFCD00'
+                              : 'none',
+                            color: answers[currentQuestion.id] && parseInt(answers[currentQuestion.id]) >= rating 
+                              ? theme.primaryColor || '#FFCD00'
+                              : '#d1d5db',
+                            transition: 'all 0.2s'
+                          }}
+                        />
                       </Button>
                     ))}
                   </div>
@@ -1114,21 +1196,22 @@ export default function FormUser({ form: initialForm }: { form: Form }) {
                   const scale = currentQuestion.options?.scale || 5;
                   const labels = currentQuestion.options?.labels || [];
                   return (
-                    <div className="space-y-4">
-                      <div className="flex items-center justify-between mb-2">
-                        <span className="text-sm text-gray-500">{labels[0] || "Per niente d'accordo"}</span>
-                        <span className="text-sm text-gray-500">{labels[scale - 1] || "Completamente d'accordo"}</span>
+                    <div className="space-y-4 w-full">
+                      <div className="flex items-center justify-between mb-3 px-2">
+                        <span className="text-xs sm:text-sm text-gray-500 font-medium">{labels[0] || "Per niente d'accordo"}</span>
+                        <span className="text-xs sm:text-sm text-gray-500 font-medium">{labels[scale - 1] || "Completamente d'accordo"}</span>
                       </div>
-                      <div className="grid grid-cols-5 gap-2">
+                      <div className="flex items-center justify-center gap-3">
                         {Array.from({ length: scale }, (_, index) => (
-                          <Button 
-                            key={index} 
-                            type="button" 
-                            variant="outline" 
-                            className="h-12"
+                          <Button
+                            key={index}
+                            type="button"
+                            variant="outline"
+                            className="w-14 h-14 text-lg font-semibold transition-all hover:scale-105"
                             onClick={() => handleAnswerChange(currentQuestion.id, (index + 1).toString())}
-                            style={{ 
+                            style={{
                               borderRadius: `${theme.borderRadius}px`,
+                              borderWidth: '2px',
                               ...(answers[currentQuestion.id] === (index + 1).toString() && {
                                 backgroundColor: theme.primaryColor,
                                 color: theme.buttonTextColor || '#ffffff',
@@ -1136,7 +1219,7 @@ export default function FormUser({ form: initialForm }: { form: Form }) {
                               })
                             }}
                           >
-                            <span className="text-sm">{index + 1}</span>
+                            <span>{index + 1}</span>
                           </Button>
                         ))}
                       </div>
@@ -1146,21 +1229,22 @@ export default function FormUser({ form: initialForm }: { form: Form }) {
 
                 {/* NPS */}
                 {currentQuestion.type === 'NPS' && (
-                  <div>
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="text-sm text-gray-500">0 - Non lo consiglierei</span>
-                      <span className="text-sm text-gray-500">10 - Lo consiglierei sicuramente</span>
+                  <div className="w-full space-y-3">
+                    <div className="flex items-center justify-between mb-3 px-2">
+                      <span className="text-xs sm:text-sm text-gray-500 font-medium">0 - Non lo consiglierei</span>
+                      <span className="text-xs sm:text-sm text-gray-500 font-medium">10 - Lo consiglierei sicuramente</span>
                     </div>
-                    <div className="flex items-center space-x-2">
+                    <div className="flex flex-wrap items-center justify-center gap-2">
                       {[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((rating) => (
-                        <Button 
-                          key={rating} 
-                          type="button" 
-                          variant="outline" 
-                          className="w-10 h-10"
+                        <Button
+                          key={rating}
+                          type="button"
+                          variant="outline"
+                          className="w-12 h-12 text-base font-semibold transition-all hover:scale-105"
                           onClick={() => handleAnswerChange(currentQuestion.id, rating.toString())}
-                          style={{ 
+                          style={{
                             borderRadius: `${theme.borderRadius}px`,
+                            borderWidth: '2px',
                             ...(answers[currentQuestion.id] === rating.toString() && {
                               backgroundColor: theme.primaryColor,
                               color: theme.buttonTextColor || '#ffffff',
@@ -1288,129 +1372,170 @@ export default function FormUser({ form: initialForm }: { form: Form }) {
                 {currentQuestion.type === 'BRANCHING' && (
                   <p className="text-sm text-gray-500">Domanda condizionale basata sulle risposte precedenti</p>
                 )}
-                </div>
               </div>
               </motion.div>
             </AnimatePresence>
 
             {/* Bottoni navigazione */}
-            <div className="flex justify-between items-center pt-6 border-t mt-auto">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={prevStep}
-                disabled={currentStep === 0}
-                className="px-6 py-2 transition-all"
-                style={{
-                    fontFamily: `"${theme.fontFamily}", sans-serif`,
-                  backgroundColor: currentStep === 0 
-                    ? (theme.disabledButtonColor || '#e5e7eb')
-                    : (theme.navigationButtonBgColor || 'transparent'),
-                  color: currentStep === 0
-                    ? '#9ca3af'
-                    : (theme.navigationButtonTextColor || theme.textColor),
-                  border: `${theme.borderWidth || 1}px solid ${theme.navigationButtonBorderColor || theme.primaryColor}`,
-                  borderRadius: `${theme.borderRadius}px`,
-                    cursor: currentStep === 0 ? 'not-allowed' : 'pointer',
-                    fontSize: `${theme.optionFontSize || 16}px`,
-                }}
-              >
-                Precedente
-              </Button>
-              <div 
-                className="px-4 py-2 rounded"
-                style={{
-                  color: theme.counterTextColor || theme.textColor,
-                  fontSize: `${theme.counterFontSize || 14}px`,
-                  backgroundColor: theme.counterBgColor || 'transparent',
-                  fontWeight: 'medium'
-                }}
-              >
-                Domanda {currentStep + 1} di {validQuestions.length}
-              </div>
-              {(() => {
-                const lastVisibleQuestionIndex = visibleQuestions.length > 0 
-                  ? form.questions.findIndex(q => q.id === visibleQuestions[visibleQuestions.length - 1])
-                  : -1;
-                const isLastVisibleQuestion = currentStep === lastVisibleQuestionIndex && lastVisibleQuestionIndex !== -1;
-                
-                if (isLastVisibleQuestion) {
-                  return (
-                    <Button 
-                      type="button" 
-                      onClick={handleSubmit}
-                      disabled={submitting}
-                      className="px-6 py-2 transition-all" 
-                      style={{ 
-                        fontFamily: `"${theme.fontFamily}", sans-serif`,
-                        backgroundColor: theme.buttonStyle === 'filled' ? theme.primaryColor : 'transparent',
-                        color: theme.buttonTextColor || (theme.buttonStyle === 'filled' ? '#fff' : theme.primaryColor),
-                        border: theme.buttonStyle === 'outlined' ? `${theme.borderWidth || 2}px solid ${theme.primaryColor}` : 'none',
-                        borderRadius: `${theme.borderRadius}px`,
-                        fontWeight: '600',
-                        fontSize: `${theme.optionFontSize || 16}px`,
-                      }}
-                    >
-                      {submitting ? 'Invio in corso...' : 'Invia Risposte'}
-                    </Button>
-                  );
-                } else {
-                  const isDisabled = currentQuestion.required && !answers[currentQuestion.id];
-                  return (
+            <div className="pt-5 mt-auto">
+              <AnimatePresence mode="wait">
+                {currentStep === 0 ? (
+                  // Vista con solo Successiva
+                  <motion.div
+                    key="solo-successiva"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    transition={{ duration: 0.3 }}
+                    className="flex justify-center items-center"
+                  >
+                    {(() => {
+                      const lastVisibleQuestionIndex = visibleQuestions.length > 0 
+                        ? form.questions.findIndex(q => q.id === visibleQuestions[visibleQuestions.length - 1])
+                        : -1;
+                      const isLastVisibleQuestion = currentStep === lastVisibleQuestionIndex && lastVisibleQuestionIndex !== -1;
+                      
+                      if (isLastVisibleQuestion) {
+                        return (
+                          <Button
+                            type="button"
+                            onClick={handleSubmit}
+                            disabled={submitting}
+                            className="px-5 py-2.5 text-sm sm:text-base font-semibold transition-all"
+                            style={{
+                              fontFamily: `"${theme.fontFamily}", sans-serif`,
+                              backgroundColor: theme.buttonStyle === 'filled' ? theme.primaryColor : 'transparent',
+                              color: theme.buttonTextColor || (theme.buttonStyle === 'filled' ? '#fff' : theme.primaryColor),
+                              border: theme.buttonStyle === 'outlined' ? `${Math.min(theme.borderWidth || 2, 2)}px solid ${theme.primaryColor}` : 'none',
+                              borderRadius: `${theme.borderRadius}px`,
+                              fontWeight: '600',
+                              fontSize: `${theme.optionFontSize || 16}px`,
+                            }}
+                          >
+                            {submitting ? 'Invio in corso...' : 'Invia Risposte'}
+                          </Button>
+                        );
+                      } else {
+                        const isDisabled = currentQuestion.required && !answers[currentQuestion.id];
+                        return (
+                          <Button
+                            type="button"
+                            onClick={nextStep}
+                            disabled={isDisabled}
+                            className="px-5 py-2.5 text-sm sm:text-base font-semibold transition-all"
+                            style={{
+                              fontFamily: `"${theme.fontFamily}", sans-serif`,
+                              backgroundColor: isDisabled
+                                ? (theme.disabledButtonColor || '#e5e7eb')
+                                : (theme.buttonStyle === 'filled' ? theme.primaryColor : 'transparent'),
+                              color: isDisabled
+                                ? '#9ca3af'
+                                : (theme.buttonTextColor || (theme.buttonStyle === 'filled' ? '#fff' : theme.primaryColor)),
+                              border: theme.buttonStyle === 'outlined' ? `${Math.min(theme.borderWidth || 2, 2)}px solid ${theme.primaryColor}` : 'none',
+                              borderRadius: `${theme.borderRadius}px`,
+                              fontWeight: '600',
+                              cursor: isDisabled ? 'not-allowed' : 'pointer',
+                              fontSize: `${theme.optionFontSize || 16}px`,
+                            }}
+                          >
+                            Successiva
+                          </Button>
+                        );
+                      }
+                    })()}
+                  </motion.div>
+                ) : (
+                  // Vista con Precedente e Successiva
+                  <motion.div
+                    key="entrambi-bottoni"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    transition={{ duration: 0.3 }}
+                    className="flex justify-center items-center gap-3"
+                  >
                     <Button
                       type="button"
-                      onClick={nextStep}
-                      disabled={isDisabled}
-                      className="px-6 py-2 transition-all"
-                      style={{ 
+                      variant="outline"
+                      onClick={prevStep}
+                      className="px-5 py-2.5 text-sm sm:text-base font-medium transition-all"
+                      style={{
                         fontFamily: `"${theme.fontFamily}", sans-serif`,
-                        backgroundColor: isDisabled 
-                          ? (theme.disabledButtonColor || '#e5e7eb')
-                          : (theme.buttonStyle === 'filled' ? theme.primaryColor : 'transparent'),
-                        color: isDisabled
-                          ? '#9ca3af'
-                          : (theme.buttonTextColor || (theme.buttonStyle === 'filled' ? '#fff' : theme.primaryColor)),
-                        border: theme.buttonStyle === 'outlined' ? `${theme.borderWidth || 2}px solid ${theme.primaryColor}` : 'none',
+                        backgroundColor: theme.navigationButtonBgColor || 'transparent',
+                        color: theme.navigationButtonTextColor || theme.textColor,
+                        border: `${Math.min(theme.borderWidth || 1, 2)}px solid ${theme.navigationButtonBorderColor || theme.primaryColor}`,
                         borderRadius: `${theme.borderRadius}px`,
-                        fontWeight: '600',
-                        cursor: isDisabled ? 'not-allowed' : 'pointer',
+                        cursor: 'pointer',
                         fontSize: `${theme.optionFontSize || 16}px`,
                       }}
                     >
-                      Successiva
+                      Precedente
                     </Button>
-                  );
-                }
-              })()}
+                    
+                    {(() => {
+                      const lastVisibleQuestionIndex = visibleQuestions.length > 0 
+                        ? form.questions.findIndex(q => q.id === visibleQuestions[visibleQuestions.length - 1])
+                        : -1;
+                      const isLastVisibleQuestion = currentStep === lastVisibleQuestionIndex && lastVisibleQuestionIndex !== -1;
+                      
+                      if (isLastVisibleQuestion) {
+                        return (
+                          <Button
+                            type="button"
+                            onClick={handleSubmit}
+                            disabled={submitting}
+                            className="px-5 py-2.5 text-sm sm:text-base font-semibold transition-all"
+                            style={{
+                              fontFamily: `"${theme.fontFamily}", sans-serif`,
+                              backgroundColor: theme.buttonStyle === 'filled' ? theme.primaryColor : 'transparent',
+                              color: theme.buttonTextColor || (theme.buttonStyle === 'filled' ? '#fff' : theme.primaryColor),
+                              border: theme.buttonStyle === 'outlined' ? `${Math.min(theme.borderWidth || 2, 2)}px solid ${theme.primaryColor}` : 'none',
+                              borderRadius: `${theme.borderRadius}px`,
+                              fontWeight: '600',
+                              fontSize: `${theme.optionFontSize || 16}px`,
+                            }}
+                          >
+                            {submitting ? 'Invio in corso...' : 'Invia Risposte'}
+                          </Button>
+                        );
+                      } else {
+                        const isDisabled = currentQuestion.required && !answers[currentQuestion.id];
+                        return (
+                          <Button
+                            type="button"
+                            onClick={nextStep}
+                            disabled={isDisabled}
+                            className="px-5 py-2.5 text-sm sm:text-base font-semibold transition-all"
+                            style={{
+                              fontFamily: `"${theme.fontFamily}", sans-serif`,
+                              backgroundColor: isDisabled
+                                ? (theme.disabledButtonColor || '#e5e7eb')
+                                : (theme.buttonStyle === 'filled' ? theme.primaryColor : 'transparent'),
+                              color: isDisabled
+                                ? '#9ca3af'
+                                : (theme.buttonTextColor || (theme.buttonStyle === 'filled' ? '#fff' : theme.primaryColor)),
+                              border: theme.buttonStyle === 'outlined' ? `${Math.min(theme.borderWidth || 2, 2)}px solid ${theme.primaryColor}` : 'none',
+                              borderRadius: `${theme.borderRadius}px`,
+                              fontWeight: '600',
+                              cursor: isDisabled ? 'not-allowed' : 'pointer',
+                              fontSize: `${theme.optionFontSize || 16}px`,
+                            }}
+                          >
+                            Successiva
+                          </Button>
+                        );
+                      }
+                    })()}
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </div>
-          </div>
+          </motion.div>
         ) : (
           <div className="p-6 rounded-md border-2 border-dashed border-gray-300 text-center">
             <p className="text-sm text-gray-500 font-medium">Nessuna domanda disponibile</p>
           </div>
         )}
-        
-        {/* Bottone Torna indietro - fuori dal contenitore della domanda */}
-        <div className="mt-12 mb-8 flex justify-start">
-          <Button
-            type="button"
-            variant="outline"
-            onClick={() => navigate(-1)}
-            className="px-6 py-2 transition-all flex items-center gap-2"
-            style={{
-              fontFamily: `"${theme.fontFamily}", sans-serif`,
-              backgroundColor: theme.navigationButtonBgColor || 'transparent',
-              color: theme.navigationButtonTextColor || theme.textColor,
-              border: `${theme.borderWidth || 1}px solid ${theme.navigationButtonBorderColor || theme.primaryColor}`,
-              borderRadius: `${theme.borderRadius}px`,
-              fontSize: `${theme.optionFontSize || 16}px`,
-              cursor: 'pointer',
-            }}
-          >
-            <ArrowLeft className="h-4 w-4" />
-            Torna indietro
-          </Button>
-        </div>
       </div>
     </div>
   );
