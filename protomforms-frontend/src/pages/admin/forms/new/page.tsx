@@ -9,7 +9,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
-import { PlusCircle, Save, ArrowLeft, Type, Check, FileText, Settings, Users, FileText as FileTextIcon, Palette, CalendarIcon } from 'lucide-react';
+import { PlusCircle, Save, ArrowLeft, Type, Check, FileText, Settings, Users, FileText as FileTextIcon, Palette, CalendarIcon, Sparkles } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { QuestionBuilder } from '@/components/form-builder/QuestionBuilder';
 import { toast } from 'sonner';
@@ -24,8 +24,10 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { format } from 'date-fns';
 import { it } from 'date-fns/locale';
 import { cn, authenticatedFetch } from '@/lib/utils';
+import { FlowiseChat } from '@/components/FlowiseChat';
 
 const steps = [
+  { id: 'ai', title: 'Utilizza AI', icon: Sparkles, description: 'Genera con intelligenza artificiale' },
   { id: 'details', title: 'Dettagli Base', icon: FileText, description: 'Informazioni principali' },
   { id: 'questions', title: 'Domande', icon: Type, description: 'Aggiungi le domande' },
   { id: 'customization', title: 'Personalizzazione', icon: Palette, description: 'Personalizza l\'aspetto' },
@@ -34,7 +36,7 @@ const steps = [
 
 export default function NewFormPage() {
   const navigate = useNavigate();
-  const [currentStep, setCurrentStep] = useState('details');
+  const [currentStep, setCurrentStep] = useState('ai');
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [type, setType] = useState<'SURVEY' | 'QUIZ'>('SURVEY');
@@ -76,6 +78,79 @@ export default function NewFormPage() {
 
   const handleAddQuestion = (type: QuestionType) => {
     setQuestions(prev => [...prev, createNewQuestion(type)]);
+  };
+
+  // Gestisce i dati generati dall'AI e popola i campi del form
+  const handleFormGenerated = (formData: any) => {
+    console.log('Form generato dall\'AI:', formData);
+    
+    // Popola i campi base
+    if (formData.title) {
+      setTitle(formData.title);
+    }
+    
+    if (formData.description) {
+      setDescription(formData.description);
+    }
+    
+    if (formData.type) {
+      setType(formData.type as 'SURVEY' | 'QUIZ');
+    }
+    
+    // Popola le impostazioni
+    if (formData.isAnonymous !== undefined) {
+      setIsAnonymous(formData.isAnonymous);
+    }
+    
+    if (formData.allowEdit !== undefined) {
+      setAllowEdit(formData.allowEdit);
+    }
+    
+    if (formData.showResults !== undefined) {
+      setShowResults(formData.showResults);
+    }
+    
+    if (formData.thankYouMessage) {
+      setThankYouMessage(formData.thankYouMessage);
+    }
+    
+    // Converti e popola le domande
+    if (formData.questions && Array.isArray(formData.questions)) {
+      const convertedQuestions: QuestionFormData[] = formData.questions.map((q: any) => {
+        // Converti le options in base al tipo
+        let options: any = undefined;
+        
+        if (q.type === 'MULTIPLE_CHOICE' && Array.isArray(q.options)) {
+          // MULTIPLE_CHOICE: options è un array di stringhe
+          options = q.options;
+        } else if ((q.type === 'RATING' || q.type === 'LIKERT' || q.type === 'NPS') && q.options) {
+          // RATING/LIKERT/NPS: options è un oggetto con scale e labels
+          options = q.options;
+        } else if (q.type === 'TEXT') {
+          // TEXT: options è null
+          options = undefined;
+        } else if (q.options) {
+          // Fallback: mantieni le options come sono
+          options = q.options;
+        }
+        
+        return {
+          id: uuidv4(),
+          type: q.type as QuestionType,
+          text: q.text || '',
+          required: q.required || false,
+          options: options,
+        } as QuestionFormData;
+      });
+      
+      setQuestions(convertedQuestions);
+    }
+    
+    // Mostra un toast di successo
+    toast.success('Form generato con successo! I campi sono stati popolati automaticamente.');
+    
+    // Passa automaticamente allo step "Dettagli Base" per mostrare i dati
+    setCurrentStep('details');
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -142,6 +217,8 @@ export default function NewFormPage() {
 
   const canProceed = () => {
     switch (currentStep) {
+      case 'ai':
+        return true; // L'AI è opzionale
       case 'details':
         return title.trim().length > 0;
       case 'questions':
@@ -277,6 +354,56 @@ export default function NewFormPage() {
           transition={{ delay: 0.2 }}
         >
           <AnimatePresence mode="wait">
+            {currentStep === 'ai' && (
+              <motion.div
+                key="ai"
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -20 }}
+                transition={{ duration: 0.3 }}
+              >
+                <Card className="border-0 shadow-sm">
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <Sparkles className="h-5 w-5 text-[#FFCD00]" />
+                      Genera Form con AI
+                    </CardTitle>
+                    <CardDescription>
+                      Utilizza l'intelligenza artificiale per generare automaticamente il tuo form
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-6">
+                    <div className="bg-gradient-to-r from-purple-50 to-blue-50 rounded-lg p-6 border border-purple-200">
+                      <div className="flex items-start gap-4 mb-4">
+                        <div className="flex-shrink-0">
+                          <Sparkles className="h-8 w-8 text-purple-600" />
+                        </div>
+                        <div className="flex-1">
+                          <h3 className="font-semibold text-lg text-gray-900 mb-2">
+                            Generazione Intelligente
+                          </h3>
+                          <p className="text-gray-600">
+                            Chatta con l'AI per generare automaticamente il tuo form. Descrivi il tipo di form che vuoi creare e l'AI ti aiuterà a creare titolo, descrizione e domande pertinenti.
+                          </p>
+                        </div>
+                      </div>
+                      
+                      <FlowiseChat 
+                        chatflowid="5085e329-84aa-4449-9751-b9272d53457d"
+                        onFormGenerated={handleFormGenerated}
+                      />
+                    </div>
+                    
+                    <div className="text-center py-4">
+                      <p className="text-sm text-gray-500">
+                        Oppure continua con la creazione manuale
+                      </p>
+                    </div>
+                  </CardContent>
+                </Card>
+              </motion.div>
+            )}
+
             {currentStep === 'details' && (
               <motion.div
                 key="details"
@@ -652,7 +779,7 @@ export default function NewFormPage() {
                 setCurrentStep(steps[currentIndex - 1].id);
               }
             }}
-            disabled={currentStep === 'details'}
+            disabled={currentStep === 'ai'}
           >
             <ArrowLeft className="h-4 w-4 mr-2" />
             Precedente

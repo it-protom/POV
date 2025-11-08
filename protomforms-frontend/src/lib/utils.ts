@@ -123,3 +123,46 @@ export function getPublicUrl() {
   // Fallback per SSR - controlla variabili d'ambiente
   return process.env.VITE_PUBLIC_URL || process.env.VITE_FRONTEND_URL || 'http://localhost:3000';
 }
+
+/**
+ * Ottiene l'URL dell'API Flowise
+ * @returns L'URL dell'API Flowise
+ */
+export function getFlowiseUrl(): string {
+  // Se siamo su pov.protom.com o agoexplorer.protom.com:8443, usa il proxy nginx
+  if (typeof window !== 'undefined') {
+    const hostname = window.location.hostname;
+    const port = window.location.port;
+    
+    // ProtomForms: usa pov.protom.com (qualsiasi porta)
+    if (hostname === 'pov.protom.com' || hostname.includes('pov.protom.com')) {
+      // Se siamo sulla porta 8443, usa quel proxy
+      if (port === '8443' || window.location.href.includes(':8443')) {
+        return `${window.location.protocol}//${hostname}:8443/protomforms-flowise/api/v1`;
+      }
+      // Altrimenti usa il proxy standard (se configurato su porta 443)
+      return `${window.location.protocol}//${hostname}/protomforms-flowise/api/v1`;
+    }
+    
+    // AGO Explorer sulla porta 8443 (configurazione temporanea)
+    if ((hostname === 'agoexplorer.protom.com' || hostname.includes('agoexplorer.protom.com')) && 
+        (port === '8443' || window.location.href.includes(':8443'))) {
+      return `${window.location.protocol}//${hostname}:8443/protomforms-flowise/api/v1`;
+    }
+  }
+  
+  // Preferisce FLOWISE_API_URL, poi FLOWISE_URL, poi fallback
+  const flowiseApiUrl = import.meta.env.VITE_FLOWISE_API_URL as string | undefined;
+  const flowiseUrl = import.meta.env.VITE_FLOWISE_URL as string | undefined;
+  
+  if (flowiseApiUrl) {
+    return flowiseApiUrl;
+  }
+  
+  if (flowiseUrl) {
+    return flowiseUrl;
+  }
+  
+  // Fallback di default
+  return 'http://172.16.30.15:4002';
+}

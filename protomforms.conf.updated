@@ -1,0 +1,177 @@
+# ============================================
+# PROTOMFORMS - Standalone Configuration
+# Accessible on port 8443 (OVH firewall open)
+# ============================================
+
+server {
+    listen 8443 ssl http2;
+    listen [::]:8443 ssl http2;
+    server_name 93.63.117.104 agoexplorer.protom.com;
+
+    # SSL Certificate (using AGO Explorer's cert)
+    ssl_certificate /etc/letsencrypt/live/agoexplorer.protom.com/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/agoexplorer.protom.com/privkey.pem;
+    include /etc/letsencrypt/options-ssl-nginx.conf;
+    ssl_dhparam /etc/letsencrypt/ssl-dhparams.pem;
+
+    # Charset UTF-8
+    charset utf-8;
+
+    # Client settings
+    client_max_body_size 100M;
+    client_header_buffer_size 16k;
+    large_client_header_buffers 4 32k;
+    client_body_buffer_size 128k;
+
+    # Timeouts
+    proxy_connect_timeout 600;
+    proxy_send_timeout 600;
+    proxy_read_timeout 600;
+    send_timeout 600;
+
+    # ============================================
+    # ProtomForms - Next.js Static Assets
+    # ============================================
+    location /_next/static/ {
+        proxy_pass http://127.0.0.1:3001/_next/static/;
+        proxy_http_version 1.1;
+
+        proxy_set_header Host $host;
+
+        # Cache static assets
+        add_header Cache-Control "public, max-age=31536000, immutable";
+    }
+
+    # ============================================
+    # ProtomForms - API Routes
+    # ============================================
+    location /api/ {
+        proxy_pass http://127.0.0.1:3001/api/;
+        proxy_http_version 1.1;
+
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+
+        # WebSocket support
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+
+        # No cache for API
+        add_header Cache-Control "no-cache, no-store, must-revalidate";
+    }
+
+    # ============================================
+    # FLOWISE PROTOMFORMS - API Proxy (NUOVO!)
+    # ============================================
+    # Proxy per Flowise API usato da ProtomForms
+    # Accesso: https://agoexplorer.protom.com:8443/protomforms-flowise/api/v1/
+    location /protomforms-flowise/api/v1/ {
+        proxy_pass http://127.0.0.1:4002/api/v1/;
+        proxy_http_version 1.1;
+        
+        # WebSocket support
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+        
+        # Headers
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        
+        # Timeouts
+        proxy_connect_timeout 600;
+        proxy_send_timeout 600;
+        proxy_read_timeout 600;
+        
+        # No cache for API
+        add_header Cache-Control "no-cache, no-store, must-revalidate";
+        
+        # CORS headers per ProtomForms
+        add_header 'Access-Control-Allow-Origin' 'https://agoexplorer.protom.com' always;
+        add_header 'Access-Control-Allow-Origin' 'https://agoexplorer.protom.com:8443' always;
+        add_header 'Access-Control-Allow-Methods' 'GET, POST, PUT, DELETE, PATCH, OPTIONS' always;
+        add_header 'Access-Control-Allow-Headers' 'Content-Type, Authorization, X-Requested-With' always;
+        add_header 'Access-Control-Allow-Credentials' 'true' always;
+        
+        # Handle OPTIONS preflight
+        if ($request_method = 'OPTIONS') {
+            add_header 'Access-Control-Allow-Origin' 'https://agoexplorer.protom.com';
+            add_header 'Access-Control-Allow-Origin' 'https://agoexplorer.protom.com:8443';
+            add_header 'Access-Control-Allow-Methods' 'GET, POST, PUT, DELETE, PATCH, OPTIONS';
+            add_header 'Access-Control-Allow-Headers' 'Content-Type, Authorization, X-Requested-With';
+            add_header 'Access-Control-Max-Age' 1728000;
+            add_header 'Content-Type' 'text/plain; charset=utf-8';
+            add_header 'Content-Length' 0;
+            return 204;
+        }
+    }
+    
+    # ============================================
+    # FLOWISE PROTOMFORMS - Assets statici
+    # ============================================
+    location /protomforms-flowise/assets/ {
+        proxy_pass http://127.0.0.1:4002/assets/;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        
+        # Cache
+        expires 1y;
+        add_header Cache-Control "public, immutable";
+    }
+    
+    location /protomforms-flowise/static/ {
+        proxy_pass http://127.0.0.1:4002/static/;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        
+        # Cache
+        expires 1y;
+        add_header Cache-Control "public, immutable";
+    }
+
+    # ============================================
+    # ProtomForms - Main Application (catch-all)
+    # ============================================
+    location / {
+        proxy_pass http://127.0.0.1:3001/;
+        proxy_http_version 1.1;
+
+        # WebSocket support
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+
+        # Headers
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header X-Forwarded-Host $host;
+        proxy_set_header X-Forwarded-Port $server_port;
+
+        # Buffering
+        proxy_buffering off;
+        proxy_request_buffering off;
+
+        # Cache control
+        add_header Cache-Control "public, max-age=3600";
+    }
+
+    # ============================================
+    # Health Check
+    # ============================================
+    location /health {
+        access_log off;
+        return 200 "ProtomForms - Healthy\n";
+        add_header Content-Type text/plain;
+    }
+}
+
