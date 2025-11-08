@@ -613,6 +613,9 @@ async function generateDashboardStats(formId: string | null = null) {
     .map(([hour, responses]) => ({ hour, responses }))
     .sort((a, b) => a.hour.localeCompare(b.hour));
 
+  // Analizza le risposte per ogni form
+  const answerStatistics = await generateAnswerStatistics(formId);
+
   return {
     stats: [
       {
@@ -656,6 +659,290 @@ async function generateDashboardStats(formId: string | null = null) {
     performanceData,
     categoryDistribution,
     deviceData,
-    hourlyActivity
+    hourlyActivity,
+    answerStatistics
   };
+}
+
+async function generateAnswerStatistics(formId: string | null = null) {
+  // Recupera i form da analizzare
+  const formsToAnalyze = formId && formId !== 'all'
+    ? await prisma.form.findMany({
+        where: { id: formId },
+        include: {
+          questions: {
+            include: {
+              answers: {
+                include: {
+                  response: {
+                    include: {
+                      user: {
+                        select: {
+                          id: true,
+                          name: true,
+                          email: true
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            orderBy: { order: 'asc' }
+          }
+        }
+      })
+    : await prisma.form.findMany({
+        include: {
+          questions: {
+            include: {
+              answers: {
+                include: {
+                  response: {
+                    include: {
+                      user: {
+                        select: {
+                          id: true,
+                          name: true,
+                          email: true
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            orderBy: { order: 'asc' }
+          }
+        }
+      });
+
+  const formStatistics = [];
+
+  for (const form of formsToAnalyze) {
+    const questionStats = [];
+
+    for (const question of form.questions) {
+      const answers = question.answers;
+      
+      if (answers.length === 0) {
+        continue; // Salta domande senza risposte
+      }
+
+      let stats: any = {
+        questionId: question.id,
+        questionText: question.text,
+        questionType: question.type,
+        totalAnswers: answers.length,
+        isAnonymous: form.isAnonymous
+      };
+
+      // Analizza in base al tipo di domanda
+      if (question.type === 'RATING' || question.type === 'LIKERT' || question.type === 'NPS') {
+        // Per domande di rating (1-10, 1-5, ecc.)
+        const ratingCounts: Record<string, { count: number; users: Array<{ name: string; email: string }> }> = {};
+        
+        answers.forEach(answer => {
+          let value: number | null = null;
+          
+          if (typeof answer.value === 'number') {
+            value = answer.value;
+          } else if (typeof answer.value === 'string') {
+            const parsed = parseFloat(answer.value);
+            if (!isNaN(parsed)) {
+              value = parsed;
+            }
+          } else if (Array.isArray(answer.value) && answer.value.length > 0) {
+            const first = answer.value[0];
+            if (typeof first === 'number') {
+              value = first;
+            } else if (typeof first === 'string') {
+              const parsed = parseFloat(first);
+              if (!isNaN(parsed)) {
+                value = parsed;
+              }
+            }
+          }
+          
+          if (value !== null) {
+            const key = Math.round(value).toString();
+            if (!ratingCounts[key]) {
+              ratingCounts[key] = { count: 0, users: [] };
+            }
+            ratingCounts[key].count++;
+            
+            // Aggiungi info utente se form non anonimo (evita duplicati)
+            if (!form.isAnonymous && answer.response?.user) {
+              const userName = answer.response.user.name || 'Utente';
+              const userEmail = answer.response.user.email || '';
+              
+              // Evita duplicati controllando se l'utente è già presente (per email)
+              const userExists = ratingCounts[key].users.some(u => u.email === userEmail && userEmail !== '');
+              if (!userExists && userEmail) {
+                ratingCounts[key].users.push({
+                  name: userName,
+                  email: userEmail
+                });
+              }
+            }
+          }
+        });
+
+        // Converti in array ordinato
+        stats.ratingDistribution = Object.entries(ratingCounts)
+          .map(([value, data]) => ({
+            value: parseInt(value),
+            count: data.count,
+            percentage: Math.round((data.count / answers.length) * 100),
+            users: form.isAnonymous ? undefined : data.users
+          }))
+          .sort((a, b) => a.value - b.value);
+
+      } else if (question.type === 'MULTIPLE_CHOICE') {
+        // Per domande multiple choice (incluso sì/no)
+        const optionCounts: Record<string, { count: number; users: Array<{ name: string; email: string }> }> = {};
+        
+        // Controlla se è una domanda sì/no
+        const options = question.options as any;
+        const isYesNo = options && Array.isArray(options) && 
+          options.length === 2 && 
+          ((options.includes('Sì') || options.includes('Si') || options.includes('Yes')) &&
+           (options.includes('No') || options.includes('NO')));
+        
+        answers.forEach(answer => {
+          let values: string[] = [];
+          
+          if (Array.isArray(answer.value)) {
+            values = answer.value.map(v => String(v));
+          } else if (typeof answer.value === 'string') {
+            values = [answer.value];
+          } else if (typeof answer.value === 'object' && answer.value !== null) {
+            values = Object.values(answer.value).map(v => String(v));
+          } else {
+            values = [String(answer.value)];
+          }
+          
+          values.forEach(value => {
+            const normalizedValue = value.trim();
+            if (normalizedValue) {
+              if (!optionCounts[normalizedValue]) {
+                optionCounts[normalizedValue] = { count: 0, users: [] };
+              }
+              optionCounts[normalizedValue].count++;
+              
+              // Aggiungi info utente se form non anonimo (evita duplicati)
+              if (!form.isAnonymous && answer.response?.user) {
+                const userEmail = answer.response.user.email || '';
+                
+                // Evita duplicati controllando se l'utente è già presente
+                const userExists = optionCounts[normalizedValue].users.some(u => u.email === userEmail && userEmail !== '');
+                if (!userExists) {
+                  optionCounts[normalizedValue].users.push({
+                    name: answer.response.user.name || 'Utente',
+                    email: userEmail
+                  });
+                }
+              }
+            }
+          });
+        });
+
+        // Converti in array ordinato per frequenza
+        stats.optionDistribution = Object.entries(optionCounts)
+          .map(([option, data]) => ({
+            option,
+            count: data.count,
+            percentage: Math.round((data.count / answers.length) * 100),
+            users: form.isAnonymous ? undefined : data.users
+          }))
+          .sort((a, b) => b.count - a.count);
+
+        stats.isYesNo = isYesNo;
+
+      } else if (question.type === 'TEXT') {
+        // Per domande aperte con testo
+        const textAnswersWithUsers = answers
+          .map(a => {
+            let text: string | null = null;
+            if (typeof a.value === 'string') {
+              text = a.value.trim();
+            } else if (Array.isArray(a.value) && a.value.length > 0) {
+              text = String(a.value[0]).trim();
+            } else if (typeof a.value === 'object' && a.value !== null) {
+              const firstValue = Object.values(a.value)[0];
+              text = String(firstValue).trim();
+            }
+            
+            if (text && text.length > 0) {
+              return {
+                text,
+                user: !form.isAnonymous && a.response?.user ? {
+                  name: a.response.user.name || 'Utente',
+                  email: a.response.user.email || ''
+                } : undefined
+              };
+            }
+            return null;
+          })
+          .filter((v): v is { text: string; user?: { name: string; email: string } } => v !== null);
+
+        const textAnswers = textAnswersWithUsers.map(ta => ta.text);
+
+        // Conta le risposte più comuni (per risposte brevi)
+        const answerCounts: Record<string, { count: number; users: Array<{ name: string; email: string }> }> = {};
+        textAnswersWithUsers.forEach(({ text, user }) => {
+          // Normalizza la risposta (case-insensitive, rimuovi spazi extra)
+          const normalized = text.toLowerCase().trim();
+          if (normalized.length > 0 && normalized.length < 100) {
+            // Solo per risposte brevi, conta le occorrenze esatte
+            if (!answerCounts[normalized]) {
+              answerCounts[normalized] = { count: 0, users: [] };
+            }
+            answerCounts[normalized].count++;
+            
+            // Aggiungi info utente se form non anonimo (evita duplicati)
+            if (user) {
+              const userExists = answerCounts[normalized].users.some(u => u.email === user.email && user.email !== '');
+              if (!userExists) {
+                answerCounts[normalized].users.push(user);
+              }
+            }
+          }
+        });
+
+        // Prendi le top 10 risposte più comuni
+        const topAnswers = Object.entries(answerCounts)
+          .map(([answer, data]) => ({
+            answer,
+            count: data.count,
+            percentage: Math.round((data.count / textAnswers.length) * 100),
+            users: form.isAnonymous ? undefined : data.users
+          }))
+          .sort((a, b) => b.count - a.count)
+          .slice(0, 10);
+
+        stats.textAnalysis = {
+          totalTextAnswers: textAnswers.length,
+          topAnswers: topAnswers.length > 0 ? topAnswers : null,
+          averageLength: textAnswers.length > 0 
+            ? Math.round(textAnswers.reduce((sum, a) => sum + a.length, 0) / textAnswers.length)
+            : 0
+        };
+      }
+
+      if (stats.ratingDistribution || stats.optionDistribution || stats.textAnalysis) {
+        questionStats.push(stats);
+      }
+    }
+
+    if (questionStats.length > 0) {
+      formStatistics.push({
+        formId: form.id,
+        formTitle: form.title,
+        questions: questionStats
+      });
+    }
+  }
+
+  return formStatistics;
 } 

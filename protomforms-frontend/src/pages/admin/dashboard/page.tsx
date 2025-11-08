@@ -74,6 +74,41 @@ interface ChartData {
   completion: number;
 }
 
+interface AnswerStatistics {
+  formId: string;
+  formTitle: string;
+  questions: Array<{
+    questionId: string;
+    questionText: string;
+    questionType: string;
+    totalAnswers: number;
+    isAnonymous?: boolean;
+    ratingDistribution?: Array<{
+      value: number;
+      count: number;
+      percentage: number;
+      users?: Array<{ name: string; email: string }>;
+    }>;
+    optionDistribution?: Array<{
+      option: string;
+      count: number;
+      percentage: number;
+      users?: Array<{ name: string; email: string }>;
+    }>;
+    isYesNo?: boolean;
+    textAnalysis?: {
+      totalTextAnswers: number;
+      topAnswers: Array<{
+        answer: string;
+        count: number;
+        percentage: number;
+        users?: Array<{ name: string; email: string }>;
+      }> | null;
+      averageLength: number;
+    };
+  }>;
+}
+
 interface DashboardData {
   stats: DashboardStats[];
   chartData: ChartData[];
@@ -94,6 +129,7 @@ interface DashboardData {
     answersCount: number;
     totalQuestions: number;
   }>;
+  answerStatistics?: AnswerStatistics[];
 }
 
 export default function DashboardPage() {
@@ -102,6 +138,7 @@ export default function DashboardPage() {
   const [dashboardData, setDashboardData] = useState<DashboardData | null>(null);
   const [availableForms, setAvailableForms] = useState<Array<{ id: string; title: string }>>([]);
   const [expandedCards, setExpandedCards] = useState<{ [key: string]: boolean }>({});
+  const [expandedUsers, setExpandedUsers] = useState<{ [key: string]: boolean }>({});
   
   // Filtri e paginazione per la tabella utenti
   const [searchTerm, setSearchTerm] = useState('');
@@ -195,6 +232,7 @@ export default function DashboardPage() {
   const deviceData = dashboardData?.deviceData || [];
   const completionData = dashboardData?.completionData || [];
   const allUserCompletionDetails = dashboardData?.userCompletionDetails || [];
+  const answerStatistics = dashboardData?.answerStatistics || [];
   
   // Filtraggio e paginazione
   const filteredUsers = allUserCompletionDetails.filter(user => {
@@ -290,27 +328,27 @@ export default function DashboardPage() {
 
         {/* Key Metrics */}
         {stats.length > 0 ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6 mb-8">
-            {stats.map((stat, index) => {
-              // Determina l'URL in base al titolo
-              let href: string | undefined;
-              if (stat.title === "Forms Totali") {
-                href = "/admin/forms";
-              } else if (stat.title === "Risposte Totali") {
-                href = "/admin/responses";
-              } else if (stat.title === "Utenti Attivi") {
-                href = "/admin/users";
-              }
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 lg:gap-6 mb-8">
+            {stats
+              .filter(stat => stat.title === "Forms Totali" || stat.title === "Risposte Totali")
+              .map((stat, index) => {
+                // Determina l'URL in base al titolo
+                let href: string | undefined;
+                if (stat.title === "Forms Totali") {
+                  href = "/admin/forms";
+                } else if (stat.title === "Risposte Totali") {
+                  href = "/admin/responses";
+                }
 
-              return (
-              <MetricCard
-                key={stat.title}
-                {...stat}
-                index={index}
-                  href={href}
-              />
-              );
-            })}
+                return (
+                  <MetricCard
+                    key={stat.title}
+                    {...stat}
+                    index={index}
+                    href={href}
+                  />
+                );
+              })}
           </div>
         ) : (
           <div className="mb-8">
@@ -320,6 +358,218 @@ export default function DashboardPage() {
               </CardContent>
             </Card>
           </div>
+        )}
+
+        {/* Answer Statistics - Classifica Risposte */}
+        {answerStatistics.length > 0 ? (
+          <Card className="border-0 shadow-sm mb-8">
+            <CardHeader>
+              <CardTitle>Classifica Risposte</CardTitle>
+              <CardDescription>
+                {selectedFormId === 'all' 
+                  ? `Analisi delle risposte per ${answerStatistics.length} form`
+                  : `Analisi delle risposte per il form selezionato`
+                }
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-6 max-h-[600px] overflow-y-auto">
+                {answerStatistics.map((formStat) => (
+                  <div key={formStat.formId} className="border-b border-gray-200 pb-4 last:border-0">
+                    <h3 className="font-semibold text-sm text-gray-900 mb-3">{formStat.formTitle}</h3>
+                    <div className="space-y-4">
+                      {formStat.questions.map((question) => (
+                        <div key={question.questionId} className="space-y-2">
+                          <p className="text-xs font-medium text-gray-700">{question.questionText}</p>
+                          
+                          {/* Rating Distribution */}
+                          {question.ratingDistribution && question.ratingDistribution.length > 0 && (
+                            <div className="space-y-1">
+                              {question.ratingDistribution.map((rating) => (
+                                <div key={rating.value} className="space-y-1">
+                                  <div className="flex items-center gap-2">
+                                    <span className="text-xs text-gray-600 w-8">{rating.value}</span>
+                                    <div className="flex-1 h-4 bg-gray-200 rounded-full overflow-hidden">
+                                      <div 
+                                        className="h-full bg-[#FFCD00] transition-all"
+                                        style={{ width: `${rating.percentage}%` }}
+                                      />
+                                    </div>
+                                    <span className="text-xs text-gray-500 w-12 text-right">
+                                      {rating.count} ({rating.percentage}%)
+                                    </span>
+                                  </div>
+                                  {!question.isAnonymous && rating.users && rating.users.length > 0 && (
+                                    <div className="ml-10 text-xs text-gray-500">
+                                      {(() => {
+                                        const userKey = `${question.questionId}-rating-${rating.value}`;
+                                        const isExpanded = expandedUsers[userKey];
+                                        const usersToShow = isExpanded ? rating.users : rating.users.slice(0, 3);
+                                        
+                                        return (
+                                          <>
+                                            {usersToShow.map((user, uIdx) => (
+                                              <span key={uIdx} className="inline-block mr-2">
+                                                {user.name}{uIdx < usersToShow.length - 1 ? ',' : ''}
+                                              </span>
+                                            ))}
+                                            {rating.users.length > 3 && (
+                                              <button
+                                                onClick={() => setExpandedUsers(prev => ({
+                                                  ...prev,
+                                                  [userKey]: !prev[userKey]
+                                                }))}
+                                                className="text-blue-600 hover:text-blue-800 underline ml-1"
+                                              >
+                                                {isExpanded ? 'Mostra meno' : `+${rating.users.length - 3} altri`}
+                                              </button>
+                                            )}
+                                          </>
+                                        );
+                                      })()}
+                                    </div>
+                                  )}
+                                </div>
+                              ))}
+                            </div>
+                          )}
+
+                          {/* Option Distribution (Multiple Choice / Yes-No) */}
+                          {question.optionDistribution && question.optionDistribution.length > 0 && (
+                            <div className="space-y-1">
+                              {question.optionDistribution.map((option, idx) => (
+                                <div key={idx} className="space-y-1">
+                                  <div className="flex items-center gap-2">
+                                    <span className="text-xs text-gray-600 flex-1 truncate">{option.option}</span>
+                                    <div className="flex-1 h-4 bg-gray-200 rounded-full overflow-hidden">
+                                      <div 
+                                        className={`h-full transition-all ${
+                                          question.isYesNo 
+                                            ? (option.option.toLowerCase().includes('sì') || option.option.toLowerCase().includes('si') || option.option.toLowerCase().includes('yes')
+                                                ? 'bg-green-500' : 'bg-red-500')
+                                            : 'bg-[#FFCD00]'
+                                        }`}
+                                        style={{ width: `${option.percentage}%` }}
+                                      />
+                                    </div>
+                                    <span className="text-xs text-gray-500 w-12 text-right">
+                                      {option.count} ({option.percentage}%)
+                                    </span>
+                                  </div>
+                                  {!question.isAnonymous && option.users && option.users.length > 0 && (
+                                    <div className="ml-2 text-xs text-gray-500">
+                                      {(() => {
+                                        const userKey = `${question.questionId}-option-${idx}`;
+                                        const isExpanded = expandedUsers[userKey];
+                                        const usersToShow = isExpanded ? option.users : option.users.slice(0, 3);
+                                        
+                                        return (
+                                          <>
+                                            {usersToShow.map((user, uIdx) => (
+                                              <span key={uIdx} className="inline-block mr-2">
+                                                {user.name}{uIdx < usersToShow.length - 1 ? ',' : ''}
+                                              </span>
+                                            ))}
+                                            {option.users.length > 3 && (
+                                              <button
+                                                onClick={() => setExpandedUsers(prev => ({
+                                                  ...prev,
+                                                  [userKey]: !prev[userKey]
+                                                }))}
+                                                className="text-blue-600 hover:text-blue-800 underline ml-1"
+                                              >
+                                                {isExpanded ? 'Mostra meno' : `+${option.users.length - 3} altri`}
+                                              </button>
+                                            )}
+                                          </>
+                                        );
+                                      })()}
+                                    </div>
+                                  )}
+                                </div>
+                              ))}
+                            </div>
+                          )}
+
+                          {/* Text Analysis */}
+                          {question.textAnalysis && (
+                            <div className="space-y-2">
+                              <div className="text-xs text-gray-500">
+                                {question.textAnalysis.totalTextAnswers} risposte • 
+                                Lunghezza media: {question.textAnalysis.averageLength} caratteri
+                              </div>
+                              {question.textAnalysis.topAnswers && question.textAnalysis.topAnswers.length > 0 && (
+                                <div className="space-y-1">
+                                  <p className="text-xs font-medium text-gray-600">Risposte più comuni:</p>
+                                  {question.textAnalysis.topAnswers.slice(0, 5).map((topAnswer, idx) => (
+                                    <div key={idx} className="space-y-1">
+                                      <div className="flex items-center justify-between text-xs">
+                                        <span className="text-gray-700 flex-1 truncate">{topAnswer.answer}</span>
+                                        <span className="text-gray-500 ml-2">
+                                          {topAnswer.count} ({topAnswer.percentage}%)
+                                        </span>
+                                      </div>
+                                      {!question.isAnonymous && topAnswer.users && topAnswer.users.length > 0 && (
+                                        <div className="ml-2 text-xs text-gray-500">
+                                          {(() => {
+                                            const userKey = `${question.questionId}-text-${idx}`;
+                                            const isExpanded = expandedUsers[userKey];
+                                            const usersToShow = isExpanded ? topAnswer.users : topAnswer.users.slice(0, 3);
+                                            
+                                            return (
+                                              <>
+                                                {usersToShow.map((user, uIdx) => (
+                                                  <span key={uIdx} className="inline-block mr-2">
+                                                    {user.name}{uIdx < usersToShow.length - 1 ? ',' : ''}
+                                                  </span>
+                                                ))}
+                                                {topAnswer.users.length > 3 && (
+                                                  <button
+                                                    onClick={() => setExpandedUsers(prev => ({
+                                                      ...prev,
+                                                      [userKey]: !prev[userKey]
+                                                    }))}
+                                                    className="text-blue-600 hover:text-blue-800 underline ml-1"
+                                                  >
+                                                    {isExpanded ? 'Mostra meno' : `+${topAnswer.users.length - 3} altri`}
+                                                  </button>
+                                                )}
+                                              </>
+                                            );
+                                          })()}
+                                        </div>
+                                      )}
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+                {answerStatistics.length === 0 && (
+                  <p className="text-sm text-gray-500 text-center py-4">
+                    Nessuna risposta disponibile per l'analisi
+                  </p>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        ) : (
+          <Card className="border-0 shadow-sm mb-8">
+            <CardHeader>
+              <CardTitle>Classifica Risposte</CardTitle>
+              <CardDescription>Analisi delle risposte per ogni form</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <p className="text-sm text-gray-500 text-center py-8">
+                Nessuna risposta disponibile per l'analisi
+              </p>
+            </CardContent>
+          </Card>
         )}
 
         {/* Main Charts with Improved Visuals */}
@@ -414,64 +664,71 @@ export default function DashboardPage() {
 
           {/* Completion Analysis */}
           {completionData && completionData.length > 0 ? (
-            <div className="space-y-4">
-              <AccessibleChart
-                title="Distribuzione Completamento"
-                description={selectedFormId !== 'all' ? "Stato completamento utenti" : "Stato delle risposte"}
-                data={completionData}
-                showLegend={true}
-                showTable={allUserCompletionDetails.length === 0}
-                ariaLabel="Grafico a torta che mostra la distribuzione dello stato di completamento"
-                legendProps={{
-                  payload: completionData.map(item => ({
-                    value: item.name,
-                    color: item.name.includes('Completato') ? chartColors.status.completed :
-                           item.name.includes('Parziali') ? chartColors.status.partial :
-                           item.name.includes('Non Hanno') ? chartColors.status.abandoned :
-                           item.name === 'Completate' ? chartColors.status.completed :
-                           item.name === 'Abbandonate' ? chartColors.status.abandoned :
-                           chartColors.status.partial
-                  }))
-                }}
-              >
-                <ResponsiveContainer width="100%" height="100%">
-                  <PieChart>
-                    <Pie
-                      data={completionData}
-                      cx="50%"
-                      cy="50%"
-                      innerRadius={chartPresets.pie.innerRadius}
-                      outerRadius={chartPresets.pie.outerRadius}
-                      paddingAngle={chartPresets.pie.paddingAngle}
-                      dataKey="value"
-                      label={({ name, percentage, value }) => {
-                        const pct = percentage || Math.round((value / completionData.reduce((sum, d) => sum + d.value, 0)) * 100);
-                        return pct > 5 ? `${name.split(' ')[0]} ${pct}%` : '';
-                      }}
-                      labelLine={false}
-                      fontSize={10}
-                    >
-                      {completionData.map((entry, index) => (
-                        <Cell 
-                          key={`cell-${index}`} 
-                          fill={
-                            entry.name.includes('Completato') ? chartColors.status.completed :
-                            entry.name.includes('Parziali') ? chartColors.status.partial :
-                            entry.name.includes('Non Hanno') ? chartColors.status.abandoned :
-                            entry.name === 'Completate' ? chartColors.status.completed :
-                            entry.name === 'Abbandonate' ? chartColors.status.abandoned :
-                            chartColors.status.partial
-                          } 
-                        />
-                      ))}
-                    </Pie>
-                    <Tooltip content={<PerformanceTooltip />} />
-                  </PieChart>
-                </ResponsiveContainer>
-              </AccessibleChart>
-              
-              {/* Tabella dettagli */}
-              {allUserCompletionDetails.length > 0 ? (
+            <AccessibleChart
+              title="Distribuzione Completamento"
+              description={selectedFormId !== 'all' ? "Stato completamento utenti" : "Stato delle risposte"}
+              data={completionData}
+              showLegend={true}
+              showTable={allUserCompletionDetails.length === 0}
+              ariaLabel="Grafico a torta che mostra la distribuzione dello stato di completamento"
+              legendProps={{
+                payload: completionData.map(item => ({
+                  value: item.name,
+                  color: item.name.includes('Completato') ? chartColors.status.completed :
+                         item.name.includes('Parziali') ? chartColors.status.partial :
+                         item.name.includes('Non Hanno') ? chartColors.status.abandoned :
+                         item.name === 'Completate' ? chartColors.status.completed :
+                         item.name === 'Abbandonate' ? chartColors.status.abandoned :
+                         chartColors.status.partial
+                }))
+              }}
+            >
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie
+                    data={completionData}
+                    cx="50%"
+                    cy="50%"
+                    innerRadius={chartPresets.pie.innerRadius}
+                    outerRadius={chartPresets.pie.outerRadius}
+                    paddingAngle={chartPresets.pie.paddingAngle}
+                    dataKey="value"
+                    label={({ name, percentage, value }) => {
+                      const pct = percentage || Math.round((value / completionData.reduce((sum, d) => sum + d.value, 0)) * 100);
+                      return pct > 5 ? `${name.split(' ')[0]} ${pct}%` : '';
+                    }}
+                    labelLine={false}
+                    fontSize={10}
+                  >
+                    {completionData.map((entry, index) => (
+                      <Cell 
+                        key={`cell-${index}`} 
+                        fill={
+                          entry.name.includes('Completato') ? chartColors.status.completed :
+                          entry.name.includes('Parziali') ? chartColors.status.partial :
+                          entry.name.includes('Non Hanno') ? chartColors.status.abandoned :
+                          entry.name === 'Completate' ? chartColors.status.completed :
+                          entry.name === 'Abbandonate' ? chartColors.status.abandoned :
+                          chartColors.status.partial
+                        } 
+                      />
+                    ))}
+                  </Pie>
+                  <Tooltip content={<PerformanceTooltip />} />
+                </PieChart>
+              </ResponsiveContainer>
+            </AccessibleChart>
+          ) : (
+            <NoDataChart 
+              title="Distribuzione Completamento"
+              description="Stato delle risposte"
+              height={350}
+            />
+          )}
+        </div>
+
+        {/* Tabella dettagli utenti - Larghezza piena */}
+        {allUserCompletionDetails.length > 0 && completionData && completionData.length > 0 ? (
                 <Card>
                   <CardHeader>
                     <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
@@ -898,126 +1155,8 @@ export default function DashboardPage() {
                   </CardContent>
                 </Card>
               ) : null}
-            </div>
-          ) : (
-            <NoDataChart 
-              title="Distribuzione Completamento"
-              description="Stato delle risposte"
-              height={350}
-            />
-          )}
-        </div>
 
-        {/* Secondary Charts */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Device Distribution */}
-          <AccessibleChart
-            title="Distribuzione Dispositivi"
-            description="Accessi per tipo di dispositivo"
-            data={deviceData}
-            showLegend={true}
-            showTable={true}
-            ariaLabel="Grafico a barre che mostra la distribuzione degli accessi per tipo di dispositivo"
-            legendProps={{
-              payload: [
-                { value: 'Desktop', color: chartColors.devices.desktop },
-                { value: 'Mobile', color: chartColors.devices.mobile },
-                { value: 'Tablet', color: chartColors.devices.tablet }
-              ]
-            }}
-          >
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={deviceData}>
-                <CartesianGrid {...axisConfig.gridStyle} />
-                <XAxis 
-                  dataKey="device" 
-                  {...axisConfig.style}
-                  tick={{ fontSize: 10, fill: axisConfig.tickStyle.color }}
-                  height={50}
-                  tickMargin={8}
-                />
-                <YAxis 
-                  {...axisConfig.style}
-                  tick={{ fontSize: 10, fill: axisConfig.tickStyle.color }}
-                  width={50}
-                  tickMargin={8}
-                />
-                <Tooltip content={<DeviceTooltip />} />
-                <Bar 
-                  dataKey="count" 
-                  fill={chartColors.secondary.blue}
-                  radius={chartPresets.bar.radius}
-                  maxBarSize={chartPresets.bar.maxBarSize}
-                />
-              </BarChart>
-            </ResponsiveContainer>
-          </AccessibleChart>
-
-          {/* Performance Metrics */}
-          <AccessibleChart
-            title="Metriche Performance"
-            description="Soddisfazione e engagement"
-            data={chartData}
-            showLegend={true}
-            showTable={true}
-            ariaLabel="Grafico lineare che mostra le metriche di performance nel tempo"
-            legendProps={{
-              payload: [
-                { value: 'Soddisfazione', color: chartColors.primary.gold },
-                { value: 'Engagement', color: chartColors.secondary.green },
-                { value: 'Completamento', color: chartColors.secondary.blue }
-              ]
-            }}
-                  >
-                    <ResponsiveContainer width="100%" height="100%">
-                      <LineChart data={chartData}>
-                <CartesianGrid {...axisConfig.gridStyle} />
-                <XAxis 
-                  dataKey="name" 
-                  {...axisConfig.style}
-                  tick={{ fontSize: 10, fill: axisConfig.tickStyle.color }}
-                  height={50}
-                  interval="preserveStartEnd"
-                  tickMargin={8}
-                />
-                <YAxis 
-                  {...axisConfig.style}
-                  tick={{ fontSize: 10, fill: axisConfig.tickStyle.color }}
-                  width={50}
-                  tickMargin={8}
-                />
-                <Tooltip content={<PerformanceTooltip />} />
-                        <Line 
-                          type="monotone" 
-                          dataKey="satisfaction" 
-                  stroke={chartColors.primary.gold}
-                  strokeWidth={chartPresets.line.strokeWidth}
-                  dot={chartPresets.line.dot}
-                  activeDot={chartPresets.line.activeDot}
-                          name="Soddisfazione"
-                        />
-                        <Line 
-                          type="monotone" 
-                          dataKey="engagement" 
-                  stroke={chartColors.secondary.green}
-                  strokeWidth={chartPresets.line.strokeWidth}
-                  dot={chartPresets.line.dot}
-                  activeDot={chartPresets.line.activeDot}
-                          name="Engagement"
-                        />
-                <Line 
-                  type="monotone" 
-                  dataKey="completion" 
-                  stroke={chartColors.secondary.blue}
-                  strokeWidth={chartPresets.line.strokeWidth}
-                  dot={chartPresets.line.dot}
-                  activeDot={chartPresets.line.activeDot}
-                  name="Completamento"
-                        />
-                      </LineChart>
-                    </ResponsiveContainer>
-          </AccessibleChart>
-            </div>
+        {/* Secondary Charts - Removed Performance Metrics */}
       </div>
     </motion.div>
   );
