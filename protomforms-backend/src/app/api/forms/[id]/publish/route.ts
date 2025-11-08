@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
-import { notifyNewFormCreated } from '@/lib/teams-notification';
+import { notifyNewFormCreated, sendTeamsNotification } from '@/lib/teams-notification';
 
 export async function POST(
   request: NextRequest,
@@ -100,11 +100,15 @@ export async function POST(
     // Verifica se il form era già pubblicato prima
     const wasAlreadyPublished = form.isPublic && form.status === 'PUBLISHED';
 
-    // Leggi il body per vedere se inviare il webhook
+    // Leggi il body per vedere se inviare il webhook e se ci sono titolo/messaggio personalizzati
     let sendWebhook = false;
+    let customTitle: string | undefined;
+    let customText: string | undefined;
     try {
       const body = await request.json();
       sendWebhook = body.sendWebhook === true;
+      customTitle = body.title;
+      customText = body.text;
     } catch (e) {
       // Se non c'è body o è malformato, non inviare webhook (comportamento predefinito)
       console.log('⚠️ Nessun body nella richiesta o body malformato, webhook non verrà inviato');
@@ -149,11 +153,24 @@ export async function POST(
     // 3. L'utente ha esplicitamente richiesto di inviare il webhook
     if (!wasAlreadyPublished && userRole === 'ADMIN' && sendWebhook) {
       try {
-        const notificationSent = await notifyNewFormCreated(
-          updatedForm.id,
-          updatedForm.title,
-          updatedForm.owner?.name || updatedForm.owner?.email || 'Admin'
-        );
+        const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
+        const formUrl = `${frontendUrl}/forms/${updatedForm.id}`;
+        
+        // Usa titolo e messaggio personalizzati se forniti, altrimenti usa i valori di default
+        const notificationTitle = customTitle || 'Nuovo Form Pubblicato';
+        const notificationText = customText || `${updatedForm.owner?.name || updatedForm.owner?.email || 'Admin'} ha pubblicato un nuovo form: ${updatedForm.title}`;
+        
+        const notificationSent = await sendTeamsNotification({
+          title: notificationTitle,
+          text: notificationText,
+          themeColor: 'FFD700', // Colore giallo Protom
+          potentialAction: [
+            {
+              name: 'Compila Form',
+              target: formUrl
+            }
+          ]
+        });
         
         if (notificationSent) {
           // Aggiorna lo stato della notifica nel database

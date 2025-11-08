@@ -91,10 +91,16 @@ export default function FormDetailPage() {
   const [teamsTitle, setTeamsTitle] = useState('');
   const [teamsText, setTeamsText] = useState('');
   const [isSendingTeams, setIsSendingTeams] = useState(false);
+  const [isPublishDialogOpen, setIsPublishDialogOpen] = useState(false);
+  const [publishTitle, setPublishTitle] = useState('');
+  const [publishText, setPublishText] = useState('');
+  const [publishFocusedField, setPublishFocusedField] = useState<'title' | 'text' | null>(null);
   const [focusedField, setFocusedField] = useState<'title' | 'text' | null>(null);
   const [selectedEmojiCategory, setSelectedEmojiCategory] = useState<string>('piu-utilizzate');
+  const [publishSelectedEmojiCategory, setPublishSelectedEmojiCategory] = useState<string>('piu-utilizzate');
   const [mostUsedEmojis, setMostUsedEmojis] = useState<string[]>([]);
   const categorySliderRef = useRef<HTMLDivElement>(null);
+  const publishCategorySliderRef = useRef<HTMLDivElement>(null);
   const { toast, toasts } = useToast();
 
   // Carica le emoji più utilizzate dal localStorage
@@ -231,7 +237,7 @@ export default function FormDetailPage() {
   const StatusIcon = statusConfig[status].icon;
   const stats = calculateStats(form);
 
-  const handlePublish = async (sendWebhook: boolean = false) => {
+  const handlePublish = async (sendWebhook: boolean = false, customTitle?: string, customText?: string) => {
     if (!form) return;
     
     try {
@@ -241,7 +247,11 @@ export default function FormDetailPage() {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ sendWebhook }),
+        body: JSON.stringify({ 
+          sendWebhook,
+          title: customTitle,
+          text: customText
+        }),
       });
 
       if (response.ok) {
@@ -290,6 +300,14 @@ export default function FormDetailPage() {
     setTeamsTitle('Nuovo Form Creato');
     setTeamsText(`${form.owner?.name || 'Utente'} ha creato un nuovo form: ${form.title}`);
     setIsTeamsDialogOpen(true);
+  };
+
+  const handleOpenPublishDialog = () => {
+    if (!form) return;
+    // Imposta i valori di default
+    setPublishTitle('🎉 Nuovo Form Pubblicato');
+    setPublishText(`${form.owner?.name || 'Utente'} ha pubblicato un nuovo form: ${form.title}`);
+    setIsPublishDialogOpen(true);
   };
 
   const handleSendTeamsNotification = async () => {
@@ -417,6 +435,54 @@ export default function FormDetailPage() {
     }
   };
 
+  const insertPublishEmoji = (emoji: string, event?: React.MouseEvent) => {
+    // Previeni il blur del campo quando si clicca sull'emoji
+    if (event) {
+      event.preventDefault();
+      event.stopPropagation();
+    }
+
+    // Traccia l'utilizzo dell'emoji
+    trackEmojiUsage(emoji);
+
+    // Se un campo è selezionato, inserisci l'emoji direttamente
+    if (publishFocusedField === 'title') {
+      const input = document.getElementById('publish-title') as HTMLInputElement;
+      if (input) {
+        const start = input.selectionStart || 0;
+        const end = input.selectionEnd || 0;
+        const newValue = publishTitle.substring(0, start) + emoji + publishTitle.substring(end);
+        setPublishTitle(newValue);
+        
+        requestAnimationFrame(() => {
+          input.focus();
+          const newPosition = start + emoji.length;
+          input.setSelectionRange(newPosition, newPosition);
+          setPublishFocusedField('title');
+        });
+      }
+    } else if (publishFocusedField === 'text') {
+      const textarea = document.getElementById('publish-text') as HTMLTextAreaElement;
+      if (textarea) {
+        const start = textarea.selectionStart || 0;
+        const end = textarea.selectionEnd || 0;
+        const newValue = publishText.substring(0, start) + emoji + publishText.substring(end);
+        setPublishText(newValue);
+        
+        requestAnimationFrame(() => {
+          textarea.focus();
+          const newPosition = start + emoji.length;
+          textarea.setSelectionRange(newPosition, newPosition);
+          setPublishFocusedField('text');
+        });
+      }
+    } else {
+      navigator.clipboard.writeText(emoji).catch((error) => {
+        console.error('Errore nella copia:', error);
+      });
+    }
+  };
+
   const scrollCategorySlider = (direction: 'left' | 'right') => {
     if (categorySliderRef.current) {
       const scrollAmount = 200; // Quantità di scroll in pixel
@@ -426,6 +492,21 @@ export default function FormDetailPage() {
         : currentScroll + scrollAmount;
       
       categorySliderRef.current.scrollTo({
+        left: newScroll,
+        behavior: 'smooth'
+      });
+    }
+  };
+
+  const scrollPublishCategorySlider = (direction: 'left' | 'right') => {
+    if (publishCategorySliderRef.current) {
+      const scrollAmount = 200;
+      const currentScroll = publishCategorySliderRef.current.scrollLeft;
+      const newScroll = direction === 'left' 
+        ? currentScroll - scrollAmount 
+        : currentScroll + scrollAmount;
+      
+      publishCategorySliderRef.current.scrollTo({
         left: newScroll,
         behavior: 'smooth'
       });
@@ -497,7 +578,7 @@ export default function FormDetailPage() {
                     <Button
                       onClick={() => {
                         setShowWebhookDialog(false);
-                        handlePublish(true);
+                        handleOpenPublishDialog();
                       }}
                       disabled={isPublishing}
                       className="bg-green-600 hover:bg-green-700"
@@ -1128,6 +1209,238 @@ export default function FormDetailPage() {
                     className="h-4 w-4 mr-2"
                   />
                   Pubblica
+                </>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Dialog Pubblica e invia notifica */}
+      <Dialog open={isPublishDialogOpen} onOpenChange={setIsPublishDialogOpen}>
+        <DialogContent className="sm:max-w-[650px] max-w-[95vw] max-h-[90vh] overflow-hidden border-green-600 border-2 flex flex-col p-0">
+          <DialogHeader className="border-b border-green-600/20 pb-4 px-6 pt-6 flex-shrink-0">
+            <DialogTitle className="flex items-center gap-2 text-green-600">
+              <CheckCircle className="h-5 w-5" />
+              Pubblica e invia notifica
+            </DialogTitle>
+            <DialogDescription className="text-gray-600 text-sm">
+              Personalizza il titolo e il messaggio della notifica che verrà inviata al canale Teams.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4 px-6 overflow-y-auto flex-1 min-h-0">
+            <div className="space-y-2">
+              <Label htmlFor="publish-title" className="text-gray-700 font-medium">
+                Titolo
+                <span className="text-xs text-gray-500 ml-2">(puoi usare emoji 🎉 📋 ✨)</span>
+              </Label>
+              <Input
+                id="publish-title"
+                value={publishTitle}
+                onChange={(e) => setPublishTitle(e.target.value)}
+                onFocus={(e) => {
+                  setPublishFocusedField('title');
+                  const input = e.target as HTMLInputElement;
+                  input.setSelectionRange(input.selectionStart || 0, input.selectionEnd || 0);
+                }}
+                onBlur={(e) => {
+                  const relatedTarget = e.relatedTarget as HTMLElement;
+                  if (!relatedTarget || !relatedTarget.closest('.emoji-button')) {
+                    setTimeout(() => {
+                      const input = document.getElementById('publish-title') as HTMLInputElement;
+                      if (input && document.activeElement !== input) {
+                        setPublishFocusedField(null);
+                      }
+                    }, 300);
+                  }
+                }}
+                placeholder="Es: 🎉 Nuovo Form Pubblicato"
+                className="focus:border-green-600 focus:ring-green-600"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="publish-text" className="text-gray-700 font-medium">
+                Messaggio
+                <span className="text-xs text-gray-500 ml-2">(puoi usare emoji 📝 ✅ 🚀)</span>
+              </Label>
+              <Textarea
+                id="publish-text"
+                value={publishText}
+                onChange={(e) => setPublishText(e.target.value)}
+                onFocus={() => setPublishFocusedField('text')}
+                onBlur={(e) => {
+                  const relatedTarget = e.relatedTarget as HTMLElement;
+                  if (!relatedTarget || !relatedTarget.closest('.emoji-button')) {
+                    setTimeout(() => setPublishFocusedField(null), 200);
+                  }
+                }}
+                placeholder="Es: 📝 [Nome] ha pubblicato un nuovo form: [Titolo] ✅"
+                rows={4}
+                className="focus:border-green-600 focus:ring-green-600"
+              />
+            </div>
+            <div className="bg-green-50 border border-green-200 rounded-md p-2.5 text-xs text-green-700">
+              <p className="font-medium mb-1.5 text-xs">💡 Suggerimento:</p>
+              <p className="mb-2.5 text-xs leading-tight">
+                {publishFocusedField 
+                  ? `Clicca su un'emoji per inserirla nel campo ${publishFocusedField === 'title' ? 'Titolo' : 'Messaggio'}:`
+                  : 'Clicca su un\'emoji per copiarla negli appunti (o seleziona un campo per inserirla direttamente):'
+                }
+              </p>
+              
+              {/* Categorie Emoji - Slider */}
+              <div className="mb-2.5 relative flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => scrollPublishCategorySlider('left')}
+                  className="flex-shrink-0 bg-white border border-green-200 rounded-full p-1 shadow-md hover:bg-green-50 hover:border-green-600 transition-all z-10 h-7 w-7 flex items-center justify-center"
+                  aria-label="Scorri a sinistra"
+                >
+                  <ChevronLeft className="h-3.5 w-3.5 text-green-600" />
+                </button>
+                <div 
+                  ref={publishCategorySliderRef}
+                  className="flex gap-1.5 overflow-x-hidden pb-1.5 scrollbar-hide flex-1 items-center"
+                >
+                  {[
+                    { 
+                      id: 'piu-utilizzate', 
+                      name: '⭐ Più utilizzate', 
+                      emojis: mostUsedEmojis.length > 0 
+                        ? mostUsedEmojis 
+                        : ['✅', '❌', '👍', '👎', '❤️', '🎉', '🔥', '💯', '🚀', '✨', '💡', '📝', '📋', '📊', '📈', '🎯', '⭐', '💬', '🔔', '📢'] 
+                    },
+                    { id: 'celebrazioni', name: '🎉 Celebrazioni', emojis: ['🎉', '🎊', '🎈', '🎁', '🎂', '🍾', '🥳', '🎆', '🎇', '✨', '🎪', '🎭', '🎨', '🎬', '🎤', '🎧', '🎵', '🎶', '🎸', '🎹'] },
+                    { id: 'documenti', name: '📋 Documenti', emojis: ['📋', '📝', '📄', '📑', '📊', '📈', '📉', '📌', '📍', '📎', '📏', '📐', '📒', '📓', '📔', '📕', '📗', '📘', '📙', '📚'] },
+                    { id: 'check', name: '✅ Check', emojis: ['✅', '✔️', '✓', '☑️', '✓️', '👌', '👍', '🎯', '⭐', '🌟', '💫', '✨', '💯', '🔥', '💪', '👏', '🙌', '🤝', '🤲', '✋'] },
+                    { id: 'comunicazione', name: '💬 Comunicazione', emojis: ['💬', '📢', '🔔', '📣', '📮', '✉️', '📧', '💌', '📨', '📩', '📤', '📥', '📦', '📫', '📪', '📬', '📭', '📯', '📰', '📻'] },
+                    { id: 'tecnologia', name: '💻 Tecnologia', emojis: ['🚀', '💡', '⚡', '🔥', '💻', '📱', '🖥️', '⌨️', '🖱️', '💾', '💿', '📀', '🖨️', '🖲️', '🖱', '⌚', '📟', '📠', '☎️', '📞'] },
+                    { id: 'persone', name: '👥 Persone', emojis: ['👥', '👤', '👨‍💼', '👩‍💼', '🤝', '👫', '👬', '👭', '👯', '👨‍👩‍👧', '👨‍👩‍👧‍👦', '👨‍👩‍👦‍👦', '👨‍👩‍👧‍👧', '👨‍👨‍👦', '👨‍👨‍👧', '👩‍👩‍👦', '👩‍👩‍👧', '👨‍👦', '👨‍👧', '👩‍👦'] },
+                    { id: 'frecce', name: '➡️ Frecce', emojis: ['➡️', '⬅️', '⬆️', '⬇️', '↗️', '↘️', '↔️', '↕️', '🔄', '🔁', '⏩', '⏪', '⏫', '⏬', '🔀', '🔂', '🔃', '🔄', '🔁', '▶️'] },
+                    { id: 'oggetti', name: '🔍 Oggetti', emojis: ['🔍', '🔎', '📌', '📎', '📏', '📐', '✂️', '📦', '📬', '📭', '🗂️', '📁', '📂', '🗂', '🗄️', '🗃️', '🗳️', '🗞️', '📰', '📄'] },
+                    { id: 'emozioni', name: '😊 Emozioni', emojis: ['😊', '😃', '😄', '😁', '😆', '😅', '🤣', '😂', '🙂', '😉', '😍', '🥰', '😘', '😗', '😙', '😚', '☺️', '🙃', '😋', '😛'] },
+                    { id: 'successo', name: '🏆 Successo', emojis: ['🏆', '🥇', '🥈', '🥉', '🎖️', '🏅', '🎗️', '🎖', '👑', '💎', '💍', '🌹', '🥀', '🌺', '🌻', '🌷', '🌼', '🌸', '💐', '🌾'] },
+                    { id: 'tempo', name: '⏰ Tempo', emojis: ['⏰', '⏱️', '⏲️', '🕐', '📅', '📆', '🗓️', '📆', '🗂️', '📁', '🕑', '🕒', '🕓', '🕔', '🕕', '🕖', '🕗', '🕘', '🕙', '🕚'] },
+                    { id: 'sicurezza', name: '🔐 Sicurezza', emojis: ['🔐', '🔒', '🔓', '🔑', '🗝️', '💼', '👜', '🎒', '📿', '📿', '🔒', '🔓', '🔏', '🔐', '🔑', '🗝️', '🔓', '🔐', '🔒', '🔓'] },
+                    { id: 'cibo', name: '🍕 Cibo', emojis: ['🍕', '🍔', '🍟', '🌭', '🍿', '🧂', '🥓', '🥚', '🍳', '🥞', '🥐', '🥨', '🧀', '🥖', '🥨', '🥯', '🥞', '🧇', '🥓', '🥩'] },
+                    { id: 'natura', name: '🌍 Natura', emojis: ['🌍', '🌎', '🌏', '🌐', '🗺️', '🧭', '🏔️', '⛰️', '🌋', '🗻', '🏕️', '🏖️', '🏜️', '🏝️', '🏞️', '🏟️', '🏛️', '🏗️', '🧱', '🏘️'] },
+                    { id: 'sport', name: '⚽ Sport', emojis: ['⚽', '🏀', '🏈', '⚾', '🥎', '🎾', '🏐', '🏉', '🥏', '🎱', '🏓', '🏸', '🥅', '🏒', '🏑', '🏏', '🥍', '🏹', '🎣', '🥊'] },
+                    { id: 'trasporti', name: '🚗 Trasporti', emojis: ['🚗', '🚕', '🚙', '🚌', '🚎', '🏎️', '🚓', '🚑', '🚒', '🚐', '🚚', '🚛', '🚜', '🛴', '🚲', '🛵', '🏍️', '🚨', '🚔', '🚍'] },
+                    { id: 'luoghi', name: '🏠 Luoghi', emojis: ['🏠', '🏡', '🏘️', '🏚️', '🏗️', '🏭', '🏢', '🏬', '🏣', '🏤', '🏥', '🏦', '🏨', '🏪', '🏫', '🏩', '💒', '🏛️', '⛪', '🕌'] },
+                    { id: 'simboli', name: '❤️ Simboli', emojis: ['❤️', '🧡', '💛', '💚', '💙', '💜', '🖤', '🤍', '🤎', '💔', '❣️', '💕', '💞', '💓', '💗', '💖', '💘', '💝', '💟', '☮️'] },
+                    { id: 'numeri', name: '0️⃣ Numeri', emojis: ['0️⃣', '1️⃣', '2️⃣', '3️⃣', '4️⃣', '5️⃣', '6️⃣', '7️⃣', '8️⃣', '9️⃣', '🔟', '🔢', '#️⃣', '*️⃣', '0️⃣', '1️⃣', '2️⃣', '3️⃣', '4️⃣', '5️⃣'] },
+                    { id: 'forme', name: '🔴 Forme', emojis: ['🔴', '🟠', '🟡', '🟢', '🔵', '🟣', '⚫', '⚪', '🟤', '🔶', '🔷', '🔸', '🔹', '🔺', '🔻', '💠', '🔘', '🔳', '🔲', '▪️'] },
+                    { id: 'giochi', name: '🎯 Giochi', emojis: ['🎯', '🎲', '🎮', '🕹️', '🎰', '🧩', '♠️', '♥️', '♦️', '♣️', '🃏', '🀄', '🎴', '🎭', '🖼️', '🎨', '🧵', '🧶', '🪡', '🪢'] }
+                  ].map((category) => (
+                    <button
+                      key={category.id}
+                      type="button"
+                      onClick={() => setPublishSelectedEmojiCategory(category.id)}
+                      className={`flex-shrink-0 px-2.5 py-1.5 rounded-md text-xs font-semibold transition-all duration-200 whitespace-nowrap border ${
+                        publishSelectedEmojiCategory === category.id
+                          ? 'bg-green-600 text-white shadow-md border-green-600'
+                          : 'bg-white text-gray-700 hover:bg-green-50 border-green-200 hover:border-green-600/50'
+                      }`}
+                    >
+                      {category.name}
+                    </button>
+                  ))}
+                </div>
+                <button
+                  type="button"
+                  onClick={() => scrollPublishCategorySlider('right')}
+                  className="flex-shrink-0 bg-white border border-green-200 rounded-full p-1 shadow-md hover:bg-green-50 hover:border-green-600 transition-all z-10 h-7 w-7 flex items-center justify-center"
+                  aria-label="Scorri a destra"
+                >
+                  <ChevronRight className="h-3.5 w-3.5 text-green-600" />
+                </button>
+              </div>
+
+              {/* Emoji della categoria selezionata */}
+              <div 
+                key={publishSelectedEmojiCategory}
+                className="max-h-36 overflow-y-auto overflow-x-hidden"
+                style={{
+                  scrollbarWidth: 'thin',
+                  scrollbarColor: '#86efac #dcfce7'
+                }}
+              >
+                <div className="flex flex-wrap gap-1.5">
+                  {[
+                    { 
+                      id: 'piu-utilizzate', 
+                      emojis: mostUsedEmojis.length > 0 
+                        ? mostUsedEmojis 
+                        : ['✅', '❌', '👍', '👎', '❤️', '🎉', '🔥', '💯', '🚀', '✨', '💡', '📝', '📋', '📊', '📈', '🎯', '⭐', '💬', '🔔', '📢'] 
+                    },
+                    { id: 'celebrazioni', emojis: ['🎉', '🎊', '🎈', '🎁', '🎂', '🍾', '🥳', '🎆', '🎇', '✨', '🎪', '🎭', '🎨', '🎬', '🎤', '🎧', '🎵', '🎶', '🎸', '🎹'] },
+                    { id: 'documenti', emojis: ['📋', '📝', '📄', '📑', '📊', '📈', '📉', '📌', '📍', '📎', '📏', '📐', '📒', '📓', '📔', '📕', '📗', '📘', '📙', '📚'] },
+                    { id: 'check', emojis: ['✅', '✔️', '✓', '☑️', '✓️', '👌', '👍', '🎯', '⭐', '🌟', '💫', '✨', '💯', '🔥', '💪', '👏', '🙌', '🤝', '🤲', '✋'] },
+                    { id: 'comunicazione', emojis: ['💬', '📢', '🔔', '📣', '📮', '✉️', '📧', '💌', '📨', '📩', '📤', '📥', '📦', '📫', '📪', '📬', '📭', '📯', '📰', '📻'] },
+                    { id: 'tecnologia', emojis: ['🚀', '💡', '⚡', '🔥', '💻', '📱', '🖥️', '⌨️', '🖱️', '💾', '💿', '📀', '🖨️', '🖲️', '🖱', '⌚', '📟', '📠', '☎️', '📞'] },
+                    { id: 'persone', emojis: ['👥', '👤', '👨‍💼', '👩‍💼', '🤝', '👫', '👬', '👭', '👯', '👨‍👩‍👧', '👨‍👩‍👧‍👦', '👨‍👩‍👦‍👦', '👨‍👩‍👧‍👧', '👨‍👨‍👦', '👨‍👨‍👧', '👩‍👩‍👦', '👩‍👩‍👧', '👨‍👦', '👨‍👧', '👩‍👦'] },
+                    { id: 'frecce', emojis: ['➡️', '⬅️', '⬆️', '⬇️', '↗️', '↘️', '↔️', '↕️', '🔄', '🔁', '⏩', '⏪', '⏫', '⏬', '🔀', '🔂', '🔃', '🔄', '🔁', '▶️'] },
+                    { id: 'oggetti', emojis: ['🔍', '🔎', '📌', '📎', '📏', '📐', '✂️', '📦', '📬', '📭', '🗂️', '📁', '📂', '🗂', '🗄️', '🗃️', '🗳️', '🗞️', '📰', '📄'] },
+                    { id: 'emozioni', emojis: ['😊', '😃', '😄', '😁', '😆', '😅', '🤣', '😂', '🙂', '😉', '😍', '🥰', '😘', '😗', '😙', '😚', '☺️', '🙃', '😋', '😛'] },
+                    { id: 'successo', emojis: ['🏆', '🥇', '🥈', '🥉', '🎖️', '🏅', '🎗️', '🎖', '👑', '💎', '💍', '🌹', '🥀', '🌺', '🌻', '🌷', '🌼', '🌸', '💐', '🌾'] },
+                    { id: 'tempo', emojis: ['⏰', '⏱️', '⏲️', '🕐', '📅', '📆', '🗓️', '📆', '🗂️', '📁', '🕑', '🕒', '🕓', '🕔', '🕕', '🕖', '🕗', '🕘', '🕙', '🕚'] },
+                    { id: 'sicurezza', emojis: ['🔐', '🔒', '🔓', '🔑', '🗝️', '💼', '👜', '🎒', '📿', '📿', '🔒', '🔓', '🔏', '🔐', '🔑', '🗝️', '🔓', '🔐', '🔒', '🔓'] },
+                    { id: 'cibo', emojis: ['🍕', '🍔', '🍟', '🌭', '🍿', '🧂', '🥓', '🥚', '🍳', '🥞', '🥐', '🥨', '🧀', '🥖', '🥨', '🥯', '🥞', '🧇', '🥓', '🥩'] },
+                    { id: 'natura', emojis: ['🌍', '🌎', '🌏', '🌐', '🗺️', '🧭', '🏔️', '⛰️', '🌋', '🗻', '🏕️', '🏖️', '🏜️', '🏝️', '🏞️', '🏟️', '🏛️', '🏗️', '🧱', '🏘️'] },
+                    { id: 'sport', emojis: ['⚽', '🏀', '🏈', '⚾', '🥎', '🎾', '🏐', '🏉', '🥏', '🎱', '🏓', '🏸', '🥅', '🏒', '🏑', '🏏', '🥍', '🏹', '🎣', '🥊'] },
+                    { id: 'trasporti', emojis: ['🚗', '🚕', '🚙', '🚌', '🚎', '🏎️', '🚓', '🚑', '🚒', '🚐', '🚚', '🚛', '🚜', '🛴', '🚲', '🛵', '🏍️', '🚨', '🚔', '🚍'] },
+                    { id: 'luoghi', emojis: ['🏠', '🏡', '🏘️', '🏚️', '🏗️', '🏭', '🏢', '🏬', '🏣', '🏤', '🏥', '🏦', '🏨', '🏪', '🏫', '🏩', '💒', '🏛️', '⛪', '🕌'] },
+                    { id: 'simboli', emojis: ['❤️', '🧡', '💛', '💚', '💙', '💜', '🖤', '🤍', '🤎', '💔', '❣️', '💕', '💞', '💓', '💗', '💖', '💘', '💝', '💟', '☮️'] },
+                    { id: 'numeri', emojis: ['0️⃣', '1️⃣', '2️⃣', '3️⃣', '4️⃣', '5️⃣', '6️⃣', '7️⃣', '8️⃣', '9️⃣', '🔟', '🔢', '#️⃣', '*️⃣', '0️⃣', '1️⃣', '2️⃣', '3️⃣', '4️⃣', '5️⃣'] },
+                    { id: 'forme', emojis: ['🔴', '🟠', '🟡', '🟢', '🔵', '🟣', '⚫', '⚪', '🟤', '🔶', '🔷', '🔸', '🔹', '🔺', '🔻', '💠', '🔘', '🔳', '🔲', '▪️'] },
+                    { id: 'giochi', emojis: ['🎯', '🎲', '🎮', '🕹️', '🎰', '🧩', '♠️', '♥️', '♦️', '♣️', '🃏', '🀄', '🎴', '🎭', '🖼️', '🎨', '🧵', '🧶', '🪡', '🪢'] }
+                  ].find(cat => cat.id === publishSelectedEmojiCategory)?.emojis.map((emoji, index) => (
+                    <button
+                      key={`publish-${publishSelectedEmojiCategory}-${emoji}-${index}`}
+                      type="button"
+                      onMouseDown={(e) => {
+                        e.preventDefault();
+                        insertPublishEmoji(emoji, e);
+                      }}
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                      }}
+                      className="emoji-button text-2xl hover:scale-125 transition-transform cursor-pointer p-1.5 rounded hover:bg-green-100 active:scale-110"
+                      title={`Clicca per ${publishFocusedField ? 'inserire' : 'copiare'} ${emoji}`}
+                    >
+                      {emoji}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+          <DialogFooter className="border-t border-green-600/20 pt-4 px-6 pb-6 flex-shrink-0">
+            <Button
+              variant="outline"
+              onClick={() => setIsPublishDialogOpen(false)}
+              disabled={isPublishing}
+            >
+              Annulla
+            </Button>
+            <Button
+              className="bg-green-600 hover:bg-green-700 text-white"
+              onClick={() => {
+                setIsPublishDialogOpen(false);
+                handlePublish(true, publishTitle, publishText);
+              }}
+              disabled={isPublishing || !publishTitle.trim() || !publishText.trim()}
+            >
+              {isPublishing ? (
+                <>
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                  Pubblicazione in corso...
+                </>
+              ) : (
+                <>
+                  <CheckCircle className="h-4 w-4 mr-2" />
+                  Pubblica e invia notifica
                 </>
               )}
             </Button>
