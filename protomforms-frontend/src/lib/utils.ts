@@ -137,8 +137,8 @@ export function getFlowiseUrl(): string {
     // ProtomForms: usa pov.protom.com (qualsiasi porta)
     if (hostname === 'pov.protom.com' || hostname.includes('pov.protom.com')) {
       // Se siamo sulla porta 8443, usa quel proxy
-      if (port === '8443' || window.location.href.includes(':8443')) {
-        return `${window.location.protocol}//${hostname}:8443/protomforms-flowise/api/v1`;
+      if (port === '8444' || window.location.href.includes(':8444')) {
+        return `${window.location.protocol}//${hostname}:8444/protomforms-flowise/api/v1`;
       }
       // Altrimenti usa il proxy standard (se configurato su porta 443)
       return `${window.location.protocol}//${hostname}/protomforms-flowise/api/v1`;

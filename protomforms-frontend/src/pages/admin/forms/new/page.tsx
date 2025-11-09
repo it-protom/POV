@@ -389,7 +389,7 @@ export default function NewFormPage() {
                       </div>
                       
                       <FlowiseChat 
-                        chatflowid="5085e329-84aa-4449-9751-b9272d53457d"
+                        chatflowid="b1d6d758-d8c4-4ac9-b023-5791c4939217"
                         onFormGenerated={handleFormGenerated}
                       />
                     </div>
