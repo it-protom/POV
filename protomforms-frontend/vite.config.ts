@@ -62,6 +62,23 @@ export default defineConfig({
         // Non riscrivere i redirect (NextAuth gestisce i suoi redirect)
         rewrite: (path) => path,
       },
+      // Proxy per Flowise quando si è su localhost
+      '/protomforms-flowise': {
+        target: 'https://pov.protom.com',
+        changeOrigin: true,
+        secure: true,
+        ws: false,
+        configure: (proxy, _options) => {
+          proxy.on('proxyReq', (proxyReq, req, res) => {
+            // Log per debugging
+            console.log('🔄 Proxying Flowise request:', req.url);
+          });
+          proxy.on('error', (err, req, res) => {
+            console.error('Flowise proxy error:', err);
+          });
+        },
+        rewrite: (path) => path,
+      },
     },
   },
 })

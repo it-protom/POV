@@ -1,0 +1,43 @@
+# ============================================
+# n8n - Local Development Docker Compose
+# Access at: http://localhost:5678
+# ============================================
+
+services:
+  # n8n Workflow Automation Platform
+  n8n:
+    image: docker.n8n.io/n8nio/n8n:latest
+    container_name: n8n
+    environment:
+      - N8N_BASIC_AUTH_ACTIVE=true
+      - N8N_BASIC_AUTH_USER=${N8N_USER:-admin}
+      - N8N_BASIC_AUTH_PASSWORD=${N8N_PASSWORD:-admin}
+      - N8N_HOST=localhost
+      - N8N_PORT=5678
+      - N8N_PROTOCOL=http
+      - WEBHOOK_URL=http://localhost:5678/
+      - GENERIC_TIMEZONE=Europe/Rome
+      - TZ=Europe/Rome
+      - NODE_ENV=production
+    ports:
+      - "5678:5678"
+    volumes:
+      - n8n_data:/home/node/.n8n
+    restart: unless-stopped
+    networks:
+      - n8n-network
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:5678/healthz"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+volumes:
+  n8n_data:
+    driver: local
+
+networks:
+  n8n-network:
+    driver: bridge
+

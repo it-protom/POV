@@ -51,7 +51,30 @@ export async function GET(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
     
-    if (!session) {
+    let userId: string | null = null;
+    let userRole: string | null = null;
+    
+    // Try to get user from session first
+    if (session?.user?.id) {
+      userId = session.user.id;
+      userRole = (session.user as any).role;
+    } else {
+      // Fallback: try to get userId from header (for custom auth flow)
+      const userIdHeader = request.headers.get('x-user-id');
+      if (userIdHeader) {
+        userId = userIdHeader;
+        // Fetch user role from database
+        const user = await prisma.user.findUnique({
+          where: { id: userId },
+          select: { role: true }
+        });
+        if (user) {
+          userRole = user.role;
+        }
+      }
+    }
+    
+    if (!userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
@@ -93,8 +116,8 @@ export async function GET(request: NextRequest) {
     }
 
     // Se l'utente non è admin, mostra solo i form di cui è proprietario
-    if (session.user.role !== 'ADMIN') {
-      where.ownerId = session.user.id;
+    if (userRole !== 'ADMIN') {
+      where.ownerId = userId;
     }
 
     const forms = await prisma.form.findMany({

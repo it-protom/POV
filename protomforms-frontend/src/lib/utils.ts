@@ -136,12 +136,16 @@ export function getFlowiseUrl(): string {
     
     // ProtomForms: usa pov.protom.com (qualsiasi porta)
     if (hostname === 'pov.protom.com' || hostname.includes('pov.protom.com')) {
-      // Se siamo sulla porta 8443, usa quel proxy
+      // Se siamo sulla porta 8444, usa quel proxy
       if (port === '8444' || window.location.href.includes(':8444')) {
-        return `${window.location.protocol}//${hostname}:8444/protomforms-flowise/api/v1`;
+        const url = `${window.location.protocol}//${hostname}:8444/protomforms-flowise/api/v1`;
+        console.log('🔵 Flowise URL per pov.protom.com:8444:', url);
+        return url;
       }
       // Altrimenti usa il proxy standard (se configurato su porta 443)
-      return `${window.location.protocol}//${hostname}/protomforms-flowise/api/v1`;
+      const url = `${window.location.protocol}//${hostname}/protomforms-flowise/api/v1`;
+      console.log('🔵 Flowise URL per pov.protom.com:', url);
+      return url;
     }
     
     // AGO Explorer sulla porta 8443 (configurazione temporanea)
@@ -151,18 +155,36 @@ export function getFlowiseUrl(): string {
     }
   }
   
-  // Preferisce FLOWISE_API_URL, poi FLOWISE_URL, poi fallback
+  // Preferisce FLOWISE_API_URL, poi FLOWISE_URL dalle variabili d'ambiente
   const flowiseApiUrl = import.meta.env.VITE_FLOWISE_API_URL as string | undefined;
   const flowiseUrl = import.meta.env.VITE_FLOWISE_URL as string | undefined;
   
   if (flowiseApiUrl) {
+    console.log('🔵 Flowise URL da VITE_FLOWISE_API_URL:', flowiseApiUrl);
     return flowiseApiUrl;
   }
   
   if (flowiseUrl) {
+    console.log('🔵 Flowise URL da VITE_FLOWISE_URL:', flowiseUrl);
     return flowiseUrl;
   }
   
-  // Fallback di default - usa protomforms-flowise sulla porta 4005
-  return 'http://172.16.30.15:4005';
+  // Fallback di default - usa pov.protom.com in produzione, altrimenti localhost
+  if (typeof window !== 'undefined') {
+    // Se siamo in sviluppo locale, usa il proxy Vite (percorso relativo)
+    if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+      const url = '/protomforms-flowise/api/v1';
+      console.log('🔵 Flowise URL per localhost (proxy Vite):', url);
+      return url;
+    }
+    // Altrimenti usa pov.protom.com
+    const url = 'https://pov.protom.com/protomforms-flowise/api/v1';
+    console.log('🔵 Flowise URL fallback (pov.protom.com):', url);
+    return url;
+  }
+  
+  // Per SSR o altri casi, usa pov.protom.com
+  const url = 'https://pov.protom.com/protomforms-flowise/api/v1';
+  console.log('🔵 Flowise URL SSR fallback (pov.protom.com):', url);
+  return url;
 }

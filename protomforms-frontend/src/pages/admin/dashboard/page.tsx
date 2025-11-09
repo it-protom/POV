@@ -45,6 +45,7 @@ import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels';
 import { MetricCard } from '../../../components/dashboard/MetricCard';
 import { ChartCard } from '../../../components/dashboard/ChartCard';
 import { SimpleLoader } from '../../../components/SimpleLoader';
+import { FormAnalysisReportCard } from '../../../components/FormAnalysisReportCard';
 
 // Import new chart system
 import { chartColors, tooltipConfig, legendConfig, axisConfig, chartPresets, getChartColor } from '../../../lib/chart-colors';
@@ -325,6 +326,22 @@ export default function DashboardPage() {
             </div>
           </div>
         </motion.div>
+
+        {/* Form Analysis Report Card - Mostrata quando un form è selezionato */}
+        {selectedFormId && selectedFormId !== 'all' && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.1 }}
+            className="mb-8"
+          >
+            <FormAnalysisReportCard
+              formId={selectedFormId}
+              formTitle={availableForms.find(f => f.id === selectedFormId)?.title || 'Form'}
+              agentflowId="9a96c980-b7a2-48af-ae0b-5b17b8daa9bb"
+            />
+          </motion.div>
+        )}
 
         {/* Key Metrics */}
         {stats.length > 0 ? (
@@ -1155,6 +1172,7 @@ export default function DashboardPage() {
                   </CardContent>
                 </Card>
               ) : null}
+
 
         {/* Secondary Charts - Removed Performance Metrics */}
       </div>
