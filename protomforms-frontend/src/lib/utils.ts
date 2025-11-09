@@ -163,6 +163,6 @@ export function getFlowiseUrl(): string {
     return flowiseUrl;
   }
   
-  // Fallback di default - usa protomforms-flowise sulla porta 4004
-  return 'http://172.16.30.15:4004';
+  // Fallback di default - usa protomforms-flowise sulla porta 4005
+  return 'http://172.16.30.15:4005';
 }
