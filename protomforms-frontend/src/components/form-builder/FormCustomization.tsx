@@ -1178,6 +1178,11 @@ export function FormCustomization({
                   <div className="relative z-10 space-y-4">
                     {/* Renderizza gli elementi in base all'ordine del layout */}
                     {getLayoutOrder().map((element) => {
+                  // Non mostrare mai titolo e descrizione nelle card di anteprima
+                  if (element === 'title' || element === 'description') {
+                    return null;
+                  }
+                  
                   // Render Logo e Titolo insieme se sono nella stessa posizione
                   if (element === 'logo' || element === 'title') {
                     const logoPosition = theme.logoPosition || 'left';

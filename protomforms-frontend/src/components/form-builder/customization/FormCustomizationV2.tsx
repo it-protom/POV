@@ -594,53 +594,14 @@ function FormPreview({ theme, title, description, questions }: FormPreviewProps)
           maxWidth: theme.containerMaxWidth ? `${theme.containerMaxWidth}px` : '800px',
         }}
       >
-        {/* Form Header */}
-        {(title || description) && (
-          <div
-            className="mb-6 pb-6 border-b"
-            style={{
-              borderColor: theme.questionBorderColor || '#e5e7eb',
-              marginBottom: theme.sectionSpacing ? `${theme.sectionSpacing}px` : '24px',
-            }}
-          >
-            {title && (
-              <motion.h1
-                className="text-4xl font-bold mb-4"
-                style={{
-                  color: theme.primaryColor || '#3b82f6',
-                  fontFamily: theme.headingFontFamily || theme.fontFamily,
-                  fontSize: theme.questionFontSize ? `${theme.questionFontSize * 1.8}px` : '36px',
-                  lineHeight: theme.lineHeight || 1.5,
-                  letterSpacing: theme.letterSpacing ? `${theme.letterSpacing}px` : '0',
-                }}
-              >
-                {title}
-              </motion.h1>
-            )}
-            {description && (
-              <p
-                className="text-lg"
-                style={{
-                  color: theme.textColor || '#1f2937',
-                  fontFamily: theme.fontFamily || 'Inter, system-ui, sans-serif',
-                  fontSize: theme.optionFontSize ? `${theme.optionFontSize * 1.1}px` : '17px',
-                  lineHeight: theme.lineHeight || 1.5,
-                  letterSpacing: theme.letterSpacing !== undefined ? `${theme.letterSpacing}px` : undefined,
-                }}
-              >
-                {description}
-              </p>
-            )}
-          </div>
-        )}
-
         {/* Slideshow Container */}
         <div className="relative flex-1 flex flex-col min-h-0">
           {/* Fixed Display Area for Cards */}
           <div
-            className="relative overflow-hidden flex items-center justify-center select-none flex-1 min-h-0"
+            className="relative overflow-visible flex items-center justify-center select-none flex-1 min-h-0"
             style={{ 
-              cursor: isDragging ? 'grabbing' : 'grab'
+              cursor: isDragging ? 'grabbing' : 'grab',
+              padding: '20px',
             }}
             onMouseDown={handleMouseDown}
             onTouchStart={handleTouchStart}
@@ -668,9 +629,9 @@ function FormPreview({ theme, title, description, questions }: FormPreviewProps)
                   ease: [0.4, 0, 0.2, 1],
                   opacity: { duration: 0.35 }
                 }}
-                className="absolute inset-0 flex items-center justify-center p-2 sm:p-4 overflow-hidden"
+                className="absolute inset-0 flex items-center justify-center overflow-visible"
               >
-                <div className="w-full h-full flex items-center justify-center overflow-auto">
+                <div className="w-full h-full flex items-center justify-center overflow-visible p-6">
                   <QuestionPreview
                     question={sampleQuestions[currentSlide]}
                     index={currentSlide}
@@ -767,6 +728,12 @@ interface QuestionPreviewProps {
 function QuestionPreview({ question, index, theme }: QuestionPreviewProps) {
   const primaryColor = theme.primaryColor || '#3b82f6';
   const borderRadius = theme.borderRadius || 8;
+  
+  // Calcola la durata dell'animazione basata su animationSpeed
+  const animationDuration = 
+    theme.animationSpeed === 'slow' ? 0.5 : 
+    theme.animationSpeed === 'fast' ? 0.15 : 
+    0.3;
 
   return (
     <motion.div
@@ -779,13 +746,22 @@ function QuestionPreview({ question, index, theme }: QuestionPreviewProps) {
         borderRadius: `${borderRadius}px`,
         borderWidth: theme.borderWidth ? `${theme.borderWidth}px` : '1px',
         borderStyle: theme.borderStyle || 'solid',
-        boxShadow: 'none',
-        transition: theme.enableTransitions !== false ? 'all 300ms cubic-bezier(0.4, 0, 0.2, 1)' : undefined,
+        boxShadow: theme.glowEffect?.enabled
+          ? `0 0 ${(theme.glowEffect.intensity || 50) / 5}px ${theme.glowEffect.color || primaryColor}, 0 ${theme.shadowIntensity || 2}px ${(theme.shadowIntensity || 2) * 4}px rgba(0,0,0,0.1)`
+          : theme.shadowIntensity
+          ? `0 ${theme.shadowIntensity}px ${(theme.shadowIntensity || 2) * 4}px rgba(0,0,0,0.1)`
+          : 'none',
+        transition: theme.enableTransitions !== false ? `all ${animationDuration}s cubic-bezier(0.4, 0, 0.2, 1)` : undefined,
+        margin: '20px',
       }}
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.3, ease: 'easeOut' }}
+      transition={{ 
+        duration: theme.enableTransitions !== false ? animationDuration : 0,
+        ease: 'easeOut' 
+      }}
       whileHover={theme.hoverEffect ? {
+        scale: theme.hoverScale || 1.02,
         y: -2,
       } : {}}
     >
@@ -795,12 +771,19 @@ function QuestionPreview({ question, index, theme }: QuestionPreviewProps) {
           style={{
             backgroundColor: primaryColor,
             color: theme.questionNumberTextColor || '#ffffff',
-            boxShadow: `0 2px 8px ${primaryColor}40`,
+            boxShadow: theme.glowEffect?.enabled
+              ? `0 0 ${(theme.glowEffect.intensity || 50) / 8}px ${theme.glowEffect.color || primaryColor}, 0 2px 8px ${primaryColor}40`
+              : `0 2px 8px ${primaryColor}40`,
           }}
           initial={{ scale: 0 }}
           animate={{ scale: 1 }}
-          transition={{ delay: index * 0.1, type: 'spring', stiffness: 200 }}
-          whileHover={{ scale: 1.1 }}
+          transition={{ 
+            delay: index * 0.1, 
+            type: 'spring', 
+            stiffness: 200,
+            duration: theme.enableTransitions !== false ? animationDuration : 0,
+          }}
+          whileHover={{ scale: theme.hoverEffect ? (theme.hoverScale || 1.1) : 1.1 }}
         >
           {index + 1}
           {/* Glow effect sul numero */}
@@ -836,7 +819,10 @@ function QuestionPreview({ question, index, theme }: QuestionPreviewProps) {
             }}
             initial={{ opacity: 0, x: -10 }}
             animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: index * 0.1 + 0.1 }}
+            transition={{ 
+              delay: index * 0.1 + 0.1,
+              duration: theme.enableTransitions !== false ? animationDuration : 0,
+            }}
           >
             {question.text}
           </motion.h3>
@@ -847,7 +833,10 @@ function QuestionPreview({ question, index, theme }: QuestionPreviewProps) {
       <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
-        transition={{ delay: index * 0.1 + 0.2 }}
+        transition={{ 
+          delay: index * 0.1 + 0.2,
+          duration: theme.enableTransitions !== false ? animationDuration : 0,
+        }}
       >
         {renderQuestionInput(question, theme)}
       </motion.div>
@@ -875,7 +864,11 @@ function renderQuestionInput(question: QuestionFormData, theme: Partial<ThemeV2>
             <motion.label
               key={idx}
               whileHover={{ scale: theme.hoverEffect ? (theme.hoverScale || 1.02) : 1 }}
-              transition={{ duration: 0.2 }}
+              transition={{ 
+                duration: theme.enableTransitions !== false 
+                  ? (theme.animationSpeed === 'slow' ? 0.5 : theme.animationSpeed === 'fast' ? 0.15 : 0.3)
+                  : 0
+              }}
               className="flex items-center gap-3 p-4 rounded-xl border cursor-pointer transition-all"
               style={{
                 ...optionStyle,
@@ -902,7 +895,11 @@ function renderQuestionInput(question: QuestionFormData, theme: Partial<ThemeV2>
             <motion.div
               key={star}
               whileHover={{ scale: theme.hoverEffect ? (theme.hoverScale || 1.05) : 1 }}
-              transition={{ duration: 0.2 }}
+              transition={{ 
+                duration: theme.enableTransitions !== false 
+                  ? (theme.animationSpeed === 'slow' ? 0.5 : theme.animationSpeed === 'fast' ? 0.15 : 0.3)
+                  : 0
+              }}
             >
               <Star
                 className="w-8 h-8 cursor-pointer"
@@ -933,7 +930,11 @@ function renderQuestionInput(question: QuestionFormData, theme: Partial<ThemeV2>
                 key={value}
                 type="button"
                 whileHover={{ scale: theme.hoverEffect ? (theme.hoverScale || 1.05) : 1 }}
-                transition={{ duration: 0.2 }}
+                transition={{ 
+                  duration: theme.enableTransitions !== false 
+                    ? (theme.animationSpeed === 'slow' ? 0.5 : theme.animationSpeed === 'fast' ? 0.15 : 0.3)
+                    : 0
+                }}
                 className="h-12 flex flex-col items-center justify-center border rounded-lg transition-all"
                 style={{
                   backgroundColor: value === 3 ? theme.optionSelectedColor || '#dbeafe' : 'transparent',
@@ -991,7 +992,11 @@ function renderQuestionInput(question: QuestionFormData, theme: Partial<ThemeV2>
             <motion.div
               key={idx}
               whileHover={{ scale: theme.hoverEffect ? (theme.hoverScale || 1.02) : 1 }}
-              transition={{ duration: 0.2 }}
+              transition={{ 
+                duration: theme.enableTransitions !== false 
+                  ? (theme.animationSpeed === 'slow' ? 0.5 : theme.animationSpeed === 'fast' ? 0.15 : 0.3)
+                  : 0
+              }}
               className="flex items-center gap-3 p-4 rounded-xl border"
               style={{
                 ...optionStyle,
@@ -1018,7 +1023,11 @@ function renderQuestionInput(question: QuestionFormData, theme: Partial<ThemeV2>
       return (
         <motion.div
           whileHover={{ scale: theme.hoverEffect ? (theme.hoverScale || 1.01) : 1 }}
-          transition={{ duration: 0.2 }}
+          transition={{ 
+            duration: theme.enableTransitions !== false 
+              ? (theme.animationSpeed === 'slow' ? 0.5 : theme.animationSpeed === 'fast' ? 0.15 : 0.3)
+              : 0
+          }}
           className="border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition-all"
           style={{
             borderColor: theme.optionBorderColor || '#d1d5db',
@@ -1056,7 +1065,11 @@ function renderQuestionInput(question: QuestionFormData, theme: Partial<ThemeV2>
                 key={i}
                 type="button"
                 whileHover={{ scale: theme.hoverEffect ? (theme.hoverScale || 1.1) : 1 }}
-                transition={{ duration: 0.2 }}
+                transition={{ 
+                  duration: theme.enableTransitions !== false 
+                    ? (theme.animationSpeed === 'slow' ? 0.5 : theme.animationSpeed === 'fast' ? 0.15 : 0.3)
+                    : 0
+                }}
                 className="w-10 h-10 rounded-full border flex items-center justify-center text-sm font-medium transition-all"
                 style={{
                   backgroundColor: i === 7 ? theme.optionSelectedColor || '#dbeafe' : 'transparent',

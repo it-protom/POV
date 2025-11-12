@@ -18,8 +18,8 @@ interface UsePresetsReturn {
 const BUILT_IN_PRESETS: PresetTemplate[] = [
   {
     id: 'corporate-blue',
-    name: 'Corporate Blue',
-    description: 'Professional and trustworthy design for business surveys',
+    name: 'Protom',
+    description: 'Design professionale e affidabile per sondaggi aziendali',
     category: 'professional',
     theme: {
       primaryColor: '#FFCD00',
@@ -53,7 +53,7 @@ const BUILT_IN_PRESETS: PresetTemplate[] = [
   {
     id: 'modern-minimal',
     name: 'Modern Minimal',
-    description: 'Clean, spacious design with black and white aesthetics',
+    description: 'Design pulito e spazioso con estetica bianco e nero',
     category: 'minimal',
     theme: {
       primaryColor: '#000000',
@@ -90,7 +90,7 @@ const BUILT_IN_PRESETS: PresetTemplate[] = [
   {
     id: 'creative-bold',
     name: 'Creative Bold',
-    description: 'Vibrant colors and large typography for engaging surveys',
+    description: 'Colori vivaci e tipografia grande per sondaggi coinvolgenti',
     category: 'bold',
     theme: {
       primaryColor: '#dc2626',
@@ -130,7 +130,7 @@ const BUILT_IN_PRESETS: PresetTemplate[] = [
   {
     id: 'dark-elegant',
     name: 'Dark Elegant',
-    description: 'Sophisticated dark mode with gold accents',
+    description: 'Modalità scura sofisticata con accenti dorati',
     category: 'professional',
     theme: {
       primaryColor: '#d97706',
@@ -165,7 +165,7 @@ const BUILT_IN_PRESETS: PresetTemplate[] = [
   {
     id: 'nature-green',
     name: 'Nature Green',
-    description: 'Calming, eco-friendly design with natural tones',
+    description: 'Design rilassante ed ecologico con toni naturali',
     category: 'creative',
     theme: {
       primaryColor: '#059669',
@@ -204,7 +204,7 @@ const BUILT_IN_PRESETS: PresetTemplate[] = [
   {
     id: 'tech-purple',
     name: 'Tech Purple',
-    description: 'Modern tech aesthetic with purple gradients',
+    description: 'Estetica tech moderna con gradienti viola',
     category: 'bold',
     theme: {
       primaryColor: '#7c3aed',
@@ -248,7 +248,7 @@ const BUILT_IN_PRESETS: PresetTemplate[] = [
   {
     id: 'warm-sunset',
     name: 'Warm Sunset',
-    description: 'Inviting design with orange and pink gradient',
+    description: 'Design accogliente con gradiente arancione e rosa',
     category: 'creative',
     theme: {
       primaryColor: '#ea580c',
@@ -287,7 +287,7 @@ const BUILT_IN_PRESETS: PresetTemplate[] = [
   {
     id: 'classic-formal',
     name: 'Classic Formal',
-    description: 'Traditional, professional design with serif typography',
+    description: 'Design tradizionale e professionale con tipografia serif',
     category: 'professional',
     theme: {
       primaryColor: '#1e3a8a',

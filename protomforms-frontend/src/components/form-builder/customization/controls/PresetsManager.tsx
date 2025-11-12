@@ -33,6 +33,7 @@ const categoryColors = {
   creative: 'bg-gray-100 text-gray-700 border-gray-300',
   minimal: 'bg-gray-100 text-gray-700 border-gray-300',
   bold: 'bg-[#FFCD00]/20 text-gray-800 border-[#FFCD00]/40',
+  user: 'bg-blue-50 text-blue-700 border-blue-200',
 };
 
 export function PresetsManager({
@@ -49,16 +50,26 @@ export function PresetsManager({
   // Filter presets based on category
   const filteredPresets = useMemo(() => {
     return presets.filter((preset) => {
+      // Se la categoria selezionata è "user", mostra solo i preset personalizzati
+      if (selectedCategory === 'user') {
+        return customPresets.some((p) => p.id === preset.id);
+      }
+      // Altrimenti filtra per categoria normale
       const matchesCategory = selectedCategory === null || preset.category === selectedCategory;
       return matchesCategory;
     });
-  }, [presets, selectedCategory]);
+  }, [presets, selectedCategory, customPresets]);
 
-  // Get unique categories
+  // Get unique categories + aggiungi "user" se ci sono preset personalizzati
   const categories = useMemo(() => {
     const cats = new Set(presets.map((p) => p.category));
-    return Array.from(cats);
-  }, [presets]);
+    const categoriesArray = Array.from(cats);
+    // Aggiungi "user" se ci sono preset personalizzati
+    if (customPresets.length > 0) {
+      categoriesArray.push('user');
+    }
+    return categoriesArray;
+  }, [presets, customPresets]);
 
   const handleDeleteClick = (presetId: string) => {
     setPresetToDelete(presetId);
@@ -297,7 +308,9 @@ function ExpandingCategoryPill({ categories, selectedCategory, onSelectCategory 
   ];
 
   const currentLabel = selectedCategory 
-    ? selectedCategory.charAt(0).toUpperCase() + selectedCategory.slice(1)
+    ? selectedCategory === 'user' 
+      ? 'User'
+      : selectedCategory.charAt(0).toUpperCase() + selectedCategory.slice(1)
     : 'All';
 
   // Gestione scroll orizzontale con rotella del mouse

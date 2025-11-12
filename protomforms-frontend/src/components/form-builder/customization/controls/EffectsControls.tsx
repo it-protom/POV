@@ -3,7 +3,7 @@
  * Controlli per hover effects, animazioni, shadows e glow
  */
 
-import React, { useState } from 'react';
+import React from 'react';
 import { motion } from 'framer-motion';
 import { ThemeV2 } from '../../../../types/theme';
 import { Label } from '../../../ui/label';
@@ -46,8 +46,6 @@ const itemVariants = {
 };
 
 export function EffectsControls({ theme, onUpdate }: EffectsControlsProps) {
-  const [previewHover, setPreviewHover] = useState(false);
-
   return (
     <motion.div
       variants={containerVariants}
@@ -296,68 +294,6 @@ export function EffectsControls({ theme, onUpdate }: EffectsControlsProps) {
             checked={theme.hoverEffect ?? true}
             onCheckedChange={(checked) => onUpdate({ hoverEffect: checked })}
           />
-        </div>
-      </motion.div>
-
-      {/* Interactive Preview */}
-      <motion.div
-        variants={itemVariants}
-        className="mt-6 p-4 rounded-lg bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700"
-      >
-        <p className="text-xs text-gray-500 dark:text-gray-400 mb-3">
-          Anteprima Effetti (passa il mouse)
-        </p>
-        
-        <div className="space-y-3">
-          {/* Button Preview */}
-          <motion.button
-            onHoverStart={() => setPreviewHover(true)}
-            onHoverEnd={() => setPreviewHover(false)}
-            whileHover={{
-              scale: theme.hoverEffect ? (theme.hoverScale || 1.02) : 1,
-            }}
-            transition={{
-              duration: theme.animationSpeed === 'slow' ? 0.5 : theme.animationSpeed === 'fast' ? 0.15 : 0.3,
-            }}
-            className="w-full px-4 py-2 rounded text-sm font-medium text-white transition-all"
-            style={{
-              backgroundColor: theme.primaryColor || '#3b82f6',
-              borderRadius: `${(theme.borderRadius || 8) / 2}px`,
-              boxShadow: theme.glowEffect?.enabled && previewHover
-                ? `0 0 ${(theme.glowEffect.intensity || 50) / 5}px ${theme.glowEffect.color || theme.primaryColor || '#3b82f6'}`
-                : theme.shadowIntensity
-                ? `0 ${theme.shadowIntensity}px ${theme.shadowIntensity * 2}px rgba(0,0,0,0.1)`
-                : 'none',
-            }}
-          >
-            Pulsante di Test
-          </motion.button>
-
-          {/* Card Preview */}
-          <motion.div
-            onHoverStart={() => setPreviewHover(true)}
-            onHoverEnd={() => setPreviewHover(false)}
-            whileHover={{
-              scale: theme.hoverEffect ? (theme.hoverScale || 1.02) : 1,
-            }}
-            transition={{
-              duration: theme.animationSpeed === 'slow' ? 0.5 : theme.animationSpeed === 'fast' ? 0.15 : 0.3,
-            }}
-            className="p-3 bg-white dark:bg-gray-900 rounded border border-gray-200 dark:border-gray-700 cursor-pointer"
-            style={{
-              borderRadius: `${(theme.borderRadius || 8) / 2}px`,
-              boxShadow: theme.shadowIntensity
-                ? `0 ${theme.shadowIntensity}px ${theme.shadowIntensity * 2}px rgba(0,0,0,0.1)`
-                : 'none',
-            }}
-          >
-            <div className="h-2 w-3/4 bg-gray-200 dark:bg-gray-700 rounded mb-2" />
-            <div className="h-2 w-1/2 bg-gray-200 dark:bg-gray-700 rounded" />
-          </motion.div>
-        </div>
-
-        <div className="mt-3 text-xs text-gray-400">
-          {previewHover ? '🎯 Hover attivo!' : 'Passa il mouse sugli elementi'}
         </div>
       </motion.div>
     </motion.div>
