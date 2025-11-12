@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
-import { ArrowLeft, Plus, Trash2, Save, Eye, Copy, Palette, Type, Layout, FileText, CheckCircle, Clock, AlertCircle, CalendarIcon } from "lucide-react";
+import { ArrowLeft, Plus, Trash2, Save, Eye, Copy, Palette, Type, Layout, FileText, CheckCircle, Clock, AlertCircle, CalendarIcon, X } from "lucide-react";
 import { FormCustomization, Theme } from '@/components/form-builder/FormCustomization';
 import { FormCustomizationV2 } from '@/components/form-builder/customization';
 import { Link } from "react-router-dom";
@@ -25,6 +25,8 @@ import { format } from 'date-fns';
 import { it } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 import { Separator } from '@/components/ui/separator';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
+import { Label } from '@/components/ui/label';
 
 // Tipi per le domande
 type QuestionType = "MULTIPLE_CHOICE" | "TEXT" | "RATING" | "DATE" | "RANKING" | "LIKERT" | "FILE_UPLOAD" | "NPS" | "BRANCHING";
@@ -71,6 +73,11 @@ export default function EditFormPage() {
     description: '',
     type: 'SURVEY' as 'SURVEY' | 'QUIZ'
   });
+  
+  // Stati per la modifica delle domande
+  const [isEditingQuestions, setIsEditingQuestions] = useState(false);
+  const [editingQuestion, setEditingQuestion] = useState<Question | null>(null);
+  const [newOption, setNewOption] = useState('');
 
   // Stato per il tema del form
   const [theme, setTheme] = useState<Theme>({
@@ -100,6 +107,17 @@ export default function EditFormPage() {
           throw new Error('Errore durante il caricamento del form');
         }
         const data = await response.json();
+        
+        // Parse options per ogni domanda se sono stringhe JSON
+        if (data.questions && Array.isArray(data.questions)) {
+          data.questions = data.questions.map((q: any) => ({
+            ...q,
+            options: q.options 
+              ? (typeof q.options === 'string' ? JSON.parse(q.options) : q.options)
+              : undefined
+          }));
+        }
+        
         setForm(data);
         
         // Imposta il tema dal form se esiste, altrimenti usa i valori predefiniti
@@ -437,6 +455,17 @@ export default function EditFormPage() {
       }
 
       const updatedForm = await response.json();
+      
+      // Parse options per ogni domanda se sono stringhe JSON
+      if (updatedForm.questions && Array.isArray(updatedForm.questions)) {
+        updatedForm.questions = updatedForm.questions.map((q: any) => ({
+          ...q,
+          options: q.options 
+            ? (typeof q.options === 'string' ? JSON.parse(q.options) : q.options)
+            : undefined
+        }));
+      }
+      
       setForm(updatedForm);
       toast.success("Domanda aggiunta con successo");
     } catch (error) {
@@ -463,6 +492,17 @@ export default function EditFormPage() {
       }
 
       const updatedForm = await response.json();
+      
+      // Parse options per ogni domanda se sono stringhe JSON
+      if (updatedForm.questions && Array.isArray(updatedForm.questions)) {
+        updatedForm.questions = updatedForm.questions.map((q: any) => ({
+          ...q,
+          options: q.options 
+            ? (typeof q.options === 'string' ? JSON.parse(q.options) : q.options)
+            : undefined
+        }));
+      }
+      
       setForm(updatedForm);
       toast.success('Domanda rimossa con successo');
     } catch (error) {
@@ -485,7 +525,7 @@ export default function EditFormPage() {
     setSaving(true);
     
     try {
-      const response = await fetch(`/api/forms/${params.id}/questions/${questionId}`, {
+      const response = await authenticatedFetch(`/api/forms/${params.id}/questions/${questionId}`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
@@ -498,6 +538,17 @@ export default function EditFormPage() {
       }
 
       const updatedForm = await response.json();
+      
+      // Parse options per ogni domanda se sono stringhe JSON
+      if (updatedForm.questions && Array.isArray(updatedForm.questions)) {
+        updatedForm.questions = updatedForm.questions.map((q: any) => ({
+          ...q,
+          options: q.options 
+            ? (typeof q.options === 'string' ? JSON.parse(q.options) : q.options)
+            : undefined
+        }));
+      }
+      
       setForm(updatedForm);
     } catch (error) {
       console.error("Errore nell'aggiornamento della domanda:", error);
@@ -527,6 +578,17 @@ export default function EditFormPage() {
       }
 
       const updatedForm = await response.json();
+      
+      // Parse options per ogni domanda se sono stringhe JSON
+      if (updatedForm.questions && Array.isArray(updatedForm.questions)) {
+        updatedForm.questions = updatedForm.questions.map((q: any) => ({
+          ...q,
+          options: q.options 
+            ? (typeof q.options === 'string' ? JSON.parse(q.options) : q.options)
+            : undefined
+        }));
+      }
+      
       setForm(updatedForm);
     } catch (error) {
       console.error("Errore nell'aggiornamento delle opzioni:", error);
@@ -806,23 +868,64 @@ export default function EditFormPage() {
                           )}
                         </div>
                         <p className="text-gray-900">{question.text}</p>
-                        {question.options && question.options.length > 0 && (
+                        {question.options && Array.isArray(question.options) && question.options.length > 0 && (
                           <div className="mt-2">
                             <p className="text-sm text-gray-500 mb-1">Opzioni:</p>
                             <ul className="list-disc list-inside text-sm text-gray-600">
                               {question.options.map((option, optIndex) => (
-                                <li key={optIndex}>{option}</li>
+                                <li key={optIndex}>{typeof option === 'string' ? option : JSON.stringify(option)}</li>
                               ))}
                             </ul>
                           </div>
                         )}
                       </div>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => {
+                          // Assicurati che le opzioni siano parseate se sono stringhe JSON
+                          const questionToEdit = {
+                            ...question,
+                            options: question.options 
+                              ? (typeof question.options === 'string' 
+                                  ? JSON.parse(question.options) 
+                                  : question.options)
+                              : undefined
+                          };
+                          setEditingQuestion(questionToEdit);
+                          setIsEditingQuestions(true);
+                        }}
+                        className="ml-4"
+                      >
+                        <Type className="h-4 w-4" />
+                      </Button>
                     </div>
                   </div>
                 ))}
               </div>
               <div className="mt-4">
-                <Button variant="outline" className="w-full">
+                <Button 
+                  variant="outline" 
+                  className="w-full"
+                  onClick={() => {
+                    if (form.questions.length > 0) {
+                      const firstQuestion = form.questions[0];
+                      // Assicurati che le opzioni siano parseate se sono stringhe JSON
+                      const questionToEdit = {
+                        ...firstQuestion,
+                        options: firstQuestion.options 
+                          ? (typeof firstQuestion.options === 'string' 
+                              ? JSON.parse(firstQuestion.options) 
+                              : firstQuestion.options)
+                          : undefined
+                      };
+                      setEditingQuestion(questionToEdit);
+                      setIsEditingQuestions(true);
+                    } else {
+                      toast.info('Non ci sono domande da modificare');
+                    }
+                  }}
+                >
                   <FileText className="h-4 w-4 mr-2" />
                   Modifica domande
                 </Button>
@@ -878,6 +981,229 @@ export default function EditFormPage() {
           </Card>
         </div>
       </div>
+
+      {/* Dialog per modificare le domande */}
+      <Dialog open={isEditingQuestions} onOpenChange={(open) => {
+        if (!open) {
+          setIsEditingQuestions(false);
+          setEditingQuestion(null);
+          setNewOption('');
+        }
+      }}>
+        <DialogContent className="sm:max-w-[500px] bg-white">
+          <DialogHeader>
+            <DialogTitle className="text-xl font-bold text-black">
+              Modifica Domanda
+            </DialogTitle>
+            <DialogDescription>
+              Modifica il testo, il tipo e le opzioni della domanda
+            </DialogDescription>
+          </DialogHeader>
+          
+          {editingQuestion && (
+            <div className="space-y-4">
+              <div>
+                <Label htmlFor="question-text" className="text-[#868789] font-medium">Testo della domanda</Label>
+                <Input
+                  id="question-text"
+                  value={editingQuestion.text}
+                  onChange={(e) => setEditingQuestion({
+                    ...editingQuestion,
+                    text: e.target.value
+                  })}
+                  placeholder="Inserisci il testo della domanda"
+                  className="border-gray-200 focus:border-[#FFCD00] focus:ring-[#FFCD00] mt-1"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label className="text-[#868789] font-medium">Tipo di domanda</Label>
+                <Select
+                  value={editingQuestion.type}
+                  onValueChange={(value) => {
+                    const newType = value as QuestionType;
+                    // Tipi che richiedono opzioni come array di stringhe
+                    const typesWithOptions = ["MULTIPLE_CHOICE", "RANKING"];
+                    setEditingQuestion({
+                      ...editingQuestion,
+                      type: newType,
+                      // Se cambia a un tipo che richiede opzioni e non ha opzioni, inizializza con un array vuoto
+                      // Se cambia da un tipo con opzioni a un tipo senza opzioni, rimuovi le opzioni
+                      options: typesWithOptions.includes(newType)
+                        ? (editingQuestion.options && Array.isArray(editingQuestion.options) && editingQuestion.options.length > 0 
+                            ? editingQuestion.options 
+                            : [''])
+                        : undefined
+                    });
+                  }}
+                >
+                  <SelectTrigger className="border-gray-200 focus:border-[#FFCD00] focus:ring-[#FFCD00]">
+                    <SelectValue placeholder="Seleziona il tipo di domanda" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="TEXT">Testo</SelectItem>
+                    <SelectItem value="MULTIPLE_CHOICE">Scelta Multipla</SelectItem>
+                    <SelectItem value="RATING">Valutazione</SelectItem>
+                    <SelectItem value="DATE">Data</SelectItem>
+                    <SelectItem value="RANKING">Ranking</SelectItem>
+                    <SelectItem value="LIKERT">Scala Likert</SelectItem>
+                    <SelectItem value="FILE_UPLOAD">Caricamento File</SelectItem>
+                    <SelectItem value="NPS">NPS</SelectItem>
+                    <SelectItem value="BRANCHING">Branching</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {(editingQuestion.type === "MULTIPLE_CHOICE" || editingQuestion.type === "RANKING") && (
+                <div className="space-y-2">
+                  <Label className="text-[#868789] font-medium">
+                    {editingQuestion.type === "MULTIPLE_CHOICE" ? "Opzioni di scelta" : "Elementi da ordinare"}
+                  </Label>
+                  <div className="space-y-2">
+                    {editingQuestion.options?.map((option, index) => (
+                      <div key={index} className="flex gap-2">
+                        <Input
+                          value={option}
+                          onChange={(e) => {
+                            const newOptions = [...(editingQuestion.options || [])];
+                            newOptions[index] = e.target.value;
+                            setEditingQuestion({
+                              ...editingQuestion,
+                              options: newOptions
+                            });
+                          }}
+                          placeholder={`Opzione ${index + 1}`}
+                          className="border-gray-200 focus:border-[#FFCD00] focus:ring-[#FFCD00]"
+                        />
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => {
+                            const newOptions = editingQuestion.options?.filter((_, i) => i !== index) || [];
+                            setEditingQuestion({
+                              ...editingQuestion,
+                              options: newOptions.length > 0 ? newOptions : undefined
+                            });
+                          }}
+                          className="hover:bg-red-100 hover:text-red-600"
+                          disabled={editingQuestion.options && editingQuestion.options.length <= 1}
+                        >
+                          <X className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    ))}
+                    <div className="flex gap-2">
+                      <Input
+                        value={newOption}
+                        onChange={(e) => setNewOption(e.target.value)}
+                        placeholder="Aggiungi una nuova opzione"
+                        className="border-gray-200 focus:border-[#FFCD00] focus:ring-[#FFCD00]"
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter' && newOption.trim()) {
+                            e.preventDefault();
+                            const newOptions = [...(editingQuestion.options || []), newOption.trim()];
+                            setEditingQuestion({
+                              ...editingQuestion,
+                              options: newOptions
+                            });
+                            setNewOption('');
+                          }
+                        }}
+                      />
+                      <Button 
+                        onClick={() => {
+                          if (newOption.trim()) {
+                            const newOptions = [...(editingQuestion.options || []), newOption.trim()];
+                            setEditingQuestion({
+                              ...editingQuestion,
+                              options: newOptions
+                            });
+                            setNewOption('');
+                          }
+                        }}
+                        className="bg-[#FFCD00] hover:bg-[#FFCD00]/90 text-black"
+                        disabled={!newOption.trim()}
+                      >
+                        <Plus className="h-4 w-4" />
+                      </Button>
+                    </div>
+                    {editingQuestion.options && editingQuestion.options.length === 0 && (
+                      <p className="text-sm text-red-500">Aggiungi almeno un'opzione</p>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              <div className="flex items-center space-x-2">
+                <Switch
+                  id="required"
+                  checked={editingQuestion.required}
+                  onCheckedChange={(checked) => setEditingQuestion({
+                    ...editingQuestion,
+                    required: checked
+                  })}
+                />
+                <Label htmlFor="required" className="text-[#868789] font-medium">Obbligatoria</Label>
+              </div>
+            </div>
+          )}
+
+          <DialogFooter>
+            <Button 
+              variant="outline" 
+              onClick={() => {
+                setIsEditingQuestions(false);
+                setEditingQuestion(null);
+              }}
+              className="bg-white hover:bg-gray-100 border-gray-200 text-[#868789]"
+            >
+              Annulla
+            </Button>
+            <Button 
+              onClick={async () => {
+                if (!editingQuestion || !form) return;
+                
+                if (!editingQuestion.text?.trim()) {
+                  toast.error('Il testo della domanda è obbligatorio');
+                  return;
+                }
+                
+                // Validazione per tipi che richiedono opzioni: devono avere almeno un'opzione
+                const typesWithOptions = ["MULTIPLE_CHOICE", "RANKING"];
+                if (typesWithOptions.includes(editingQuestion.type)) {
+                  const validOptions = Array.isArray(editingQuestion.options) 
+                    ? editingQuestion.options.filter(opt => typeof opt === 'string' && opt.trim().length > 0)
+                    : [];
+                  if (validOptions.length === 0) {
+                    const errorMessage = editingQuestion.type === "MULTIPLE_CHOICE" 
+                      ? 'Le domande a scelta multipla devono avere almeno un\'opzione'
+                      : 'Le domande di ranking devono avere almeno un elemento da ordinare';
+                    toast.error(errorMessage);
+                    return;
+                  }
+                }
+                
+                await updateQuestion(editingQuestion.id, {
+                  text: editingQuestion.text,
+                  type: editingQuestion.type,
+                  required: editingQuestion.required,
+                  options: typesWithOptions.includes(editingQuestion.type) && Array.isArray(editingQuestion.options)
+                    ? editingQuestion.options.filter(opt => typeof opt === 'string' && opt.trim().length > 0)
+                    : undefined
+                });
+                
+                setIsEditingQuestions(false);
+                setEditingQuestion(null);
+                setNewOption('');
+                toast.success('Domanda modificata con successo');
+              }}
+              className="bg-[#FFCD00] hover:bg-[#FFCD00]/90 text-black"
+            >
+              Salva
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </motion.div>
   );
 } 
