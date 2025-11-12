@@ -33,9 +33,10 @@ import { QuestionType, QuestionFormData, DateOptions } from '../../types/questio
 interface QuestionBuilderProps {
   questions: QuestionFormData[];
   onQuestionsChange: (questions: QuestionFormData[]) => void;
+  hideHeader?: boolean;
 }
 
-export function QuestionBuilder({ questions, onQuestionsChange }: QuestionBuilderProps) {
+export function QuestionBuilder({ questions, onQuestionsChange, hideHeader = false }: QuestionBuilderProps) {
   const [activeQuestion, setActiveQuestion] = useState<QuestionFormData | null>(null);
   const [editingQuestion, setEditingQuestion] = useState<QuestionFormData | null>(null);
   const [isEditing, setIsEditing] = useState(false);
@@ -269,16 +270,18 @@ export function QuestionBuilder({ questions, onQuestionsChange }: QuestionBuilde
       onDragEnd={handleDragEnd}
     >
       <div className="space-y-6">
-        <div className="flex justify-between items-center bg-white p-6 rounded-lg shadow-sm border border-gray-100">
-          <h2 className="text-2xl font-bold text-black">Costruisci il tuo form</h2>
-          <Button 
-            variant="outline" 
-            onClick={() => setShowTemplates(true)}
-            className="bg-white hover:bg-[#FFCD00] hover:text-black border-[#FFCD00] text-[#868789] transition-colors duration-300"
-          >
-            Usa un modello predefinito
-          </Button>
-        </div>
+        {!hideHeader && (
+          <div className="flex justify-between items-center bg-white p-6 rounded-lg shadow-sm border border-gray-100">
+            <h2 className="text-2xl font-bold text-black">Costruisci il tuo form</h2>
+            <Button 
+              variant="outline" 
+              onClick={() => setShowTemplates(true)}
+              className="bg-white hover:bg-[#FFCD00] hover:text-black border-[#FFCD00] text-[#868789] transition-colors duration-300"
+            >
+              Usa un modello predefinito
+            </Button>
+          </div>
+        )}
 
         <SortableContext items={questions.map(q => q.id)} strategy={verticalListSortingStrategy}>
           <div className="space-y-4">

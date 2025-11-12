@@ -948,27 +948,14 @@ export default function EditFormPage() {
                   variant="outline" 
                   className="w-full"
                   onClick={() => {
-                    if (form.questions.length > 0) {
-                      const firstQuestion = form.questions[0];
-                      // Assicurati che le opzioni siano parseate se sono stringhe JSON
-                      const questionToEdit = {
-                        ...firstQuestion,
-                        options: firstQuestion.options 
-                          ? (typeof firstQuestion.options === 'string' 
-                              ? JSON.parse(firstQuestion.options) 
-                              : firstQuestion.options)
-                          : undefined
-                      };
-                      setEditingQuestion(questionToEdit);
-                      setEditingQuestionIndex(0);
-                      setIsEditingQuestions(true);
-                    } else {
-                      toast.info('Non ci sono domande da modificare');
-                    }
+                    navigate(`/admin/forms/${form.id}/edit-questions`);
                   }}
+                  asChild
                 >
-                  <FileText className="h-4 w-4 mr-2" />
-                  Modifica domande
+                  <Link to={`/admin/forms/${form.id}/edit-questions`}>
+                    <FileText className="h-4 w-4 mr-2" />
+                    Modifica domande
+                  </Link>
                 </Button>
                 <Button 
                   variant="default" 
