@@ -352,17 +352,17 @@ export default function ResponsesPage() {
                     <AccordionTrigger className="hover:no-underline">
                       <CardContent className="p-6 w-full">
                         <div className="flex items-center justify-between w-full">
-                          <div className="flex-1">
+                          <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-4">
-                              <div className="p-3 bg-[#FFCD00]/10 rounded-lg">
+                              <div className="p-3 bg-[#FFCD00]/10 rounded-lg flex-shrink-0">
                                 <FileText className="h-6 w-6 text-[#FFCD00]" />
                               </div>
-                              <div>
-                                <h3 className="text-lg font-semibold text-[#868789] mb-1">
+                              <div className="flex-1 min-w-0">
+                                <h3 className="text-lg font-semibold text-[#868789] mb-1 line-clamp-2 break-words">
                                   {group.formTitle}
                                 </h3>
                                 {group.formDescription && (
-                                  <p className="text-sm text-gray-600 mb-2">
+                                  <p className="text-sm text-gray-600 mb-2 line-clamp-2 break-words">
                                     {group.formDescription}
                                   </p>
                                 )}

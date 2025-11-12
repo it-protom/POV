@@ -279,9 +279,11 @@ export default function DashboardPage() {
               </h1>
               {selectedFormId !== 'all' && (
                 <p className="text-sm text-gray-600 mt-2">
-                  <Badge variant="outline" className="bg-[#FFCD00]/10 border-[#FFCD00] text-gray-900">
-                    <FileText className="h-3 w-3 mr-1" />
-                    {availableForms.find(f => f.id === selectedFormId)?.title || 'Form Selezionato'}
+                  <Badge variant="outline" className="bg-[#FFCD00]/10 border-[#FFCD00] text-gray-900 max-w-full">
+                    <FileText className="h-3 w-3 mr-1 flex-shrink-0" />
+                    <span className="truncate block max-w-[300px] sm:max-w-[500px]">
+                      {availableForms.find(f => f.id === selectedFormId)?.title || 'Form Selezionato'}
+                    </span>
                   </Badge>
                 </p>
               )}
@@ -297,8 +299,8 @@ export default function DashboardPage() {
                     Tutti i Form ({availableForms.length})
                   </SelectItem>
                   {availableForms.map((form) => (
-                    <SelectItem key={form.id} value={form.id}>
-                      {form.title}
+                    <SelectItem key={form.id} value={form.id} className="max-w-[300px]">
+                      <span className="truncate block">{form.title}</span>
                     </SelectItem>
                   ))}
                 </SelectContent>

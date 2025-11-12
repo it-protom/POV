@@ -552,13 +552,13 @@ export default function AdminFormsPage() {
                     
                     <CardHeader className="pb-3 flex-shrink-0">
                       <div className="flex items-start justify-between">
-                        <div className="flex-1 pr-4">
-                          <CardTitle className="text-lg leading-tight group-hover:text-[#FFCD00] transition-colors">
-                            <Link to={`/admin/forms/${form.id}`}>
+                        <div className="flex-1 pr-4 min-w-0">
+                          <CardTitle className="text-lg leading-tight group-hover:text-[#FFCD00] transition-colors line-clamp-2 break-words">
+                            <Link to={`/admin/forms/${form.id}`} className="block">
                               {form.title}
                             </Link>
                           </CardTitle>
-                          <CardDescription className="mt-2 line-clamp-2">
+                          <CardDescription className="mt-2 line-clamp-2 break-words">
                             {form.description}
               </CardDescription>
                         </div>

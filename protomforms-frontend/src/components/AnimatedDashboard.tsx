@@ -397,9 +397,9 @@ export default function AnimatedDashboard() {
             >
               <div className="p-6">
                 <div className="flex justify-between items-start mb-4">
-                  <div>
-                    <h3 className="text-xl font-bold text-[#868789] mb-2">{form.title}</h3>
-                    <p className="text-sm text-[#868789]/70 mb-4">{form.description || 'Nessuna descrizione'}</p>
+                  <div className="flex-1 min-w-0 pr-4">
+                    <h3 className="text-xl font-bold text-[#868789] mb-2 line-clamp-2 break-words">{form.title}</h3>
+                    <p className="text-sm text-[#868789]/70 mb-4 line-clamp-2 break-words">{form.description || 'Nessuna descrizione'}</p>
                   </div>
                   <motion.button
                     whileHover={{ scale: 1.1 }}
