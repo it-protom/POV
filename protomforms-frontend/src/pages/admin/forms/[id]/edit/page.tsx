@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
-import { ArrowLeft, Plus, Trash2, Save, Eye, Copy, Palette, Type, Layout, FileText, CheckCircle, Clock, AlertCircle, CalendarIcon, X } from "lucide-react";
+import { ArrowLeft, Plus, Trash2, Save, Eye, Copy, Palette, Type, Layout, FileText, CheckCircle, Clock, AlertCircle, CalendarIcon, X, ChevronLeft, ChevronRight } from "lucide-react";
 import { FormCustomization, Theme } from '@/components/form-builder/FormCustomization';
 import { FormCustomizationV2 } from '@/components/form-builder/customization';
 import { Link } from "react-router-dom";
@@ -77,7 +77,17 @@ export default function EditFormPage() {
   // Stati per la modifica delle domande
   const [isEditingQuestions, setIsEditingQuestions] = useState(false);
   const [editingQuestion, setEditingQuestion] = useState<Question | null>(null);
+  const [editingQuestionIndex, setEditingQuestionIndex] = useState(0);
   const [newOption, setNewOption] = useState('');
+  
+  // Stati per l'aggiunta di nuove domande
+  const [isAddingQuestion, setIsAddingQuestion] = useState(false);
+  const [newQuestion, setNewQuestion] = useState<Partial<Question>>({
+    text: '',
+    type: 'TEXT' as QuestionType,
+    required: false,
+    options: undefined
+  });
 
   // Stato per il tema del form
   const [theme, setTheme] = useState<Theme>({
@@ -429,25 +439,47 @@ export default function EditFormPage() {
   };
 
   // Aggiunge una nuova domanda
-  const addQuestion = async () => {
+  const addQuestion = async (questionData: Partial<Question>) => {
     if (!form) return;
+    
+    if (!questionData.text?.trim()) {
+      toast.error('Il testo della domanda è obbligatorio');
+      return;
+    }
+    
+    // Validazione per tipi che richiedono opzioni
+    const typesWithOptions = ["MULTIPLE_CHOICE", "RANKING"];
+    if (typesWithOptions.includes(questionData.type as string)) {
+      const validOptions = Array.isArray(questionData.options) 
+        ? questionData.options.filter(opt => typeof opt === 'string' && opt.trim().length > 0)
+        : [];
+      if (validOptions.length === 0) {
+        const errorMessage = questionData.type === "MULTIPLE_CHOICE" 
+          ? 'Le domande a scelta multipla devono avere almeno un\'opzione'
+          : 'Le domande di ranking devono avere almeno un elemento da ordinare';
+        toast.error(errorMessage);
+        return;
+      }
+    }
     
     setSaving(true);
     
     try {
-      const newQuestion = {
-        text: "Nuova Domanda",
-        type: "MULTIPLE_CHOICE",
-        required: false,
-        options: ["Opzione 1", "Opzione 2"]
+      const questionPayload = {
+        text: questionData.text,
+        type: questionData.type,
+        required: questionData.required || false,
+        options: typesWithOptions.includes(questionData.type as string) && Array.isArray(questionData.options)
+          ? questionData.options.filter(opt => typeof opt === 'string' && opt.trim().length > 0)
+          : undefined
       };
 
-      const response = await fetch(`/api/forms/${params.id}/questions`, {
+      const response = await authenticatedFetch(`/api/forms/${params.id}/questions`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify(newQuestion),
+        body: JSON.stringify(questionPayload),
       });
 
       if (!response.ok) {
@@ -467,6 +499,13 @@ export default function EditFormPage() {
       }
       
       setForm(updatedForm);
+      setIsAddingQuestion(false);
+      setNewQuestion({
+        text: '',
+        type: 'TEXT' as QuestionType,
+        required: false,
+        options: undefined
+      });
       toast.success("Domanda aggiunta con successo");
     } catch (error) {
       console.error("Errore nell'aggiunta della domanda:", error);
@@ -893,6 +932,7 @@ export default function EditFormPage() {
                               : undefined
                           };
                           setEditingQuestion(questionToEdit);
+                          setEditingQuestionIndex(index);
                           setIsEditingQuestions(true);
                         }}
                         className="ml-4"
@@ -903,7 +943,7 @@ export default function EditFormPage() {
                   </div>
                 ))}
               </div>
-              <div className="mt-4">
+              <div className="mt-4 space-y-2">
                 <Button 
                   variant="outline" 
                   className="w-full"
@@ -920,6 +960,7 @@ export default function EditFormPage() {
                           : undefined
                       };
                       setEditingQuestion(questionToEdit);
+                      setEditingQuestionIndex(0);
                       setIsEditingQuestions(true);
                     } else {
                       toast.info('Non ci sono domande da modificare');
@@ -928,6 +969,22 @@ export default function EditFormPage() {
                 >
                   <FileText className="h-4 w-4 mr-2" />
                   Modifica domande
+                </Button>
+                <Button 
+                  variant="default" 
+                  className="w-full bg-[#FFCD00] hover:bg-[#FFCD00]/90 text-black"
+                  onClick={() => {
+                    setIsAddingQuestion(true);
+                    setNewQuestion({
+                      text: '',
+                      type: 'TEXT' as QuestionType,
+                      required: false,
+                      options: undefined
+                    });
+                  }}
+                >
+                  <Plus className="h-4 w-4 mr-2" />
+                  Aggiungi domanda
                 </Button>
               </div>
             </CardContent>
@@ -987,17 +1044,77 @@ export default function EditFormPage() {
         if (!open) {
           setIsEditingQuestions(false);
           setEditingQuestion(null);
+          setEditingQuestionIndex(0);
           setNewOption('');
         }
       }}>
         <DialogContent className="sm:max-w-[500px] bg-white">
           <DialogHeader>
-            <DialogTitle className="text-xl font-bold text-black">
-              Modifica Domanda
-            </DialogTitle>
-            <DialogDescription>
-              Modifica il testo, il tipo e le opzioni della domanda
-            </DialogDescription>
+            <div className="flex items-center justify-between">
+              <div className="flex-1">
+                <DialogTitle className="text-xl font-bold text-black">
+                  Modifica Domanda
+                </DialogTitle>
+                <DialogDescription>
+                  Modifica il testo, il tipo e le opzioni della domanda
+                </DialogDescription>
+              </div>
+              {form && form.questions.length > 1 && (
+                <div className="flex items-center gap-2 ml-4">
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    onClick={() => {
+                      const prevIndex = editingQuestionIndex > 0 
+                        ? editingQuestionIndex - 1 
+                        : form.questions.length - 1;
+                      const prevQuestion = form.questions[prevIndex];
+                      const questionToEdit = {
+                        ...prevQuestion,
+                        options: prevQuestion.options 
+                          ? (typeof prevQuestion.options === 'string' 
+                              ? JSON.parse(prevQuestion.options) 
+                              : prevQuestion.options)
+                          : undefined
+                      };
+                      setEditingQuestion(questionToEdit);
+                      setEditingQuestionIndex(prevIndex);
+                      setNewOption('');
+                    }}
+                    className="h-8 w-8"
+                  >
+                    <ChevronLeft className="h-4 w-4" />
+                  </Button>
+                  <span className="text-sm text-gray-500 min-w-[60px] text-center">
+                    {editingQuestionIndex + 1} / {form.questions.length}
+                  </span>
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    onClick={() => {
+                      const nextIndex = editingQuestionIndex < form.questions.length - 1
+                        ? editingQuestionIndex + 1
+                        : 0;
+                      const nextQuestion = form.questions[nextIndex];
+                      const questionToEdit = {
+                        ...nextQuestion,
+                        options: nextQuestion.options 
+                          ? (typeof nextQuestion.options === 'string' 
+                              ? JSON.parse(nextQuestion.options) 
+                              : nextQuestion.options)
+                          : undefined
+                      };
+                      setEditingQuestion(questionToEdit);
+                      setEditingQuestionIndex(nextIndex);
+                      setNewOption('');
+                    }}
+                    className="h-8 w-8"
+                  >
+                    <ChevronRight className="h-4 w-4" />
+                  </Button>
+                </div>
+              )}
+            </div>
           </DialogHeader>
           
           {editingQuestion && (
@@ -1192,14 +1309,224 @@ export default function EditFormPage() {
                     : undefined
                 });
                 
-                setIsEditingQuestions(false);
-                setEditingQuestion(null);
-                setNewOption('');
-                toast.success('Domanda modificata con successo');
+                // Naviga alla prossima domanda se disponibile
+                if (form.questions.length > editingQuestionIndex + 1) {
+                  const nextIndex = editingQuestionIndex + 1;
+                  const nextQuestion = form.questions[nextIndex];
+                  const questionToEdit = {
+                    ...nextQuestion,
+                    options: nextQuestion.options 
+                      ? (typeof nextQuestion.options === 'string' 
+                          ? JSON.parse(nextQuestion.options) 
+                          : nextQuestion.options)
+                      : undefined
+                  };
+                  setEditingQuestion(questionToEdit);
+                  setEditingQuestionIndex(nextIndex);
+                  setNewOption('');
+                  toast.success('Domanda modificata con successo');
+                } else {
+                  setIsEditingQuestions(false);
+                  setEditingQuestion(null);
+                  setEditingQuestionIndex(0);
+                  setNewOption('');
+                  toast.success('Domanda modificata con successo');
+                }
               }}
               className="bg-[#FFCD00] hover:bg-[#FFCD00]/90 text-black"
             >
               Salva
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Dialog per aggiungere una nuova domanda */}
+      <Dialog open={isAddingQuestion} onOpenChange={(open) => {
+        if (!open) {
+          setIsAddingQuestion(false);
+          setNewQuestion({
+            text: '',
+            type: 'TEXT' as QuestionType,
+            required: false,
+            options: undefined
+          });
+          setNewOption('');
+        }
+      }}>
+        <DialogContent className="sm:max-w-[500px] bg-white">
+          <DialogHeader>
+            <DialogTitle className="text-xl font-bold text-black">
+              Aggiungi Nuova Domanda
+            </DialogTitle>
+            <DialogDescription>
+              Crea una nuova domanda per il form
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="new-question-text" className="text-[#868789] font-medium">Testo della domanda</Label>
+              <Input
+                id="new-question-text"
+                value={newQuestion.text || ''}
+                onChange={(e) => setNewQuestion({
+                  ...newQuestion,
+                  text: e.target.value
+                })}
+                placeholder="Inserisci il testo della domanda"
+                className="border-gray-200 focus:border-[#FFCD00] focus:ring-[#FFCD00] mt-1"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label className="text-[#868789] font-medium">Tipo di domanda</Label>
+              <Select
+                value={newQuestion.type || 'TEXT'}
+                onValueChange={(value) => {
+                  const newType = value as QuestionType;
+                  const typesWithOptions = ["MULTIPLE_CHOICE", "RANKING"];
+                  setNewQuestion({
+                    ...newQuestion,
+                    type: newType,
+                    options: typesWithOptions.includes(newType) ? [''] : undefined
+                  });
+                }}
+              >
+                <SelectTrigger className="border-gray-200 focus:border-[#FFCD00] focus:ring-[#FFCD00]">
+                  <SelectValue placeholder="Seleziona il tipo di domanda" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="TEXT">Testo</SelectItem>
+                  <SelectItem value="MULTIPLE_CHOICE">Scelta Multipla</SelectItem>
+                  <SelectItem value="RATING">Valutazione</SelectItem>
+                  <SelectItem value="DATE">Data</SelectItem>
+                  <SelectItem value="RANKING">Ranking</SelectItem>
+                  <SelectItem value="LIKERT">Scala Likert</SelectItem>
+                  <SelectItem value="FILE_UPLOAD">Caricamento File</SelectItem>
+                  <SelectItem value="NPS">NPS</SelectItem>
+                  <SelectItem value="BRANCHING">Branching</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {(newQuestion.type === "MULTIPLE_CHOICE" || newQuestion.type === "RANKING") && (
+              <div className="space-y-2">
+                <Label className="text-[#868789] font-medium">
+                  {newQuestion.type === "MULTIPLE_CHOICE" ? "Opzioni di scelta" : "Elementi da ordinare"}
+                </Label>
+                <div className="space-y-2">
+                  {newQuestion.options?.map((option, index) => (
+                    <div key={index} className="flex gap-2">
+                      <Input
+                        value={option}
+                        onChange={(e) => {
+                          const newOptions = [...(newQuestion.options || [])];
+                          newOptions[index] = e.target.value;
+                          setNewQuestion({
+                            ...newQuestion,
+                            options: newOptions
+                          });
+                        }}
+                        placeholder={`Opzione ${index + 1}`}
+                        className="border-gray-200 focus:border-[#FFCD00] focus:ring-[#FFCD00]"
+                      />
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => {
+                          const newOptions = newQuestion.options?.filter((_, i) => i !== index) || [];
+                          setNewQuestion({
+                            ...newQuestion,
+                            options: newOptions.length > 0 ? newOptions : undefined
+                          });
+                        }}
+                        className="hover:bg-red-100 hover:text-red-600"
+                        disabled={newQuestion.options && newQuestion.options.length <= 1}
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  ))}
+                  <div className="flex gap-2">
+                    <Input
+                      value={newOption}
+                      onChange={(e) => setNewOption(e.target.value)}
+                      placeholder="Aggiungi una nuova opzione"
+                      className="border-gray-200 focus:border-[#FFCD00] focus:ring-[#FFCD00]"
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' && newOption.trim()) {
+                          e.preventDefault();
+                          const newOptions = [...(newQuestion.options || []), newOption.trim()];
+                          setNewQuestion({
+                            ...newQuestion,
+                            options: newOptions
+                          });
+                          setNewOption('');
+                        }
+                      }}
+                    />
+                    <Button 
+                      onClick={() => {
+                        if (newOption.trim()) {
+                          const newOptions = [...(newQuestion.options || []), newOption.trim()];
+                          setNewQuestion({
+                            ...newQuestion,
+                            options: newOptions
+                          });
+                          setNewOption('');
+                        }
+                      }}
+                      className="bg-[#FFCD00] hover:bg-[#FFCD00]/90 text-black"
+                      disabled={!newOption.trim()}
+                    >
+                      <Plus className="h-4 w-4" />
+                    </Button>
+                  </div>
+                  {newQuestion.options && newQuestion.options.length === 0 && (
+                    <p className="text-sm text-red-500">Aggiungi almeno un'opzione</p>
+                  )}
+                </div>
+              </div>
+            )}
+
+            <div className="flex items-center space-x-2">
+              <Switch
+                id="new-required"
+                checked={newQuestion.required || false}
+                onCheckedChange={(checked) => setNewQuestion({
+                  ...newQuestion,
+                  required: checked
+                })}
+              />
+              <Label htmlFor="new-required" className="text-[#868789] font-medium">Obbligatoria</Label>
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button 
+              variant="outline" 
+              onClick={() => {
+                setIsAddingQuestion(false);
+                setNewQuestion({
+                  text: '',
+                  type: 'TEXT' as QuestionType,
+                  required: false,
+                  options: undefined
+                });
+                setNewOption('');
+              }}
+              className="bg-white hover:bg-gray-100 border-gray-200 text-[#868789]"
+            >
+              Annulla
+            </Button>
+            <Button 
+              onClick={async () => {
+                await addQuestion(newQuestion);
+              }}
+              className="bg-[#FFCD00] hover:bg-[#FFCD00]/90 text-black"
+            >
+              Aggiungi
             </Button>
           </DialogFooter>
         </DialogContent>
