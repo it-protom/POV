@@ -682,7 +682,7 @@ export default function FormDetailPage() {
                                   )}
                                 </div>
                                 <p className="text-gray-900 font-medium">{question.text}</p>
-                                {question.options && question.options.length > 0 && (
+                                {question.options && Array.isArray(question.options) && question.options.length > 0 && (
                                   <div className="mt-3">
                                     <p className="text-sm text-gray-500 mb-2">Opzioni:</p>
                                     <div className="space-y-1">

@@ -158,14 +158,31 @@ export async function GET(
         name: baseForm.owner.name || 'Utente Sconosciuto',
         email: baseForm.owner.email
       },
-      questions: baseForm.questions.map(q => ({
-        id: q.id,
-        text: q.text,
-        type: q.type,
-        required: q.required,
-        options: q.options,
-        order: q.order
-      }))
+      questions: baseForm.questions.map(q => {
+        // Parse options if it's a string JSON
+        let parsedOptions = q.options;
+        if (q.options && typeof q.options === 'string') {
+          try {
+            parsedOptions = JSON.parse(q.options);
+          } catch (e) {
+            console.error('Error parsing options JSON:', e);
+            parsedOptions = null;
+          }
+        }
+        // Ensure options is an array for MULTIPLE_CHOICE type
+        if (q.type === 'MULTIPLE_CHOICE' && parsedOptions && !Array.isArray(parsedOptions)) {
+          parsedOptions = null;
+        }
+        
+        return {
+          id: q.id,
+          text: q.text,
+          type: q.type,
+          required: q.required,
+          options: parsedOptions,
+          order: q.order
+        };
+      })
     };
 
     console.log('🎨 GET /api/forms/[id]/public - Tema dal DB:', baseForm.theme);

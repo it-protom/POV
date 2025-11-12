@@ -132,27 +132,52 @@ export async function GET(request: NextRequest) {
     }
 
     // Formatta i dati per il frontend in modo compatibile
-    const formattedForms = availableForms.map(form => ({
-      id: form.id,
-      title: form.title,
-      description: form.description || '',
-      type: form.type,
-      isPublic: form.isPublic,
-      isAnonymous: form.isAnonymous,
-      allowEdit: form.allowEdit,
-      showResults: form.showResults,
-      opensAt: form.opensAt?.toISOString(),
-      closesAt: form.closesAt?.toISOString(),
-      createdAt: form.createdAt.toISOString(),
-      updatedAt: form.updatedAt.toISOString(),
-      owner: {
-        id: form.owner.id,
-        name: form.owner.name || 'Utente Sconosciuto',
-        email: form.owner.email
-      },
-      questions: form.questions,
-      responses: form.responses
-    }));
+    const formattedForms = availableForms.map(form => {
+      // Parse options for questions if they are JSON strings
+      const questionsWithParsedOptions = form.questions.map(q => {
+        // Parse options if it's a string JSON
+        let parsedOptions = q.options;
+        if (q.options && typeof q.options === 'string') {
+          try {
+            parsedOptions = JSON.parse(q.options);
+          } catch (e) {
+            console.error('Error parsing options JSON:', e);
+            parsedOptions = null;
+          }
+        }
+        // Ensure options is an array for MULTIPLE_CHOICE type
+        if (q.type === 'MULTIPLE_CHOICE' && parsedOptions && !Array.isArray(parsedOptions)) {
+          parsedOptions = null;
+        }
+        
+        return {
+          ...q,
+          options: parsedOptions
+        };
+      });
+
+      return {
+        id: form.id,
+        title: form.title,
+        description: form.description || '',
+        type: form.type,
+        isPublic: form.isPublic,
+        isAnonymous: form.isAnonymous,
+        allowEdit: form.allowEdit,
+        showResults: form.showResults,
+        opensAt: form.opensAt?.toISOString(),
+        closesAt: form.closesAt?.toISOString(),
+        createdAt: form.createdAt.toISOString(),
+        updatedAt: form.updatedAt.toISOString(),
+        owner: {
+          id: form.owner.id,
+          name: form.owner.name || 'Utente Sconosciuto',
+          email: form.owner.email
+        },
+        questions: questionsWithParsedOptions,
+        responses: form.responses
+      };
+    });
 
     console.log(`✅ Returning ${formattedForms.length} formatted forms`);
     

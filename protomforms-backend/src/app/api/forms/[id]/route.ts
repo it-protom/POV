@@ -99,9 +99,33 @@ export async function GET(
         }))
       : responsesRaw;
 
+    // Parse options for questions if they are JSON strings
+    const questionsWithParsedOptions = form.questions.map(q => {
+      // Parse options if it's a string JSON
+      let parsedOptions = q.options;
+      if (q.options && typeof q.options === 'string') {
+        try {
+          parsedOptions = JSON.parse(q.options);
+        } catch (e) {
+          console.error('Error parsing options JSON:', e);
+          parsedOptions = null;
+        }
+      }
+      // Ensure options is an array for MULTIPLE_CHOICE type
+      if (q.type === 'MULTIPLE_CHOICE' && parsedOptions && !Array.isArray(parsedOptions)) {
+        parsedOptions = null;
+      }
+      
+      return {
+        ...q,
+        options: parsedOptions
+      };
+    });
+
     // Arricchisci i dati con lo status e le risposte
     const enrichedForm = {
       ...form,
+      questions: questionsWithParsedOptions,
       responses,
       status: form.status.toLowerCase()
     };
