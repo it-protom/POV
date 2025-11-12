@@ -111,10 +111,10 @@ export async function GET(
           parsedOptions = null;
         }
       }
-      // Ensure options is an array for MULTIPLE_CHOICE type
-      if (q.type === 'MULTIPLE_CHOICE' && parsedOptions && !Array.isArray(parsedOptions)) {
-        parsedOptions = null;
-      }
+      // Le opzioni possono essere:
+      // - Un array di stringhe per MULTIPLE_CHOICE senza scelta multipla o per RANKING
+      // - Un oggetto { choices: [], multiple: true, maxSelections: number } per MULTIPLE_CHOICE con scelta multipla
+      // Non impostiamo null se non è un array, perché potrebbe essere un oggetto MultipleChoiceOptions
       
       return {
         ...q,
@@ -250,13 +250,23 @@ export async function PUT(
         ...(questions && {
           questions: {
             deleteMany: {},
-            create: questions.map((q: any, index: number) => ({
-              text: q.text,
-              type: q.type,
-              required: q.required,
-              options: q.options ? JSON.stringify(q.options) : null,
-              order: index
-            }))
+            create: questions.map((q: any, index: number) => {
+              // Debug: log delle opzioni prima del salvataggio
+              console.log(`Domanda ${index}:`, {
+                text: q.text,
+                type: q.type,
+                options: q.options,
+                optionsStringified: q.options ? JSON.stringify(q.options) : null
+              });
+              
+              return {
+                text: q.text,
+                type: q.type,
+                required: q.required,
+                options: q.options ? JSON.stringify(q.options) : null,
+                order: index
+              };
+            })
           }
         })
       },
@@ -271,7 +281,29 @@ export async function PUT(
     
     console.log('✅ PUT /api/forms/[id] - Form aggiornato con tema');
     
-    return NextResponse.json(updatedForm);
+    // Parse options for questions if they are JSON strings (come nel GET)
+    const questionsWithParsedOptions = updatedForm.questions.map((q: any) => {
+      let parsedOptions = q.options;
+      if (q.options && typeof q.options === 'string') {
+        try {
+          parsedOptions = JSON.parse(q.options);
+        } catch (e) {
+          console.error('Error parsing options JSON:', e);
+          parsedOptions = null;
+        }
+      }
+      return {
+        ...q,
+        options: parsedOptions
+      };
+    });
+    
+    const formWithParsedOptions = {
+      ...updatedForm,
+      questions: questionsWithParsedOptions
+    };
+    
+    return NextResponse.json(formWithParsedOptions);
   } catch (error) {
     console.error('Error updating form:', error);
     return NextResponse.json(

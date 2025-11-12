@@ -903,18 +903,44 @@ export default function FormDetailPage() {
                                   )}
                                 </div>
                                 <p className="text-gray-900 font-medium">{question.text}</p>
-                                {question.options && Array.isArray(question.options) && question.options.length > 0 && (
-                                  <div className="mt-3">
-                                    <p className="text-sm text-gray-500 mb-2">Opzioni:</p>
-                                    <div className="space-y-1">
-                                      {question.options.map((option, optIndex) => (
-                                        <div key={optIndex} className="text-sm text-gray-700 bg-gray-50 px-3 py-1 rounded">
-                                          {optIndex + 1}. {option}
+                                {(() => {
+                                  // Gestisci le opzioni sia come array che come oggetto MultipleChoiceOptions
+                                  let optionsToShow: string[] = [];
+                                  let isMultiple = false;
+                                  let maxSelections: number | undefined = undefined;
+                                  
+                                  if (question.options) {
+                                    if (Array.isArray(question.options)) {
+                                      optionsToShow = question.options.filter(opt => typeof opt === 'string' && opt.trim().length > 0);
+                                    } else if (typeof question.options === 'object' && question.options !== null) {
+                                      // È un oggetto MultipleChoiceOptions
+                                      const optionsObj = question.options as { choices?: string[]; multiple?: boolean; maxSelections?: number };
+                                      if (optionsObj.choices) {
+                                        optionsToShow = optionsObj.choices || [];
+                                        isMultiple = optionsObj.multiple || false;
+                                        maxSelections = optionsObj.maxSelections;
+                                      }
+                                    }
+                                  }
+                                  
+                                  if (optionsToShow.length > 0) {
+                                    return (
+                                      <div className="mt-3">
+                                        <p className="text-sm text-gray-500 mb-2">
+                                          Opzioni: {isMultiple && `Scelta multipla${maxSelections ? ` (max ${maxSelections})` : ''}`}
+                                        </p>
+                                        <div className="space-y-1">
+                                          {optionsToShow.map((option, optIndex) => (
+                                            <div key={optIndex} className="text-sm text-gray-700 bg-gray-50 px-3 py-1 rounded">
+                                              {optIndex + 1}. {option}
+                                            </div>
+                                          ))}
                                         </div>
-                                      ))}
-                                    </div>
-                                  </div>
-                                )}
+                                      </div>
+                                    );
+                                  }
+                                  return null;
+                                })()}
                               </div>
                             </div>
                           </CardContent>

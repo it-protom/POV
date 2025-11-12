@@ -4,7 +4,7 @@ import { CSS } from '@dnd-kit/utilities';
 import { Card, CardContent, CardHeader } from '../ui/card';
 import { Button } from '../ui/button';
 import { GripVertical, Pencil, Trash2 } from 'lucide-react';
-import { QuestionFormData, QuestionType } from '../../types';
+import { QuestionFormData, QuestionType, MultipleChoiceOptions } from '../../types/question';
 import { Input } from '../ui/input';
 import { Label } from '../ui/label';
 import { RadioGroup, RadioGroupItem } from '../ui/radio-group';
@@ -17,6 +17,13 @@ interface SortableQuestionProps {
   onDelete: (id: string) => void;
   onUpdate: (updatedQuestion: QuestionFormData) => void;
 }
+
+// Helper function per gestire le opzioni multiple choice
+const getChoices = (options: string[] | MultipleChoiceOptions | undefined): string[] => {
+  if (!options) return [];
+  if (Array.isArray(options)) return options;
+  return options.choices || [];
+};
 
 export function SortableQuestion({ question, onEdit, onDelete, onUpdate }: SortableQuestionProps) {
   const {
@@ -44,15 +51,37 @@ export function SortableQuestion({ question, onEdit, onDelete, onUpdate }: Sorta
         );
       
       case QuestionType.MULTIPLE_CHOICE:
+        // Debug: log delle opzioni
+        console.log('SortableQuestion MULTIPLE_CHOICE - question.options:', question.options);
+        const choices = getChoices(question.options);
+        console.log('SortableQuestion MULTIPLE_CHOICE - choices:', choices);
+        const isMultiple = question.options && !Array.isArray(question.options) && (question.options as MultipleChoiceOptions).multiple;
+        const maxSelections = question.options && !Array.isArray(question.options) ? (question.options as MultipleChoiceOptions).maxSelections : undefined;
+        
+        if (choices.length === 0) {
+          return (
+            <div className="text-sm text-[#868789] italic">
+              Nessuna opzione disponibile
+            </div>
+          );
+        }
+        
         return (
-          <RadioGroup className="space-y-2" disabled>
-            {question.options?.map((option, index) => (
-              <div key={index} className="flex items-center space-x-2">
-                <RadioGroupItem value={option} id={`preview-${index}`} />
-                <Label htmlFor={`preview-${index}`} className="text-[#868789]">{option}</Label>
+          <div className="space-y-2">
+            {isMultiple && (
+              <div className="text-xs text-[#868789] mb-2">
+                Scelta multipla{maxSelections ? ` (max ${maxSelections})` : ''}
               </div>
-            ))}
-          </RadioGroup>
+            )}
+            <RadioGroup className="space-y-2" disabled>
+              {choices.map((option, index) => (
+                <div key={index} className="flex items-center space-x-2">
+                  <RadioGroupItem value={option} id={`preview-${index}`} />
+                  <Label htmlFor={`preview-${index}`} className="text-[#868789]">{option}</Label>
+                </div>
+              ))}
+            </RadioGroup>
+          </div>
         );
       
       case QuestionType.RATING:

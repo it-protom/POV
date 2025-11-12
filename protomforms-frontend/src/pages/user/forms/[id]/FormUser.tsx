@@ -974,73 +974,92 @@ export default function FormUser({ form: initialForm }: { form: Form }) {
                     {(() => {
                       const choices = Array.isArray(currentQuestion.options) ? currentQuestion.options : currentQuestion.options?.choices || [];
                       const isMultiple = currentQuestion.options?.multiple || false;
+                      const maxSelections = currentQuestion.options && !Array.isArray(currentQuestion.options) 
+                        ? currentQuestion.options.maxSelections 
+                        : undefined;
                       
                       if (isMultiple) {
                         return (
                           <div className="flex flex-col gap-3 w-full">
-                            {choices.map((option: string, index: number) => (
-                              <motion.label
-                                key={index}
-                                htmlFor={`${currentQuestion.id}-${index}`}
-                                className="flex items-center gap-4 p-4 rounded-lg transition-all cursor-pointer border hover:shadow-sm"
-                                style={{
-                                  borderWidth: `${theme.borderWidth || 1}px`,
-                                  borderStyle: 'solid',
-                                  borderColor: (answers[currentQuestion.id] as string[] || []).includes(option)
-                                    ? theme.primaryColor || '#3b82f6'
-                                    : (theme.optionBorderColor || '#e5e7eb'),
-                                  backgroundColor: (answers[currentQuestion.id] as string[] || []).includes(option)
-                                    ? theme.optionSelectedColor || `${theme.primaryColor || '#3b82f6'}15`
-                                    : 'transparent',
-                                  borderRadius: `${theme.borderRadius || 8}px`,
-                                }}
-                                whileHover={{ 
-                                  backgroundColor: (answers[currentQuestion.id] as string[] || []).includes(option)
-                                    ? theme.optionSelectedColor || `${theme.primaryColor || '#3b82f6'}20`
-                                    : (theme.optionHoverColor || '#f9fafb'),
-                                  borderColor: theme.primaryColor || '#3b82f6',
-                                }}
-                                whileTap={{ scale: 0.99 }}
-                                onClick={(e) => {
-                                  e.preventDefault();
-                                  const currentAnswers = (answers[currentQuestion.id] as string[]) || [];
-                                  handleAnswerChange(
-                                    currentQuestion.id,
-                                    (answers[currentQuestion.id] as string[] || []).includes(option)
-                                      ? currentAnswers.filter(a => a !== option)
-                                      : [...currentAnswers, option]
-                                  );
-                                }}
-                              >
-                                <Checkbox
-                                  id={`${currentQuestion.id}-${index}`}
-                                  checked={(answers[currentQuestion.id] as string[] || []).includes(option)}
-                                  onCheckedChange={(checked) => {
-                                    const currentAnswers = (answers[currentQuestion.id] as string[]) || [];
+                            {maxSelections && (
+                              <div className="text-sm text-gray-500 mb-2">
+                                Seleziona al massimo {maxSelections} {maxSelections === 1 ? 'opzione' : 'opzioni'}
+                              </div>
+                            )}
+                            {choices.map((option: string, index: number) => {
+                              const currentAnswers = (answers[currentQuestion.id] as string[]) || [];
+                              const isSelected = currentAnswers.includes(option);
+                              const isDisabled = !isSelected && maxSelections && currentAnswers.length >= maxSelections;
+                              
+                              return (
+                                <motion.label
+                                  key={index}
+                                  htmlFor={`${currentQuestion.id}-${index}`}
+                                  className={`flex items-center gap-4 p-4 rounded-lg transition-all border hover:shadow-sm ${
+                                    isDisabled ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'
+                                  }`}
+                                  style={{
+                                    borderWidth: `${theme.borderWidth || 1}px`,
+                                    borderStyle: 'solid',
+                                    borderColor: isSelected
+                                      ? theme.primaryColor || '#3b82f6'
+                                      : (theme.optionBorderColor || '#e5e7eb'),
+                                    backgroundColor: isSelected
+                                      ? theme.optionSelectedColor || `${theme.primaryColor || '#3b82f6'}15`
+                                      : 'transparent',
+                                    borderRadius: `${theme.borderRadius || 8}px`,
+                                  }}
+                                  whileHover={!isDisabled ? { 
+                                    backgroundColor: isSelected
+                                      ? theme.optionSelectedColor || `${theme.primaryColor || '#3b82f6'}20`
+                                      : (theme.optionHoverColor || '#f9fafb'),
+                                    borderColor: theme.primaryColor || '#3b82f6',
+                                  } : {}}
+                                  whileTap={!isDisabled ? { scale: 0.99 } : {}}
+                                  onClick={(e) => {
+                                    e.preventDefault();
+                                    if (isDisabled) return;
+                                    
                                     handleAnswerChange(
                                       currentQuestion.id,
-                                      checked
-                                        ? [...currentAnswers, option]
-                                        : currentAnswers.filter(a => a !== option)
+                                      isSelected
+                                        ? currentAnswers.filter(a => a !== option)
+                                        : [...currentAnswers, option]
                                     );
                                   }}
-                                  style={{
-                                    borderColor: theme.radioCheckColor || theme.primaryColor || '#3b82f6',
-                                    accentColor: theme.radioCheckColor || theme.primaryColor || '#3b82f6',
-                                  }}
-                                  className="flex-shrink-0"
-                                />
-                                <span
-                                  className="flex-1 font-normal leading-relaxed"
-                                  style={{
-                                    color: theme.optionTextColor || theme.textColor || '#1f2937',
-                                    fontSize: `${theme.optionFontSize || 16}px`
-                                  }}
                                 >
-                                  {option}
-                                </span>
-                              </motion.label>
-                            ))}
+                                  <Checkbox
+                                    id={`${currentQuestion.id}-${index}`}
+                                    checked={isSelected}
+                                    disabled={isDisabled}
+                                    onCheckedChange={(checked) => {
+                                      if (isDisabled && checked) return;
+                                      
+                                      handleAnswerChange(
+                                        currentQuestion.id,
+                                        checked
+                                          ? [...currentAnswers, option]
+                                          : currentAnswers.filter(a => a !== option)
+                                      );
+                                    }}
+                                    style={{
+                                      borderColor: theme.radioCheckColor || theme.primaryColor || '#3b82f6',
+                                      accentColor: theme.radioCheckColor || theme.primaryColor || '#3b82f6',
+                                    }}
+                                    className="flex-shrink-0"
+                                  />
+                                  <span
+                                    className="flex-1 font-normal leading-relaxed"
+                                    style={{
+                                      color: theme.optionTextColor || theme.textColor || '#1f2937',
+                                      fontSize: `${theme.optionFontSize || 16}px`
+                                    }}
+                                  >
+                                    {option}
+                                  </span>
+                                </motion.label>
+                              );
+                            })}
                           </div>
                         );
                       } else {

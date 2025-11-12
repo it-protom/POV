@@ -26,15 +26,55 @@ import {
   DropdownMenuTrigger,
 } from '../ui/dropdown-menu';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
+import { Separator } from '../ui/separator';
 import { TemplateSelector } from './TemplateSelector';
 import { formTemplates } from '../../lib/form-templates';
-import { QuestionType, QuestionFormData, DateOptions } from '../../types/question';
+import { QuestionType, QuestionFormData, DateOptions, MultipleChoiceOptions } from '../../types/question';
 
 interface QuestionBuilderProps {
   questions: QuestionFormData[];
   onQuestionsChange: (questions: QuestionFormData[]) => void;
   hideHeader?: boolean;
 }
+
+// Helper functions per gestire le opzioni multiple choice
+const getChoices = (options: string[] | MultipleChoiceOptions | undefined): string[] => {
+  if (!options) return [];
+  if (Array.isArray(options)) return options;
+  return options.choices || [];
+};
+
+const getMultiple = (options: string[] | MultipleChoiceOptions | undefined): boolean => {
+  if (!options || Array.isArray(options)) return false;
+  return options.multiple || false;
+};
+
+const getMaxSelections = (options: string[] | MultipleChoiceOptions | undefined): number | undefined => {
+  if (!options || Array.isArray(options)) return undefined;
+  return options.maxSelections;
+};
+
+const setChoices = (options: string[] | MultipleChoiceOptions | undefined, choices: string[]): string[] | MultipleChoiceOptions => {
+  if (!options || Array.isArray(options)) {
+    return choices;
+  }
+  return {
+    ...options,
+    choices
+  };
+};
+
+const setMultiple = (options: string[] | MultipleChoiceOptions | undefined, multiple: boolean, maxSelections?: number): string[] | MultipleChoiceOptions => {
+  const choices = getChoices(options);
+  if (!multiple) {
+    return choices; // Ritorna array semplice se non è multipla
+  }
+  return {
+    choices,
+    multiple: true,
+    maxSelections
+  };
+};
 
 export function QuestionBuilder({ questions, onQuestionsChange, hideHeader = false }: QuestionBuilderProps) {
   const [activeQuestion, setActiveQuestion] = useState<QuestionFormData | null>(null);
@@ -198,9 +238,10 @@ export function QuestionBuilder({ questions, onQuestionsChange, hideHeader = fal
   const handleAddOption = () => {
     if (!editingQuestion || !newOption.trim()) return;
 
+    const currentChoices = getChoices(editingQuestion.options);
     const updatedQuestion = {
       ...editingQuestion,
-      options: [...(editingQuestion.options || []), newOption.trim()]
+      options: setChoices(editingQuestion.options, [...currentChoices, newOption.trim()])
     };
 
     setEditingQuestion(updatedQuestion);
@@ -210,9 +251,11 @@ export function QuestionBuilder({ questions, onQuestionsChange, hideHeader = fal
   const handleRemoveOption = (index: number) => {
     if (!editingQuestion) return;
 
+    const currentChoices = getChoices(editingQuestion.options);
+    const updatedChoices = currentChoices.filter((_: string, i: number) => i !== index);
     const updatedQuestion = {
       ...editingQuestion,
-      options: editingQuestion.options?.filter((_: string, i: number) => i !== index)
+      options: setChoices(editingQuestion.options, updatedChoices)
     };
 
     setEditingQuestion(updatedQuestion);
@@ -366,48 +409,121 @@ export function QuestionBuilder({ questions, onQuestionsChange, hideHeader = fal
               </div>
 
               {editingQuestion.type === QuestionType.MULTIPLE_CHOICE && (
-                <div className="space-y-2">
-                  <Label className="text-[#868789] font-medium">Opzioni</Label>
+                <div className="space-y-4">
                   <div className="space-y-2">
-                    {editingQuestion.options?.map((option: string, index: number) => (
-                      <div key={index} className="flex gap-2">
+                    <Label className="text-[#868789] font-medium">Opzioni</Label>
+                    <div className="space-y-2">
+                      {getChoices(editingQuestion.options).map((option: string, index: number) => (
+                        <div key={index} className="flex gap-2">
+                          <Input
+                            value={option}
+                            onChange={(e) => {
+                              const currentChoices = getChoices(editingQuestion.options);
+                              const newChoices = [...currentChoices];
+                              newChoices[index] = e.target.value;
+                              setEditingQuestion({
+                                ...editingQuestion,
+                                options: setChoices(editingQuestion.options, newChoices)
+                              });
+                            }}
+                            placeholder={`Opzione ${index + 1}`}
+                            className="border-gray-200 focus:border-[#FFCD00] focus:ring-[#FFCD00]"
+                          />
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => handleRemoveOption(index)}
+                            className="hover:bg-red-100 hover:text-red-600"
+                            disabled={getChoices(editingQuestion.options).length <= 1}
+                          >
+                            <X className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      ))}
+                      <div className="flex gap-2">
                         <Input
-                          value={option}
-                          onChange={(e) => {
-                            const newOptions = [...(editingQuestion.options || [])];
-                            newOptions[index] = e.target.value;
-                            setEditingQuestion({
-                              ...editingQuestion,
-                              options: newOptions
-                            });
-                          }}
-                          placeholder={`Opzione ${index + 1}`}
+                          value={newOption}
+                          onChange={(e) => setNewOption(e.target.value)}
+                          placeholder="Aggiungi una nuova opzione"
                           className="border-gray-200 focus:border-[#FFCD00] focus:ring-[#FFCD00]"
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter' && newOption.trim()) {
+                              e.preventDefault();
+                              handleAddOption();
+                            }
+                          }}
                         />
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => handleRemoveOption(index)}
-                          className="hover:bg-red-100 hover:text-red-600"
+                        <Button 
+                          onClick={handleAddOption}
+                          className="bg-[#FFCD00] hover:bg-[#FFCD00]/90 text-black"
+                          disabled={!newOption.trim()}
                         >
-                          <X className="h-4 w-4" />
+                          <Plus className="h-4 w-4" />
                         </Button>
                       </div>
-                    ))}
-                    <div className="flex gap-2">
-                      <Input
-                        value={newOption}
-                        onChange={(e) => setNewOption(e.target.value)}
-                        placeholder="Aggiungi una nuova opzione"
-                        className="border-gray-200 focus:border-[#FFCD00] focus:ring-[#FFCD00]"
-                      />
-                      <Button 
-                        onClick={handleAddOption}
-                        className="bg-[#FFCD00] hover:bg-[#FFCD00]/90 text-black"
-                      >
-                        Aggiungi
-                      </Button>
+                      {getChoices(editingQuestion.options).length === 0 && (
+                        <p className="text-sm text-red-500">Aggiungi almeno un'opzione</p>
+                      )}
                     </div>
+                  </div>
+
+                  <Separator />
+
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+                      <div>
+                        <Label htmlFor="allow-multiple" className="font-medium text-[#868789]">
+                          Permetti scelta multipla
+                        </Label>
+                        <p className="text-sm text-gray-500">
+                          Consenti agli utenti di selezionare più opzioni
+                        </p>
+                      </div>
+                      <Switch
+                        id="allow-multiple"
+                        checked={getMultiple(editingQuestion.options)}
+                        onCheckedChange={(checked) => {
+                          const currentChoices = getChoices(editingQuestion.options);
+                          setEditingQuestion({
+                            ...editingQuestion,
+                            options: setMultiple(editingQuestion.options, checked, checked ? currentChoices.length : undefined)
+                          });
+                        }}
+                        className="data-[state=checked]:bg-[#FFCD00]"
+                      />
+                    </div>
+
+                    {getMultiple(editingQuestion.options) && (
+                      <div className="space-y-2">
+                        <Label htmlFor="max-selections" className="text-[#868789] font-medium">
+                          Numero massimo di selezioni
+                        </Label>
+                        <Input
+                          id="max-selections"
+                          type="number"
+                          min="1"
+                          max={getChoices(editingQuestion.options).length}
+                          value={getMaxSelections(editingQuestion.options) || getChoices(editingQuestion.options).length}
+                          onChange={(e) => {
+                            const max = parseInt(e.target.value) || getChoices(editingQuestion.options).length;
+                            const currentChoices = getChoices(editingQuestion.options);
+                            setEditingQuestion({
+                              ...editingQuestion,
+                              options: {
+                                choices: currentChoices,
+                                multiple: true,
+                                maxSelections: Math.min(max, currentChoices.length)
+                              }
+                            });
+                          }}
+                          placeholder="Numero massimo"
+                          className="border-gray-200 focus:border-[#FFCD00] focus:ring-[#FFCD00]"
+                        />
+                        <p className="text-xs text-gray-500">
+                          Massimo {getChoices(editingQuestion.options).length} selezioni possibili
+                        </p>
+                      </div>
+                    )}
                   </div>
                 </div>
               )}

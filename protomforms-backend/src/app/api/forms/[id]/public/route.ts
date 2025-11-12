@@ -169,10 +169,10 @@ export async function GET(
             parsedOptions = null;
           }
         }
-        // Ensure options is an array for MULTIPLE_CHOICE type
-        if (q.type === 'MULTIPLE_CHOICE' && parsedOptions && !Array.isArray(parsedOptions)) {
-          parsedOptions = null;
-        }
+        // Le opzioni possono essere:
+        // - Un array di stringhe per MULTIPLE_CHOICE senza scelta multipla o per RANKING
+        // - Un oggetto { choices: [], multiple: true, maxSelections: number } per MULTIPLE_CHOICE con scelta multipla
+        // Non impostiamo null se non è un array, perché potrebbe essere un oggetto MultipleChoiceOptions
         
         return {
           id: q.id,

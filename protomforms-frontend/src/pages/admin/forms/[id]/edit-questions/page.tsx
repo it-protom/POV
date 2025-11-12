@@ -11,7 +11,7 @@ import { Link } from 'react-router-dom';
 import { QuestionBuilder } from '@/components/form-builder/QuestionBuilder';
 import { toast } from 'sonner';
 import { Separator } from '@/components/ui/separator';
-import { QuestionFormData, QuestionType } from "@/types/question";
+import { QuestionFormData, QuestionType, MultipleChoiceOptions } from "@/types/question";
 import { v4 as uuidv4 } from 'uuid';
 import { authenticatedFetch } from '@/lib/utils';
 
@@ -80,21 +80,95 @@ export default function EditQuestionsPage() {
     setQuestions(prev => [...prev, newQuestion]);
   };
 
+  // Helper functions per gestire le opzioni multiple choice
+  const getChoices = (options: string[] | MultipleChoiceOptions | undefined): string[] => {
+    if (!options) return [];
+    if (Array.isArray(options)) return options;
+    return options.choices || [];
+  };
+
+  const getMultiple = (options: string[] | MultipleChoiceOptions | undefined): boolean => {
+    if (!options || Array.isArray(options)) return false;
+    return options.multiple || false;
+  };
+
+  const getMaxSelections = (options: string[] | MultipleChoiceOptions | undefined): number | undefined => {
+    if (!options || Array.isArray(options)) return undefined;
+    return options.maxSelections;
+  };
+
   const handleUpdateForm = async () => {
     if (!params.id || !formData) return;
 
     setSaving(true);
     
     try {
+      // Validazione: verifica che tutte le domande MULTIPLE_CHOICE e RANKING abbiano almeno un'opzione
+      for (const q of questions) {
+        if (q.type === QuestionType.MULTIPLE_CHOICE) {
+          const choices = getChoices(q.options).filter(opt => opt.trim().length > 0);
+          if (choices.length === 0) {
+            toast.error(`La domanda "${q.text || 'Senza testo'}" deve avere almeno un'opzione valida`);
+            setSaving(false);
+            return;
+          }
+        } else if (q.type === QuestionType.RANKING) {
+          const rankingOptions = Array.isArray(q.options) 
+            ? q.options.filter(opt => typeof opt === 'string' && opt.trim().length > 0)
+            : [];
+          if (rankingOptions.length === 0) {
+            toast.error(`La domanda "${q.text || 'Senza testo'}" deve avere almeno un elemento da ordinare`);
+            setSaving(false);
+            return;
+          }
+        }
+        
+        if (!q.text || !q.text.trim()) {
+          toast.error('Tutte le domande devono avere un testo');
+          setSaving(false);
+          return;
+        }
+      }
+      
       // Prepara le domande per il salvataggio
-      const questionsToSave = questions.map((q, index) => ({
-        text: q.text,
-        type: q.type,
-        required: q.required || false,
-        options: q.options,
-        order: index
-      }));
+      const questionsToSave = questions.map((q, index) => {
+        let optionsToSave: string[] | MultipleChoiceOptions | undefined = undefined;
+        
+        // Gestisci le opzioni in base al tipo di domanda
+        if (q.type === QuestionType.MULTIPLE_CHOICE) {
+          const choices = getChoices(q.options).filter(opt => opt.trim().length > 0);
+          if (choices.length > 0) {
+            if (getMultiple(q.options)) {
+              optionsToSave = {
+                choices,
+                multiple: true,
+                maxSelections: getMaxSelections(q.options) || choices.length
+              };
+            } else {
+              optionsToSave = choices;
+            }
+          }
+        } else if (q.type === QuestionType.RANKING) {
+          const rankingOptions = Array.isArray(q.options) 
+            ? q.options.filter(opt => typeof opt === 'string' && opt.trim().length > 0)
+            : [];
+          if (rankingOptions.length > 0) {
+            optionsToSave = rankingOptions;
+          }
+        }
+        
+        return {
+          text: q.text,
+          type: q.type,
+          required: q.required || false,
+          options: optionsToSave,
+          order: index
+        };
+      });
 
+      // Debug: log delle domande da salvare
+      console.log('Domande da salvare:', JSON.stringify(questionsToSave, null, 2));
+      
       // Aggiorna il form con le nuove domande, mantenendo tutti gli altri dati esistenti
       const response = await authenticatedFetch(`/api/forms/${params.id}`, {
         method: "PUT",
@@ -117,14 +191,40 @@ export default function EditQuestionsPage() {
       });
 
       if (!response.ok) {
-        throw new Error("Errore nell'aggiornamento del form");
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || "Errore nell'aggiornamento del form");
       }
 
+      const updatedForm = await response.json();
+      
+      // Parse options per ogni domanda se sono stringhe JSON
+      if (updatedForm.questions && Array.isArray(updatedForm.questions)) {
+        updatedForm.questions = updatedForm.questions.map((q: any) => ({
+          ...q,
+          options: q.options 
+            ? (typeof q.options === 'string' ? JSON.parse(q.options) : q.options)
+            : undefined
+        }));
+      }
+      
+      // Aggiorna lo stato con le domande aggiornate
+      const convertedQuestions: QuestionFormData[] = updatedForm.questions.map((q: any) => ({
+        id: q.id,
+        type: q.type as QuestionType,
+        text: q.text,
+        required: q.required || false,
+        options: q.options,
+        order: q.order || 0
+      }));
+      
+      convertedQuestions.sort((a, b) => (a.order || 0) - (b.order || 0));
+      setQuestions(convertedQuestions);
+      setFormData(updatedForm);
+      
       toast.success("Form aggiornato con successo");
-      navigate(`/admin/forms/${params.id}/edit`);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Errore nell'aggiornamento del form:", error);
-      toast.error("Impossibile aggiornare il form");
+      toast.error(error.message || "Impossibile aggiornare il form");
     } finally {
       setSaving(false);
     }
