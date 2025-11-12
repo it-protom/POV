@@ -34,6 +34,29 @@ import { Link } from 'react-router-dom';
 import { useParams } from "react-router-dom";
 import { authenticatedFetch } from '@/lib/utils';
 import { Icons } from '@/components/icons';
+import { 
+  ResponsiveContainer, 
+  AreaChart, 
+  Area, 
+  BarChart, 
+  Bar, 
+  LineChart, 
+  Line, 
+  PieChart, 
+  Pie, 
+  Cell, 
+  XAxis, 
+  YAxis, 
+  CartesianGrid, 
+  Tooltip, 
+  Legend,
+  ComposedChart
+} from 'recharts';
+import { chartColors, tooltipConfig, legendConfig, axisConfig, chartPresets, getChartColor } from '@/lib/chart-colors';
+import { CustomTooltip, TemporalTooltip, PerformanceTooltip, DeviceTooltip } from '@/components/charts/CustomTooltip';
+import { CustomLegend, TemporalLegend, PieLegend, BarLegend } from '@/components/charts/CustomLegend';
+import { AccessibleChart } from '@/components/charts/AccessibleChart';
+import { NoDataChart } from '@/components/EmptyDataMessage';
 
 interface Question {
   id: string;
@@ -80,11 +103,33 @@ const typeConfig = {
   QUIZ: { label: "Quiz", color: "bg-purple-100 text-purple-800" }
 };
 
+interface ChartData {
+  name: string;
+  responses: number;
+  forms: number;
+  satisfaction: number;
+  engagement: number;
+  completion: number;
+}
+
+interface CompletionData {
+  name: string;
+  value: number;
+  percentage?: number;
+}
+
+interface DashboardData {
+  chartData: ChartData[];
+  completionData: CompletionData[];
+}
+
 export default function FormDetailPage() {
   const params = useParams();
   const [form, setForm] = useState<Form | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [dashboardData, setDashboardData] = useState<DashboardData | null>(null);
+  const [isLoadingCharts, setIsLoadingCharts] = useState(true);
   const [isPublishing, setIsPublishing] = useState(false);
   const [showWebhookDialog, setShowWebhookDialog] = useState(false);
   const [isTeamsDialogOpen, setIsTeamsDialogOpen] = useState(false);
@@ -146,6 +191,36 @@ export default function FormDetailPage() {
     }
   }, [params.id]);
 
+  useEffect(() => {
+    const fetchDashboardData = async () => {
+      if (!params.id) return;
+      
+      setIsLoadingCharts(true);
+      try {
+        const response = await authenticatedFetch(`/api/dashboard/stats?formId=${params.id}`, {
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        });
+        if (response.ok) {
+          const data = await response.json();
+          setDashboardData({
+            chartData: data.chartData || [],
+            completionData: data.completionData || []
+          });
+        }
+      } catch (error) {
+        console.error('Error fetching dashboard data:', error);
+      } finally {
+        setIsLoadingCharts(false);
+      }
+    };
+
+    if (params.id) {
+      fetchDashboardData();
+    }
+  }, [params.id]);
+
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('it-IT', {
       day: '2-digit',
@@ -169,32 +244,6 @@ export default function FormDetailPage() {
     return 'draft';
   };
 
-  const calculateStats = (form: Form) => {
-    const totalResponses = form.responses.length;
-    const totalQuestions = form.questions.length;
-    
-    // Calcola risposte complete (che hanno risposto a tutte le domande)
-    const completeResponses = form.responses.filter(r => 
-      r.answers && r.answers.length >= totalQuestions
-    ).length;
-    
-    // Calcola risposte parziali (che hanno risposto ad almeno una domanda)
-    const partialResponses = form.responses.filter(r => 
-      r.answers && r.answers.length > 0 && r.answers.length < totalQuestions
-    ).length;
-    
-    // Calcola tasso di completamento
-    const completionRate = totalResponses > 0 ? 
-      Math.round((completeResponses / totalResponses) * 100) : 0;
-    
-    return {
-      totalResponses,
-      totalQuestions,
-      completeResponses,
-      partialResponses,
-      completionRate
-    };
-  };
 
   if (isLoading) {
     return (
@@ -222,7 +271,7 @@ export default function FormDetailPage() {
             <h2 className="text-xl font-semibold text-gray-900 mb-2">Errore</h2>
             <p className="text-gray-500 mb-6">{error || 'Form non trovato'}</p>
             <Button asChild>
-              <Link to="/admin/forms">
+              <Link to="/admin/dashboard">
                 <ArrowLeft className="h-4 w-4 mr-2" />
                 Torna ai Forms
               </Link>
@@ -235,7 +284,6 @@ export default function FormDetailPage() {
 
   const status = getStatus(form);
   const StatusIcon = statusConfig[status].icon;
-  const stats = calculateStats(form);
 
   const handlePublish = async (sendWebhook: boolean = false, customTitle?: string, customText?: string) => {
     if (!form) return;
@@ -524,7 +572,7 @@ export default function FormDetailPage() {
       <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between">
         <div className="flex items-center space-x-4">
           <Button variant="outline" size="sm" asChild>
-            <Link to="/admin/forms">
+            <Link to="/admin/dashboard">
               <ArrowLeft className="h-4 w-4 mr-2" />
               Torna ai Forms
             </Link>
@@ -633,6 +681,179 @@ export default function FormDetailPage() {
             <CheckCircle className="h-3 w-3 mr-1" />
             Pubblico
           </Badge>
+        )}
+      </div>
+
+      {/* Charts Section */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Primary Chart - Andamento Temporale */}
+        {isLoadingCharts ? (
+          <Card className="border-0 shadow-sm">
+            <CardContent className="p-6">
+              <div className="animate-pulse">
+                <div className="h-4 bg-gray-200 rounded w-1/3 mb-4"></div>
+                <div className="h-64 bg-gray-200 rounded"></div>
+              </div>
+            </CardContent>
+          </Card>
+        ) : dashboardData?.chartData && dashboardData.chartData.length > 0 ? (
+          <AccessibleChart
+            title="Andamento Risposte e Forms"
+            description="Trend degli ultimi 6 mesi"
+            data={dashboardData.chartData}
+            showLegend={true}
+            showTable={true}
+            showControls={true}
+            ariaLabel="Grafico che mostra l'andamento delle risposte e dei form negli ultimi 6 mesi"
+            legendProps={{
+              payload: [
+                { value: 'Risposte', color: chartColors.primary.gold },
+                { value: 'Forms', color: chartColors.secondary.blue }
+              ]
+            }}
+          >
+            <ResponsiveContainer width="100%" height="100%">
+              <ComposedChart data={dashboardData.chartData}>
+                <defs>
+                  <linearGradient id="colorResponses" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor={chartColors.primary.gold} stopOpacity={0.8}/>
+                    <stop offset="95%" stopColor={chartColors.primary.lightGold} stopOpacity={0.1}/>
+                  </linearGradient>
+                </defs>
+                <CartesianGrid {...axisConfig.gridStyle} />
+                <XAxis 
+                  dataKey="name" 
+                  {...axisConfig.style}
+                  tick={{ 
+                    fontSize: 10, 
+                    fill: axisConfig.tickStyle.color
+                  }}
+                  height={60}
+                  interval="preserveStartEnd"
+                  tickMargin={12}
+                  angle={-45}
+                  textAnchor="end"
+                />
+                <YAxis 
+                  yAxisId="left" 
+                  {...axisConfig.style}
+                  tick={{ fontSize: 10, fill: axisConfig.tickStyle.color }}
+                  width={50}
+                  tickMargin={8}
+                />
+                <YAxis 
+                  yAxisId="right" 
+                  orientation="right" 
+                  {...axisConfig.style}
+                  tick={{ fontSize: 10, fill: axisConfig.tickStyle.color }}
+                  width={50}
+                  tickMargin={8}
+                />
+                <Tooltip content={<TemporalTooltip />} />
+                <Area 
+                  yAxisId="left"
+                  type="monotone" 
+                  dataKey="responses" 
+                  stroke={chartColors.primary.gold}
+                  fillOpacity={1} 
+                  fill="url(#colorResponses)"
+                  strokeWidth={chartPresets.area.strokeWidth}
+                  dot={chartPresets.area.dot}
+                  activeDot={chartPresets.area.activeDot}
+                  name="Risposte"
+                />
+                <Line 
+                  yAxisId="right"
+                  type="monotone" 
+                  dataKey="forms" 
+                  stroke={chartColors.secondary.blue}
+                  strokeWidth={chartPresets.line.strokeWidth}
+                  dot={chartPresets.line.dot}
+                  activeDot={chartPresets.line.activeDot}
+                  name="Forms"
+                />
+              </ComposedChart>
+            </ResponsiveContainer>
+          </AccessibleChart>
+        ) : (
+          <NoDataChart 
+            title="Andamento Risposte e Forms"
+            description="Trend degli ultimi 6 mesi"
+            height={350}
+          />
+        )}
+
+        {/* Completion Analysis */}
+        {isLoadingCharts ? (
+          <Card className="border-0 shadow-sm">
+            <CardContent className="p-6">
+              <div className="animate-pulse">
+                <div className="h-4 bg-gray-200 rounded w-1/3 mb-4"></div>
+                <div className="h-64 bg-gray-200 rounded"></div>
+              </div>
+            </CardContent>
+          </Card>
+        ) : dashboardData?.completionData && dashboardData.completionData.length > 0 ? (
+          <AccessibleChart
+            title="Distribuzione Completamento"
+            description="Stato delle risposte"
+            data={dashboardData.completionData}
+            showLegend={true}
+            showTable={false}
+            ariaLabel="Grafico a torta che mostra la distribuzione dello stato di completamento"
+            legendProps={{
+              payload: dashboardData.completionData.map(item => ({
+                value: item.name,
+                color: item.name.includes('Completato') ? chartColors.status.completed :
+                       item.name.includes('Parziali') ? chartColors.status.partial :
+                       item.name.includes('Non Hanno') ? chartColors.status.abandoned :
+                       item.name === 'Completate' ? chartColors.status.completed :
+                       item.name === 'Abbandonate' ? chartColors.status.abandoned :
+                       chartColors.status.partial
+              }))
+            }}
+          >
+            <ResponsiveContainer width="100%" height="100%">
+              <PieChart>
+                <Pie
+                  data={dashboardData.completionData}
+                  cx="50%"
+                  cy="50%"
+                  innerRadius={chartPresets.pie.innerRadius}
+                  outerRadius={chartPresets.pie.outerRadius}
+                  paddingAngle={chartPresets.pie.paddingAngle}
+                  dataKey="value"
+                  label={({ name, percentage, value }) => {
+                    const pct = percentage || Math.round((value / dashboardData.completionData.reduce((sum, d) => sum + d.value, 0)) * 100);
+                    return pct > 5 ? `${name.split(' ')[0]} ${pct}%` : '';
+                  }}
+                  labelLine={false}
+                  fontSize={10}
+                >
+                  {dashboardData.completionData.map((entry, index) => (
+                    <Cell 
+                      key={`cell-${index}`} 
+                      fill={
+                        entry.name.includes('Completato') ? chartColors.status.completed :
+                        entry.name.includes('Parziali') ? chartColors.status.partial :
+                        entry.name.includes('Non Hanno') ? chartColors.status.abandoned :
+                        entry.name === 'Completate' ? chartColors.status.completed :
+                        entry.name === 'Abbandonate' ? chartColors.status.abandoned :
+                        chartColors.status.partial
+                      } 
+                    />
+                  ))}
+                </Pie>
+                <Tooltip content={<PerformanceTooltip />} />
+              </PieChart>
+            </ResponsiveContainer>
+          </AccessibleChart>
+        ) : (
+          <NoDataChart 
+            title="Distribuzione Completamento"
+            description="Stato delle risposte"
+            height={350}
+          />
         )}
       </div>
 
@@ -836,50 +1057,6 @@ export default function FormDetailPage() {
 
         {/* Sidebar */}
         <div className="space-y-6">
-          {/* Stats Card */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg">Statistiche</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-2">
-                  <MessageSquare className="h-4 w-4 text-gray-400" />
-                  <span className="text-sm text-gray-600">Risposte Totali</span>
-                </div>
-                <span className="font-semibold">{stats.totalResponses}</span>
-              </div>
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-2">
-                  <FileText className="h-4 w-4 text-gray-400" />
-                  <span className="text-sm text-gray-600">Domande</span>
-                </div>
-                <span className="font-semibold">{stats.totalQuestions}</span>
-              </div>
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-2">
-                  <CheckCircle className="h-4 w-4 text-green-400" />
-                  <span className="text-sm text-gray-600">Complete</span>
-                </div>
-                <span className="font-semibold text-green-600">{stats.completeResponses}</span>
-              </div>
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-2">
-                  <Clock className="h-4 w-4 text-yellow-400" />
-                  <span className="text-sm text-gray-600">Parziali</span>
-                </div>
-                <span className="font-semibold text-yellow-600">{stats.partialResponses}</span>
-              </div>
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-2">
-                  <Target className="h-4 w-4 text-gray-400" />
-                  <span className="text-sm text-gray-600">Tasso Completamento</span>
-                </div>
-                <span className="font-semibold">{stats.completionRate}%</span>
-              </div>
-            </CardContent>
-          </Card>
-
           {/* Info Card */}
           <Card>
             <CardHeader>
@@ -904,45 +1081,6 @@ export default function FormDetailPage() {
                   Aggiornato il: <span className="font-medium">{formatDate(form.updatedAt)}</span>
                 </span>
               </div>
-            </CardContent>
-          </Card>
-
-          {/* Quick Actions */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg">Azioni Rapide</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              <Button className="w-full" asChild>
-                <Link to={`/admin/forms/${form.id}/edit`}>
-                  <Edit className="h-4 w-4 mr-2" />
-                  Modifica Form
-                </Link>
-              </Button>
-              <Button variant="outline" className="w-full" asChild>
-                <Link to={`/admin/forms/${form.id}/preview`}>
-                  <Eye className="h-4 w-4 mr-2" />
-                  Anteprima
-                </Link>
-              </Button>
-              <Button variant="outline" className="w-full" asChild>
-                <Link to={`/admin/forms/${form.id}/share`}>
-                  <Share2 className="h-4 w-4 mr-2" />
-                  Condividi
-                </Link>
-              </Button>
-              <Button variant="outline" className="w-full" asChild>
-                <Link to={`/admin/forms/${form.id}/responses`}>
-                  <BarChart3 className="h-4 w-4 mr-2" />
-                  Analisi Risposte
-                </Link>
-              </Button>
-              <Button variant="outline" className="w-full" asChild>
-                <Link to={`/admin/forms/${form.id}/results`}>
-                  <Users className="h-4 w-4 mr-2" />
-                  Visualizza Risultati
-                </Link>
-              </Button>
             </CardContent>
           </Card>
         </div>
