@@ -97,23 +97,40 @@ export async function POST(
       );
     }
 
-    // Verifica che l'utente non abbia già inviato una risposta (sia per form anonimi che non)
-    // Ora che salviamo sempre il userId, possiamo prevenire doppie submission anche per form anonimi
+    // Verifica che l'utente possa ancora inviare una risposta in base a maxRepeats
     if (userId) {
-      const existingResponse = await prisma.response.findFirst({
+      // Count how many times the user has responded to this form
+      const userResponses = await prisma.response.findMany({
         where: {
           formId: params.id,
           userId: userId,
         },
       });
 
-      if (existingResponse) {
-        console.log('⚠️ Utente ha già inviato una risposta:', { userId, formId: params.id });
-        return NextResponse.json(
-          { error: 'Hai già inviato una risposta a questo form' },
-          { status: 403 }
-        );
+      const userResponseCount = userResponses.length;
+
+      // Check maxRepeats logic
+      if (form.maxRepeats !== null) {
+        // Form has a limit on repeats
+        const maxRepeats = form.maxRepeats || 1;
+        if (userResponseCount >= maxRepeats) {
+          console.log(`⚠️ User ${userId} has reached max repeats for form ${params.id} (${userResponseCount}/${maxRepeats})`);
+          return NextResponse.json(
+            { 
+              error: `Hai già compilato questo form il numero massimo di volte consentite (${maxRepeats})`,
+              maxRepeatsReached: true,
+              userResponseCount,
+              maxRepeats
+            },
+            { status: 403 }
+          );
+        }
       }
+      // If maxRepeats is null, form can be repeated infinitely, so we allow submission
+      
+      // If allowEdit is false and user has already responded, check if they can create a new response
+      // Since we already checked maxRepeats above, if we reach here, user can still respond
+      // (either because maxRepeats allows it or because it's null/infinite)
     }
 
     // Per form anonimi, verifica tramite cookie se il form è già stato compilato
