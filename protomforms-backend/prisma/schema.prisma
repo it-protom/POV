@@ -64,6 +64,7 @@ model Form {
   thankYouMessage         String?
   teamsNotificationSent   Boolean    @default(false)
   teamsNotificationSentAt DateTime?
+  maxRepeats              Int?       @default(1) // null = infinito, numero = quante volte può essere ripetuto
   createdAt               DateTime   @default(now())
   updatedAt               DateTime   @updatedAt
   status                  FormStatus @default(DRAFT)

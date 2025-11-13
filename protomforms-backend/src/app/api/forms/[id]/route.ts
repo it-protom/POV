@@ -219,7 +219,8 @@ export async function PUT(
       thankYouMessage,
       questions,
       opensAt,
-      closesAt
+      closesAt,
+      maxRepeats
     } = body;
     
     // Validazione dei dati
@@ -249,6 +250,7 @@ export async function PUT(
         thankYouMessage,
         opensAt: opensAt ? new Date(opensAt) : null,
         closesAt: closesAt ? new Date(closesAt) : null,
+        maxRepeats: maxRepeats !== undefined ? (maxRepeats === null || maxRepeats === 0 ? null : maxRepeats) : undefined,
         theme: body.theme || undefined, // Aggiorna il tema se fornito
         // Aggiorniamo le domande solo se sono state fornite
         ...(questions && {

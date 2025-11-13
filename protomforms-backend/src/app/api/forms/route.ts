@@ -267,6 +267,7 @@ export async function POST(request: NextRequest) {
       opensAt,
       closesAt,
       theme,
+      maxRepeats,
       questions = []
     } = body;
 
@@ -293,6 +294,7 @@ export async function POST(request: NextRequest) {
         opensAt: opensAt ? new Date(opensAt) : null,
         closesAt: closesAt ? new Date(closesAt) : null,
         theme: theme || undefined,
+        maxRepeats: maxRepeats !== undefined ? (maxRepeats === null || maxRepeats === 0 ? null : maxRepeats) : 1,
         ownerId: userId,
         questions: {
           create: questions.map((q: any, index: number) => ({

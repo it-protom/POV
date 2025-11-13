@@ -122,11 +122,27 @@ export async function GET(request: NextRequest) {
         }
       });
       
-      const answeredFormIds = new Set(userResponses.map(r => r.formId));
+      // Count responses per form
+      const responseCounts = new Map<string, number>();
+      userResponses.forEach(r => {
+        responseCounts.set(r.formId, (responseCounts.get(r.formId) || 0) + 1);
+      });
 
-      // Filter out forms the user has already answered
-      availableForms = forms.filter(form => !answeredFormIds.has(form.id));
-      console.log(`✅ ${availableForms.length} forms available for user (${forms.length - availableForms.length} already answered)`);
+      // Filter forms based on maxRepeats
+      availableForms = forms.filter(form => {
+        const userResponseCount = responseCounts.get(form.id) || 0;
+        
+        // Se maxRepeats è null, il form può essere ripetuto infinite volte
+        if (form.maxRepeats === null) {
+          return true;
+        }
+        
+        // Se maxRepeats è definito, controlla se l'utente può ancora rispondere
+        const maxRepeats = form.maxRepeats || 1; // Default a 1 se non specificato
+        return userResponseCount < maxRepeats;
+      });
+      
+      console.log(`✅ ${availableForms.length} forms available for user (${forms.length - availableForms.length} already answered or max repeats reached)`);
     } else {
       console.log('ℹ️ No user session - showing all public forms');
     }

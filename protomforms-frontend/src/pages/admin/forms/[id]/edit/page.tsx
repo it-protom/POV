@@ -52,6 +52,7 @@ interface Form {
   questions: Question[];
   opensAt?: Date | null;
   closesAt?: Date | null;
+  maxRepeats?: number | null;
   theme?: Theme;
   status: string;
 }
@@ -400,6 +401,7 @@ export default function EditFormPage() {
           theme,
           opensAt: form.opensAt?.toISOString(),
           closesAt: form.closesAt?.toISOString(),
+          maxRepeats: form.maxRepeats === null || form.maxRepeats === 0 ? null : form.maxRepeats,
           questions: form.questions.map(q => ({
             text: q.text,
             type: q.type,
@@ -898,6 +900,38 @@ export default function EditFormPage() {
                       />
                     </PopoverContent>
                   </Popover>
+                </div>
+                
+                <div>
+                  <label className="text-sm font-medium text-gray-700 mb-2 block">
+                    Numero massimo di ripetizioni
+                  </label>
+                  <div className="flex items-center gap-3">
+                    <Input
+                      type="number"
+                      min="0"
+                      value={form.maxRepeats === null || form.maxRepeats === undefined ? '' : form.maxRepeats}
+                      onChange={(e) => {
+                        const value = e.target.value;
+                        if (value === '' || value === '0') {
+                          setForm(prev => prev ? { ...prev, maxRepeats: null } : null);
+                        } else {
+                          const num = parseInt(value, 10);
+                          if (!isNaN(num) && num > 0) {
+                            setForm(prev => prev ? { ...prev, maxRepeats: num } : null);
+                          }
+                        }
+                      }}
+                      placeholder="Infinito (0 o vuoto)"
+                      className="max-w-xs"
+                    />
+                    <span className="text-sm text-gray-500">
+                      {form.maxRepeats === null || form.maxRepeats === undefined ? '(Infinito)' : `(Massimo ${form.maxRepeats} ${form.maxRepeats === 1 ? 'volta' : 'volte'})`}
+                    </span>
+                  </div>
+                  <p className="text-xs text-gray-500 mt-1">
+                    Quante volte un utente può compilare questo form. Lascia vuoto o imposta 0 per permettere ripetizioni infinite.
+                  </p>
                 </div>
               </div>
             </CardContent>

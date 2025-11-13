@@ -46,6 +46,7 @@ export default function NewFormPage() {
   const [thankYouMessage, setThankYouMessage] = useState('Grazie per la tua risposta!');
   const [opensAt, setOpensAt] = useState<Date | undefined>(undefined);
   const [closesAt, setClosesAt] = useState<Date | undefined>(undefined);
+  const [maxRepeats, setMaxRepeats] = useState<number | null>(1); // null = infinito, numero = quante volte può essere ripetuto
   const [questions, setQuestions] = useState<QuestionFormData[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [theme, setTheme] = useState<Theme>({
@@ -190,6 +191,7 @@ export default function NewFormPage() {
           thankYouMessage,
           opensAt: opensAt?.toISOString(),
           closesAt: closesAt?.toISOString(),
+          maxRepeats: maxRepeats === null || maxRepeats === 0 ? null : maxRepeats,
           questions: questions.map(q => ({
             text: q.text,
             type: q.type,
@@ -751,6 +753,44 @@ export default function NewFormPage() {
                             checked={showResults} 
                             onCheckedChange={setShowResults} 
                           />
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                      
+                      <div className="space-y-4 pt-4 border-t">
+                        <h4 className="font-medium text-gray-900">Ripetibilità del Form</h4>
+                        <div className="space-y-3">
+                          <div className="p-4 bg-gray-50 rounded-lg">
+                            <Label htmlFor="maxRepeats" className="font-medium mb-2 block">
+                              Numero massimo di ripetizioni
+                            </Label>
+                            <p className="text-sm text-gray-500 mb-3">
+                              Quante volte un utente può compilare questo form. Lascia vuoto o imposta 0 per permettere ripetizioni infinite.
+                            </p>
+                            <div className="flex items-center gap-3">
+                              <Input
+                                id="maxRepeats"
+                                type="number"
+                                min="0"
+                                value={maxRepeats === null ? '' : maxRepeats}
+                                onChange={(e) => {
+                                  const value = e.target.value;
+                                  if (value === '' || value === '0') {
+                                    setMaxRepeats(null);
+                                  } else {
+                                    const num = parseInt(value, 10);
+                                    if (!isNaN(num) && num > 0) {
+                                      setMaxRepeats(num);
+                                    }
+                                  }
+                                }}
+                                placeholder="Infinito (0 o vuoto)"
+                                className="max-w-xs"
+                              />
+                              <span className="text-sm text-gray-500">
+                                {maxRepeats === null ? '(Infinito)' : `(Massimo ${maxRepeats} ${maxRepeats === 1 ? 'volta' : 'volte'})`}
+                              </span>
                             </div>
                           </div>
                         </div>
