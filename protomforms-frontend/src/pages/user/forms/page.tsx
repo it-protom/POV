@@ -48,6 +48,7 @@ interface Form {
   isPublic: boolean;
   opensAt?: string;
   closesAt?: string;
+  maxRepeats?: number | null;
   createdAt: string;
   updatedAt: string;
   questions: any[];
@@ -164,36 +165,12 @@ export default function UserFormsPage() {
         });
       }
 
-      // Fetch user responses to filter out already completed forms
-      try {
-        const responsesUrl = '/api/users/responses';
-        const responsesResponse = await fetch(responsesUrl, {
-          method: 'GET',
-          credentials: 'include',
-          headers: {
-            'Content-Type': 'application/json',
-            'Accept': 'application/json'
-          },
-          cache: 'no-cache'
-        });
-
-        if (responsesResponse.ok) {
-          userResponses = await responsesResponse.json();
-          console.log('✅ User responses loaded:', userResponses.length);
-          
-          // Extract form IDs from user responses
-          const completedFormIds = new Set(userResponses.map((response: any) => response.form?.id).filter(Boolean));
-          
-          // Filter out forms that user has already completed
-          formsData = formsData.filter((form: Form) => !completedFormIds.has(form.id));
-          console.log('✅ Forms after filtering completed ones:', formsData.length);
-        } else {
-          console.log('ℹ️ Could not fetch user responses (user might not be authenticated)');
-        }
-      } catch (responsesError: any) {
-        console.log('ℹ️ Error fetching user responses (non-critical):', responsesError);
-        // Non bloccare se non riusciamo a caricare le risposte - il backend dovrebbe già filtrare
-      }
+      // Il backend già filtra correttamente i form in base a maxRepeats
+      // Non serve filtrare ulteriormente nel frontend perché il backend gestisce:
+      // - Form con maxRepeats null: sempre disponibili
+      // - Form con maxRepeats > 0: disponibili fino a raggiungere il limite
+      // Il backend conta le risposte dell'utente e confronta con maxRepeats
+      console.log('✅ Forms loaded from backend (already filtered by maxRepeats):', formsData.length);
 
       // Set the filtered forms
       setForms(formsData);
