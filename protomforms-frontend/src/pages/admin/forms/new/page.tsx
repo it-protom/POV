@@ -754,43 +754,42 @@ export default function NewFormPage() {
                             onCheckedChange={setShowResults} 
                           />
                             </div>
-                          </div>
-                        </div>
-                      </div>
-                      
-                      <div className="space-y-4 pt-4 border-t">
-                        <h4 className="font-medium text-gray-900">Ripetibilità del Form</h4>
-                        <div className="space-y-3">
-                          <div className="p-4 bg-gray-50 rounded-lg">
-                            <Label htmlFor="maxRepeats" className="font-medium mb-2 block">
-                              Numero massimo di ripetizioni
-                            </Label>
-                            <p className="text-sm text-gray-500 mb-3">
-                              Quante volte un utente può compilare questo form. Lascia vuoto o imposta 0 per permettere ripetizioni infinite.
-                            </p>
-                            <div className="flex items-center gap-3">
-                              <Input
-                                id="maxRepeats"
-                                type="number"
-                                min="0"
-                                value={maxRepeats === null ? '' : maxRepeats}
-                                onChange={(e) => {
-                                  const value = e.target.value;
-                                  if (value === '' || value === '0') {
-                                    setMaxRepeats(null);
-                                  } else {
-                                    const num = parseInt(value, 10);
-                                    if (!isNaN(num) && num > 0) {
-                                      setMaxRepeats(num);
-                                    }
-                                  }
-                                }}
-                                placeholder="Infinito (0 o vuoto)"
-                                className="max-w-xs"
-                              />
-                              <span className="text-sm text-gray-500">
-                                {maxRepeats === null ? '(Infinito)' : `(Massimo ${maxRepeats} ${maxRepeats === 1 ? 'volta' : 'volte'})`}
-                              </span>
+                            
+                            <div className="p-4 bg-gray-50 rounded-lg">
+                              <div className="flex items-start justify-between gap-4">
+                                <div className="flex-1">
+                                  <Label htmlFor="maxRepeats" className="font-medium block mb-1">
+                                    Numero massimo di ripetizioni
+                                  </Label>
+                                  <p className="text-sm text-gray-500 mb-3">
+                                    Quante volte un utente può compilare questo form. Lascia vuoto o imposta 0 per permettere ripetizioni infinite.
+                                  </p>
+                                  <div className="flex items-center gap-3">
+                                    <Input
+                                      id="maxRepeats"
+                                      type="number"
+                                      min="0"
+                                      value={maxRepeats === null ? '' : maxRepeats}
+                                      onChange={(e) => {
+                                        const value = e.target.value;
+                                        if (value === '' || value === '0') {
+                                          setMaxRepeats(null);
+                                        } else {
+                                          const num = parseInt(value, 10);
+                                          if (!isNaN(num) && num > 0) {
+                                            setMaxRepeats(num);
+                                          }
+                                        }
+                                      }}
+                                      placeholder="Infinito (0 o vuoto)"
+                                      className="max-w-xs"
+                                    />
+                                    <span className="text-sm text-gray-500">
+                                      {maxRepeats === null ? '(Infinito)' : `(Massimo ${maxRepeats} ${maxRepeats === 1 ? 'volta' : 'volte'})`}
+                                    </span>
+                                  </div>
+                                </div>
+                              </div>
                             </div>
                           </div>
                         </div>
