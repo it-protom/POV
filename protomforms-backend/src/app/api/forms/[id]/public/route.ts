@@ -115,25 +115,45 @@ export async function GET(
       );
     }
 
-    // If user is authenticated, and not bypassing preview, check if they already submitted
+    // If user is authenticated, and not bypassing preview, check if they can still submit
     if (!canPreviewBypass && userId && !baseForm.isAnonymous) {
-      const existingResponse = await prisma.response.findFirst({
+      // Count how many times the user has responded to this form
+      const userResponses = await prisma.response.findMany({
         where: {
           formId: baseForm.id,
           userId: userId
         }
       });
 
-      if (existingResponse && !baseForm.allowEdit) {
-        console.log(`⚠️ Form ${params.id} già compilato dall'utente ${userId} (allowEdit: false)`);
-        return NextResponse.json(
-          { 
-            error: 'Hai già compilato questo form', 
-            alreadySubmitted: true,
-            allowEdit: false 
-          },
-          { status: 403 }
-        );
+      const userResponseCount = userResponses.length;
+
+      // Check maxRepeats logic
+      if (baseForm.maxRepeats !== null) {
+        // Form has a limit on repeats
+        const maxRepeats = baseForm.maxRepeats || 1;
+        if (userResponseCount >= maxRepeats) {
+          console.log(`⚠️ Form ${params.id} - User ${userId} has reached max repeats (${userResponseCount}/${maxRepeats})`);
+          return NextResponse.json(
+            { 
+              error: `Hai già compilato questo form il numero massimo di volte consentite (${maxRepeats})`, 
+              alreadySubmitted: true,
+              maxRepeatsReached: true,
+              userResponseCount,
+              maxRepeats
+            },
+            { status: 403 }
+          );
+        }
+      }
+      // If maxRepeats is null, form can be repeated infinitely, so we don't block
+
+      // If user has already responded and allowEdit is false, check if they can edit
+      if (userResponseCount > 0 && !baseForm.allowEdit) {
+        // If maxRepeats allows more responses, user can still access
+        // This check is already handled above, so if we reach here, user can still respond
+        // But if they already have a response and can't edit, we might want to show a different message
+        // Actually, if maxRepeats allows more responses, they should be able to create a new response
+        // So we don't block here if maxRepeats allows it
       }
     }
 
@@ -150,6 +170,7 @@ export async function GET(
       thankYouMessage: baseForm.thankYouMessage,
       opensAt: baseForm.opensAt?.toISOString(),
       closesAt: baseForm.closesAt?.toISOString(),
+      maxRepeats: baseForm.maxRepeats,
       createdAt: baseForm.createdAt.toISOString(),
       updatedAt: baseForm.updatedAt.toISOString(),
       theme: baseForm.theme || null, // Include il tema completo (JSON)
