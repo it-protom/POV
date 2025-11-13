@@ -169,18 +169,18 @@ export async function PUT(
       }
     }
     
+    console.log('🔐 PUT /api/forms/[id] - Auth check:', {
+      hasSession: !!session,
+      userId,
+      userRole,
+      fromHeader: !!request.headers.get('x-user-id'),
+    });
+    
     if (!userId) {
+      console.error('❌ PUT /api/forms/[id] - No user ID found');
       return NextResponse.json(
         { error: 'Unauthorized' },
         { status: 401 }
-      );
-    }
-    
-    // Verifica che l'utente sia un admin
-    if (userRole !== 'ADMIN') {
-      return NextResponse.json(
-        { error: 'Forbidden' },
-        { status: 403 }
       );
     }
     
@@ -192,16 +192,26 @@ export async function PUT(
     });
     
     if (!existingForm) {
+      console.error('❌ PUT /api/forms/[id] - Form not found:', id);
       return NextResponse.json(
         { error: 'Form not found' },
         { status: 404 }
       );
     }
     
-    // Verifica che l'utente sia il proprietario del form
-    if (existingForm.ownerId !== userId) {
+    console.log('📋 PUT /api/forms/[id] - Form check:', {
+      formId: existingForm.id,
+      formOwnerId: existingForm.ownerId,
+      currentUserId: userId,
+      isOwner: existingForm.ownerId === userId,
+      userRole
+    });
+    
+    // Verifica che l'utente sia il proprietario del form O un admin
+    if (existingForm.ownerId !== userId && userRole !== 'ADMIN') {
+      console.error('❌ PUT /api/forms/[id] - Forbidden: User is not owner and not admin');
       return NextResponse.json(
-        { error: 'Forbidden' },
+        { error: 'Forbidden - You must be the owner of the form or an admin' },
         { status: 403 }
       );
     }
