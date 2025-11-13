@@ -327,17 +327,31 @@ export default function EditFormPage() {
     if (!form) return true;
     
     const now = new Date();
+    now.setHours(0, 0, 0, 0); // Azzera l'ora per confrontare solo le date
+    
     const opensAt = form.opensAt ? new Date(form.opensAt) : null;
     const closesAt = form.closesAt ? new Date(form.closesAt) : null;
     
-    if (opensAt && closesAt && opensAt > closesAt) {
-      toast.error("Opening date must be before closing date");
-      return false;
+    if (opensAt && closesAt) {
+      const opensAtDate = new Date(opensAt);
+      opensAtDate.setHours(0, 0, 0, 0);
+      const closesAtDate = new Date(closesAt);
+      closesAtDate.setHours(0, 0, 0, 0);
+      
+      if (opensAtDate > closesAtDate) {
+        toast.error("Opening date must be before closing date");
+        return false;
+      }
     }
     
-    if (opensAt && opensAt < now) {
-      toast.error("Opening date cannot be in the past");
-      return false;
+    if (opensAt) {
+      const opensAtDate = new Date(opensAt);
+      opensAtDate.setHours(0, 0, 0, 0);
+      
+      if (opensAtDate < now) {
+        toast.error("Opening date cannot be in the past");
+        return false;
+      }
     }
     
     return true;
