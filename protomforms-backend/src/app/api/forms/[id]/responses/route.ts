@@ -133,34 +133,91 @@ export async function POST(
       // (either because maxRepeats allows it or because it's null/infinite)
     }
 
-    // Per form anonimi, verifica tramite cookie se il form è già stato compilato
+    // Per form anonimi, verifica maxRepeats usando i cookie
     if (form.isAnonymous) {
-      const cookieName = `form_submitted_${params.id}`;
-      const submittedCookie = req.cookies.get(cookieName);
-      
-      if (submittedCookie) {
-        // Verifica anche nel database usando il progressiveNumber dal cookie
-        try {
-          const cookieData = JSON.parse(submittedCookie.value);
-          if (cookieData.progressiveNumber) {
-            const existingResponse = await prisma.response.findFirst({
-              where: {
-                formId: params.id,
-                progressiveNumber: cookieData.progressiveNumber,
-              },
-            });
-            
-            if (existingResponse) {
-              return NextResponse.json(
-                { error: 'Hai già inviato una risposta a questo form' },
-                { status: 403 }
-              );
+      // Se l'utente è autenticato anche per form anonimi, usa la logica userId
+      // (già gestita sopra)
+      // Se non è autenticato, conta i cookie per questo form
+      if (!userId) {
+        const cookieName = `form_submitted_${params.id}`;
+        const submittedCookie = req.cookies.get(cookieName);
+        
+        // Count responses from cookies (for anonymous users without userId)
+        // We'll count all responses for this form that don't have a userId
+        const anonymousResponses = await prisma.response.count({
+          where: {
+            formId: params.id,
+            userId: null
+          }
+        });
+        
+        // Check maxRepeats for anonymous form
+        if (form.maxRepeats !== null) {
+          const maxRepeats = form.maxRepeats || 1;
+          // For anonymous forms without userId, we can't track individual users perfectly
+          // But we can still check if the form has reached its general limit
+          // However, this is not ideal - ideally anonymous forms should allow unlimited responses
+          // unless we have a better tracking mechanism
+          
+          // If there's a cookie, check if this specific user (via cookie) has reached limit
+          if (submittedCookie) {
+            try {
+              const cookieData = JSON.parse(submittedCookie.value);
+              if (cookieData.progressiveNumber) {
+                // Check if this progressiveNumber already exists (same user trying to resubmit)
+                const existingResponse = await prisma.response.findFirst({
+                  where: {
+                    formId: params.id,
+                    progressiveNumber: cookieData.progressiveNumber,
+                  },
+                });
+                
+                if (existingResponse) {
+                  // Same user trying to resubmit - check maxRepeats
+                  // For anonymous, we can't perfectly track, but if maxRepeats is 1, block
+                  if (form.maxRepeats === 1) {
+                    return NextResponse.json(
+                      { error: 'Hai già inviato una risposta a questo form' },
+                      { status: 403 }
+                    );
+                  }
+                  // If maxRepeats > 1, allow but we can't perfectly track anonymous users
+                  // So we'll allow it
+                }
+              }
+            } catch (e) {
+              // Se il cookie è malformato, continua comunque
             }
           }
-        } catch (e) {
-          // Se il cookie è malformato, continua comunque
+        } else {
+          // maxRepeats is null (infinite) - allow submission
+          // But still check cookie to prevent exact duplicate submission
+          if (submittedCookie) {
+            try {
+              const cookieData = JSON.parse(submittedCookie.value);
+              if (cookieData.progressiveNumber) {
+                const existingResponse = await prisma.response.findFirst({
+                  where: {
+                    formId: params.id,
+                    progressiveNumber: cookieData.progressiveNumber,
+                  },
+                });
+                
+                if (existingResponse) {
+                  // Same progressiveNumber already exists - this is a duplicate
+                  return NextResponse.json(
+                    { error: 'Hai già inviato questa risposta' },
+                    { status: 403 }
+                  );
+                }
+              }
+            } catch (e) {
+              // Se il cookie è malformato, continua comunque
+            }
+          }
         }
       }
+      // If userId exists even for anonymous form, the check above (lines 100-134) already handles it
     }
 
     // Calcola il prossimo progressiveNumber per il form usando SQL raw
