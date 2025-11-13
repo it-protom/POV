@@ -217,7 +217,9 @@ export async function PUT(
       allowEdit, 
       showResults, 
       thankYouMessage,
-      questions 
+      questions,
+      opensAt,
+      closesAt
     } = body;
     
     // Validazione dei dati
@@ -245,6 +247,8 @@ export async function PUT(
         allowEdit,
         showResults,
         thankYouMessage,
+        opensAt: opensAt ? new Date(opensAt) : null,
+        closesAt: closesAt ? new Date(closesAt) : null,
         theme: body.theme || undefined, // Aggiorna il tema se fornito
         // Aggiorniamo le domande solo se sono state fornite
         ...(questions && {

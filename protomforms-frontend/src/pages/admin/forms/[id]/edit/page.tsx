@@ -831,7 +831,16 @@ export default function EditFormPage() {
                       <Calendar
                         mode="single"
                         selected={form.opensAt ? new Date(form.opensAt) : undefined}
-                        onSelect={(date) => setForm(prev => prev ? { ...prev, opensAt: date || undefined } : null)}
+                        onSelect={(date) => {
+                          if (date) {
+                            // Imposta l'ora a mezzanotte per evitare problemi di timezone
+                            const dateAtMidnight = new Date(date);
+                            dateAtMidnight.setHours(0, 0, 0, 0);
+                            setForm(prev => prev ? { ...prev, opensAt: dateAtMidnight } : null);
+                          } else {
+                            setForm(prev => prev ? { ...prev, opensAt: undefined } : null);
+                          }
+                        }}
                         disabled={(date) => {
                           // Permetti di selezionare anche oggi
                           const today = new Date();
@@ -867,7 +876,16 @@ export default function EditFormPage() {
                       <Calendar
                         mode="single"
                         selected={form.closesAt ? new Date(form.closesAt) : undefined}
-                        onSelect={(date) => setForm(prev => prev ? { ...prev, closesAt: date || undefined } : null)}
+                        onSelect={(date) => {
+                          if (date) {
+                            // Imposta l'ora a mezzanotte per evitare problemi di timezone
+                            const dateAtMidnight = new Date(date);
+                            dateAtMidnight.setHours(0, 0, 0, 0);
+                            setForm(prev => prev ? { ...prev, closesAt: dateAtMidnight } : null);
+                          } else {
+                            setForm(prev => prev ? { ...prev, closesAt: undefined } : null);
+                          }
+                        }}
                         disabled={(date) => {
                           // Permetti di selezionare anche oggi
                           const today = new Date();
