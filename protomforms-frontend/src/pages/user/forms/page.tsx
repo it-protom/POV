@@ -386,35 +386,6 @@ export default function UserFormsPage() {
           </p>
         </motion.div>
 
-        {/* Stats Cards */}
-        <motion.div variants={itemVariants} className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-          <Card className="border-0 shadow bg-white">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-gray-500 text-sm font-medium">Form Disponibili</p>
-                  <p className="text-3xl font-bold text-gray-900">{filteredForms.length}</p>
-                </div>
-                <BookOpen className="h-8 w-8 text-[#FFCD00]" />
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="border-0 shadow bg-white">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-gray-500 text-sm font-medium">Completati</p>
-                  <p className="text-3xl font-bold text-gray-900">
-                    {userStats.completedForms}
-                  </p>
-                </div>
-                <CheckCircle className="h-8 w-8 text-[#FFCD00]" />
-              </div>
-            </CardContent>
-          </Card>
-        </motion.div>
-
         {/* Filters and Search */}
         <motion.div variants={itemVariants}>
           <Card className="border-0 shadow bg-white">
