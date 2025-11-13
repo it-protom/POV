@@ -319,10 +319,16 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json(form, { status: 201 });
 
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error creating form:', error);
+    console.error('Error details:', {
+      message: error?.message,
+      code: error?.code,
+      meta: error?.meta,
+      stack: error?.stack
+    });
     return NextResponse.json(
-      { error: 'Internal server error' },
+      { error: 'Internal server error', details: error?.message || 'Unknown error' },
       { status: 500 }
     );
   }
