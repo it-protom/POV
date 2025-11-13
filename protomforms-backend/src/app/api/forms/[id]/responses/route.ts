@@ -98,6 +98,13 @@ export async function POST(
     }
 
     // Verifica che l'utente possa ancora inviare una risposta in base a maxRepeats
+    console.log('🔍 POST /api/forms/[id]/responses - Checking maxRepeats:', {
+      userId,
+      formId: params.id,
+      formMaxRepeats: form.maxRepeats,
+      isAnonymous: form.isAnonymous
+    });
+    
     if (userId) {
       // Count how many times the user has responded to this form
       const userResponses = await prisma.response.findMany({
@@ -108,6 +115,14 @@ export async function POST(
       });
 
       const userResponseCount = userResponses.length;
+      
+      console.log('📊 User response count:', {
+        userId,
+        formId: params.id,
+        userResponseCount,
+        formMaxRepeats: form.maxRepeats,
+        responses: userResponses.map(r => ({ id: r.id, progressiveNumber: r.progressiveNumber }))
+      });
 
       // Check maxRepeats logic
       if (form.maxRepeats !== null) {
@@ -124,13 +139,19 @@ export async function POST(
             },
             { status: 403 }
           );
+        } else {
+          console.log(`✅ User ${userId} can still submit (${userResponseCount}/${maxRepeats})`);
         }
+      } else {
+        console.log(`✅ Form ${params.id} has unlimited repeats (maxRepeats: null)`);
       }
       // If maxRepeats is null, form can be repeated infinitely, so we allow submission
       
       // If allowEdit is false and user has already responded, check if they can create a new response
       // Since we already checked maxRepeats above, if we reach here, user can still respond
       // (either because maxRepeats allows it or because it's null/infinite)
+    } else {
+      console.log('ℹ️ No userId - checking anonymous form logic');
     }
 
     // Per form anonimi, verifica maxRepeats usando i cookie
