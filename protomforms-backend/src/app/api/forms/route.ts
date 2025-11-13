@@ -271,6 +271,13 @@ export async function POST(request: NextRequest) {
       questions = []
     } = body;
 
+    console.log('📝 POST /api/forms - Body received:', {
+      title,
+      maxRepeats,
+      maxRepeatsType: typeof maxRepeats,
+      questionsCount: questions.length
+    });
+
     if (!title?.trim()) {
       return NextResponse.json(
         { error: 'Title is required' },
@@ -280,6 +287,21 @@ export async function POST(request: NextRequest) {
 
     // Genera slug unico per il form
     const slug = await generateUniqueSlug(title.trim());
+
+    // Process maxRepeats value
+    let processedMaxRepeats: number | null = 1; // default
+    if (maxRepeats !== undefined) {
+      if (maxRepeats === null || maxRepeats === 0 || maxRepeats === '0' || maxRepeats === '') {
+        processedMaxRepeats = null; // infinito
+      } else {
+        const numValue = typeof maxRepeats === 'string' ? parseInt(maxRepeats, 10) : maxRepeats;
+        if (!isNaN(numValue) && numValue > 0) {
+          processedMaxRepeats = numValue;
+        }
+      }
+    }
+
+    console.log('📝 POST /api/forms - Processed maxRepeats:', processedMaxRepeats);
 
     const form = await prisma.form.create({
       data: {
@@ -294,7 +316,7 @@ export async function POST(request: NextRequest) {
         opensAt: opensAt ? new Date(opensAt) : null,
         closesAt: closesAt ? new Date(closesAt) : null,
         theme: theme || undefined,
-        maxRepeats: maxRepeats !== undefined ? (maxRepeats === null || maxRepeats === 0 ? null : maxRepeats) : 1,
+        maxRepeats: processedMaxRepeats,
         ownerId: userId,
         questions: {
           create: questions.map((q: any, index: number) => ({

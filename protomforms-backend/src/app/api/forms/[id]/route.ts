@@ -219,6 +219,14 @@ export async function PUT(
     // Parsing del body della richiesta
     const body = await request.json();
     
+    console.log('📝 PUT /api/forms/[id] - Body received:', {
+      title: body.title,
+      maxRepeats: body.maxRepeats,
+      maxRepeatsType: typeof body.maxRepeats,
+      hasQuestions: !!body.questions,
+      questionsCount: body.questions?.length || 0
+    });
+    
     const { 
       title, 
       description, 
@@ -241,6 +249,23 @@ export async function PUT(
       );
     }
     
+    // Process maxRepeats value
+    let processedMaxRepeats: number | null | undefined = undefined;
+    if (maxRepeats !== undefined) {
+      if (maxRepeats === null || maxRepeats === 0 || maxRepeats === '0' || maxRepeats === '') {
+        processedMaxRepeats = null; // infinito
+      } else {
+        const numValue = typeof maxRepeats === 'string' ? parseInt(maxRepeats, 10) : maxRepeats;
+        if (!isNaN(numValue) && numValue > 0) {
+          processedMaxRepeats = numValue;
+        } else {
+          processedMaxRepeats = 1; // default se il valore non è valido
+        }
+      }
+    }
+    
+    console.log('📝 PUT /api/forms/[id] - Processed maxRepeats:', processedMaxRepeats);
+    
     // Aggiornamento del form nel database
     console.log('🎨 PUT /api/forms/[id] - Tema ricevuto:', body.theme);
     console.log('🖼️ Background image:', body.theme?.backgroundImage ? 'PRESENTE' : 'ASSENTE');
@@ -248,44 +273,57 @@ export async function PUT(
       console.log('📏 Background image length:', body.theme.backgroundImage.length);
     }
 
+    // Build update data object
+    const updateData: any = {
+      title,
+      description,
+      type,
+      isAnonymous,
+      allowEdit,
+      showResults,
+      thankYouMessage,
+      opensAt: opensAt ? new Date(opensAt) : null,
+      closesAt: closesAt ? new Date(closesAt) : null,
+      theme: body.theme || undefined, // Aggiorna il tema se fornito
+    };
+    
+    // Only include maxRepeats if it was provided
+    if (maxRepeats !== undefined) {
+      updateData.maxRepeats = processedMaxRepeats;
+    }
+    
+    // Only update questions if provided
+    if (questions && Array.isArray(questions)) {
+      updateData.questions = {
+        deleteMany: {},
+        create: questions.map((q: any, index: number) => {
+          // Debug: log delle opzioni prima del salvataggio
+          console.log(`Domanda ${index}:`, {
+            text: q.text,
+            type: q.type,
+            options: q.options,
+            optionsStringified: q.options ? JSON.stringify(q.options) : null
+          });
+          
+          return {
+            text: q.text,
+            type: q.type,
+            required: q.required,
+            options: q.options ? JSON.stringify(q.options) : null,
+            order: index
+          };
+        })
+      };
+    }
+
+    console.log('📝 PUT /api/forms/[id] - Update data prepared:', {
+      ...updateData,
+      questions: updateData.questions ? `${updateData.questions.create?.length || 0} questions` : 'not updating'
+    });
+
     const updatedForm = await prisma.form.update({
       where: { id },
-      data: {
-        title,
-        description,
-        type,
-        isAnonymous,
-        allowEdit,
-        showResults,
-        thankYouMessage,
-        opensAt: opensAt ? new Date(opensAt) : null,
-        closesAt: closesAt ? new Date(closesAt) : null,
-        maxRepeats: maxRepeats !== undefined ? (maxRepeats === null || maxRepeats === 0 ? null : maxRepeats) : undefined,
-        theme: body.theme || undefined, // Aggiorna il tema se fornito
-        // Aggiorniamo le domande solo se sono state fornite
-        ...(questions && {
-          questions: {
-            deleteMany: {},
-            create: questions.map((q: any, index: number) => {
-              // Debug: log delle opzioni prima del salvataggio
-              console.log(`Domanda ${index}:`, {
-                text: q.text,
-                type: q.type,
-                options: q.options,
-                optionsStringified: q.options ? JSON.stringify(q.options) : null
-              });
-              
-              return {
-                text: q.text,
-                type: q.type,
-                required: q.required,
-                options: q.options ? JSON.stringify(q.options) : null,
-                order: index
-              };
-            })
-          }
-        })
-      },
+      data: updateData,
       include: {
         questions: {
           orderBy: {
@@ -320,10 +358,21 @@ export async function PUT(
     };
     
     return NextResponse.json(formWithParsedOptions);
-  } catch (error) {
-    console.error('Error updating form:', error);
+  } catch (error: any) {
+    console.error('❌ Error updating form:', error);
+    console.error('Error details:', {
+      message: error?.message,
+      code: error?.code,
+      meta: error?.meta,
+      stack: error?.stack,
+      name: error?.name
+    });
     return NextResponse.json(
-      { error: 'Internal server error' },
+      { 
+        error: 'Internal server error', 
+        details: error?.message || 'Unknown error',
+        code: error?.code || 'UNKNOWN'
+      },
       { status: 500 }
     );
   }
