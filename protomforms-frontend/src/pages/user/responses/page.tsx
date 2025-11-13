@@ -160,18 +160,6 @@ export default function UserResponsesPage() {
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-gray-500 text-sm font-medium">Risposte Totali</p>
-                  <p className="text-3xl font-bold text-gray-900">{responses.length}</p>
-                </div>
-                <MessageSquare className="h-8 w-8 text-[#FFCD00]" />
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="border-0 shadow bg-white">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
                   <p className="text-gray-500 text-sm font-medium">Form Completati</p>
                   <p className="text-3xl font-bold text-gray-900">
                     {new Set(responses.map(r => r.formId)).size}

@@ -297,22 +297,6 @@ export default function ResponsesPage() {
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-gray-600">Risposte Totali</p>
-                  <p className="text-2xl font-bold text-gray-900">
-                    {formGroups.reduce((sum, group) => sum + group.totalResponses, 0)}
-                  </p>
-                </div>
-                <div className="p-3 bg-green-100 rounded-lg">
-                  <Users className="h-6 w-6 text-green-600" />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="border-0 shadow-sm">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
                   <p className="text-sm font-medium text-gray-600">Utenti Unici</p>
                   <p className="text-2xl font-bold text-gray-900">
                     {new Set(formGroups.flatMap(group => 

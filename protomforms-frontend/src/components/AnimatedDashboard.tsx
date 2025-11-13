@@ -268,31 +268,6 @@ export default function AnimatedDashboard() {
           whileHover="hover"
         >
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-xl font-bold text-[#868789]">Risposte Totali</h2>
-            <motion.div 
-              className="p-3 bg-[#FFCD00]/20 rounded-full"
-              whileHover={{ rotate: 360 }}
-              transition={{ duration: 0.5 }}
-            >
-              <BarChart className="h-7 w-7 text-[#FFCD00]" />
-            </motion.div>
-          </div>
-          <motion.p 
-            className="text-5xl font-bold text-[#868789]"
-            initial={{ scale: 0.5, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            transition={{ delay: 0.4, type: "spring", stiffness: 100 }}
-          >
-            {totalResponses}
-          </motion.p>
-        </motion.div>
-        
-        <motion.div 
-          className="bg-white p-8 rounded-xl shadow-lg border-l-4 border-[#FFCD00] hover:shadow-xl transition-shadow"
-          variants={cardVariants}
-          whileHover="hover"
-        >
-          <div className="flex items-center justify-between mb-4">
             <h2 className="text-xl font-bold text-[#868789]">Tasso di Risposta</h2>
             <motion.div 
               className="p-3 bg-[#FFCD00]/20 rounded-full"

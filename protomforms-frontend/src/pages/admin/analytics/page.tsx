@@ -396,20 +396,6 @@ export default function AnalyticsPage() {
                     <CardContent className="p-4 sm:p-6">
                       <div className="flex items-center justify-between">
                         <div>
-                          <p className="text-sm font-medium text-gray-600">Risposte Totali</p>
-                          <p className="text-2xl font-bold text-gray-900">{analyticsData.overview.totalResponses.toLocaleString()}</p>
-                        </div>
-                        <div className="p-3 bg-blue-100 rounded-lg">
-                          <MessageSquare className="h-6 w-6 text-blue-600" />
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-
-                  <Card className="border-0 shadow-sm hover:shadow-md transition-all duration-300">
-                    <CardContent className="p-4 sm:p-6">
-                      <div className="flex items-center justify-between">
-                        <div>
                           <p className="text-sm font-medium text-gray-600">Forms Attivi</p>
                           <p className="text-2xl font-bold text-gray-900">{analyticsData.overview.totalForms}</p>
                         </div>

@@ -349,14 +349,12 @@ export default function DashboardPage() {
         {stats.length > 0 ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 lg:gap-6 mb-8">
             {stats
-              .filter(stat => stat.title === "Forms Totali" || stat.title === "Risposte Totali")
+              .filter(stat => stat.title === "Forms Totali")
               .map((stat, index) => {
                 // Determina l'URL in base al titolo
                 let href: string | undefined;
                 if (stat.title === "Forms Totali") {
                   href = "/admin/forms";
-                } else if (stat.title === "Risposte Totali") {
-                  href = "/admin/responses";
                 }
 
                 return (
