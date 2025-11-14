@@ -890,7 +890,7 @@ function renderQuestionInput(question: QuestionFormData, theme: Partial<ThemeV2>
 
     case QuestionType.RATING:
       return (
-        <div className="flex space-x-2" style={{ gap: theme.optionSpacing ? `${theme.optionSpacing}px` : '12px' }}>
+        <>
           {[1, 2, 3, 4, 5].map((star) => (
             <motion.div
               key={star}
@@ -900,6 +900,7 @@ function renderQuestionInput(question: QuestionFormData, theme: Partial<ThemeV2>
                   ? (theme.animationSpeed === 'slow' ? 0.5 : theme.animationSpeed === 'fast' ? 0.15 : 0.3)
                   : 0
               }}
+              style={{ marginRight: star < 5 ? (theme.optionSpacing ? `${theme.optionSpacing}px` : '12px') : 0 }}
             >
               <Star
                 className="w-8 h-8 cursor-pointer"
@@ -910,7 +911,7 @@ function renderQuestionInput(question: QuestionFormData, theme: Partial<ThemeV2>
               />
             </motion.div>
           ))}
-        </div>
+        </>
       );
 
     case QuestionType.LIKERT:

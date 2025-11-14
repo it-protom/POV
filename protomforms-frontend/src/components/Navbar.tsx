@@ -371,27 +371,17 @@ function NavbarContent() {
         initial={{ y: 0 }}
         animate={{ y: isVisible ? 0 : -100 }}
         transition={{ duration: 0.3, ease: 'easeInOut' }}
-        className="fixed top-0 left-0 right-0 z-50 bg-white/80 backdrop-blur-xl border-b border-white/20 shadow-lg shadow-black/5"
+        className="fixed top-0 left-0 right-0 z-50 bg-white/30 backdrop-blur-xl border-b border-white/20 shadow-lg shadow-black/5"
         style={{
           backdropFilter: 'blur(20px) saturate(180%)',
           WebkitBackdropFilter: 'blur(20px) saturate(180%)',
-          background: 'rgba(255, 255, 255, 0.85)',
+          background: 'rgba(255, 255, 255, 0.3)',
         }}
       >
         <div className="container mx-auto px-4">
           <div className="flex items-center justify-between h-16">
             {/* Left side - Logo + Hamburger for admin */}
             <div className="flex items-center gap-4">
-              {/* Hamburger menu for admin */}
-              {isAdminArea && (
-                <button
-                  onClick={() => setAdminSidebarOpen(!adminSidebarOpen)}
-                  className="p-2 rounded-lg hover:bg-gray-100 transition-colors"
-                >
-                  <Menu className="w-5 h-5 text-gray-700" />
-                </button>
-              )}
-              
               {/* Logo */}
               <Link 
                 to={user ? (isAdmin ? "/admin/dashboard" : "/user/forms") : "/"} 
@@ -436,11 +426,11 @@ function NavbarContent() {
                   {/* User menu */}
                   <div className="relative">
             <button
-                      className="flex items-center gap-3 p-2 rounded-full hover:bg-gray-100 transition-colors"
+                      className="flex items-center gap-3 p-2 rounded-full hover:bg-gray-100 transition-colors shadow-none"
                       onClick={() => setDropdownOpen(!dropdownOpen)}
             >
                       <span className="hidden md:block font-medium text-gray-700">{userName}</span>
-                      <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#FFCD00] to-[#FFD700] flex items-center justify-center text-black font-bold text-sm shadow-md">
+                      <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#FFCD00] to-[#FFD700] flex items-center justify-center text-black font-bold text-sm shadow-none">
               {getInitials(userName)}
                       </div>
                       <ChevronDown className="w-4 h-4 text-gray-500" />

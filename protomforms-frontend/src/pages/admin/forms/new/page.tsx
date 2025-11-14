@@ -249,12 +249,6 @@ export default function NewFormPage() {
           className="mb-8"
       >
           <div className="flex items-center gap-4 mb-6">
-          <Link to="/admin/forms">
-              <Button variant="ghost" size="sm" className="text-[#868789] hover:text-black">
-                <ArrowLeft className="h-4 w-4 mr-2" />
-                Torna ai Forms
-            </Button>
-          </Link>
           </div>
 
           <div className="bg-white rounded-xl shadow-sm border p-6">

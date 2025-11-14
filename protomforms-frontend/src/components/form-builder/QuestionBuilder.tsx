@@ -83,14 +83,14 @@ export function QuestionBuilder({ questions, onQuestionsChange }: QuestionBuilde
       
       case QuestionType.RATING:
         return (
-          <div className="flex space-x-2">
+          <>
             {[1, 2, 3, 4, 5].map((star) => (
               <Star
                 key={star}
                 className="w-6 h-6 text-gray-300 cursor-pointer hover:text-yellow-400"
               />
             ))}
-          </div>
+          </>
         );
       
       case QuestionType.DATE:

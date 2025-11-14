@@ -13,9 +13,6 @@ import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { 
   ArrowLeft, 
-  Edit, 
-  Share2, 
-  Eye, 
   BarChart3, 
   Users, 
   Calendar,
@@ -270,12 +267,6 @@ export default function FormDetailPage() {
             <AlertCircle className="h-12 w-12 text-red-500 mx-auto mb-4" />
             <h2 className="text-xl font-semibold text-gray-900 mb-2">Errore</h2>
             <p className="text-gray-500 mb-6">{error || 'Form non trovato'}</p>
-            <Button asChild>
-              <Link to="/admin/dashboard">
-                <ArrowLeft className="h-4 w-4 mr-2" />
-                Torna ai Forms
-              </Link>
-            </Button>
           </CardContent>
         </Card>
       </div>
@@ -571,12 +562,6 @@ export default function FormDetailPage() {
       {/* Header */}
       <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between">
         <div className="flex items-center space-x-4">
-          <Button variant="outline" size="sm" asChild>
-            <Link to="/admin/dashboard">
-              <ArrowLeft className="h-4 w-4 mr-2" />
-              Torna ai Forms
-            </Link>
-          </Button>
           <div>
             <h1 className="text-3xl font-bold text-gray-900">{form.title}</h1>
             <p className="text-gray-500 mt-1">{form.description}</p>
@@ -638,24 +623,6 @@ export default function FormDetailPage() {
               </Dialog>
             </>
           )}
-          <Button variant="outline" size="sm" asChild>
-            <Link to={`/admin/forms/${form.id}/preview`}>
-              <Eye className="h-4 w-4 mr-2" />
-              Anteprima
-            </Link>
-          </Button>
-          <Button variant="outline" size="sm" asChild>
-            <Link to={`/admin/forms/${form.id}/edit`}>
-              <Edit className="h-4 w-4 mr-2" />
-              Modifica
-            </Link>
-          </Button>
-          <Button variant="outline" size="sm" asChild>
-            <Link to={`/admin/forms/${form.id}/share`}>
-              <Share2 className="h-4 w-4 mr-2" />
-              Condividi
-            </Link>
-          </Button>
           <Button variant="teams" size="sm" onClick={handleOpenTeamsDialog}>
             <img 
               src="/microsoft_office_teams_logo.png" 
@@ -668,7 +635,7 @@ export default function FormDetailPage() {
       </div>
 
       {/* Status and Type Badges */}
-      <div className="flex items-center space-x-3">
+      <div className="flex items-center space-x-3 flex-wrap gap-2">
         <Badge className={`${statusConfig[status].color}`}>
           <StatusIcon className="h-3 w-3 mr-1" />
           {statusConfig[status].label}
@@ -682,6 +649,18 @@ export default function FormDetailPage() {
             Pubblico
           </Badge>
         )}
+        <div className="flex items-center space-x-2 text-sm text-gray-600 ml-2">
+          <Users className="h-4 w-4 text-gray-400" />
+          <span>Creato da: <span className="font-medium">{form.owner.name}</span></span>
+        </div>
+        <div className="flex items-center space-x-2 text-sm text-gray-600">
+          <Calendar className="h-4 w-4 text-gray-400" />
+          <span>Creato il: <span className="font-medium">{formatDate(form.createdAt)}</span></span>
+        </div>
+        <div className="flex items-center space-x-2 text-sm text-gray-600">
+          <Calendar className="h-4 w-4 text-gray-400" />
+          <span>Aggiornato il: <span className="font-medium">{formatDate(form.updatedAt)}</span></span>
+        </div>
       </div>
 
       {/* Charts Section */}
@@ -702,7 +681,6 @@ export default function FormDetailPage() {
             description="Trend degli ultimi 6 mesi"
             data={dashboardData.chartData}
             showLegend={true}
-            showTable={true}
             showControls={true}
             ariaLabel="Grafico che mostra l'andamento delle risposte e dei form negli ultimi 6 mesi"
             legendProps={{
@@ -799,7 +777,6 @@ export default function FormDetailPage() {
             description="Stato delle risposte"
             data={dashboardData.completionData}
             showLegend={true}
-            showTable={false}
             ariaLabel="Grafico a torta che mostra la distribuzione dello stato di completamento"
             legendProps={{
               payload: dashboardData.completionData.map(item => ({
@@ -857,9 +834,9 @@ export default function FormDetailPage() {
         )}
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+      <div className="space-y-6">
         {/* Main Content */}
-        <div className="lg:col-span-2 space-y-6">
+        <div className="space-y-6">
           <Tabs defaultValue="questions" className="w-full">
             <TabsList className="grid w-full grid-cols-3">
               <TabsTrigger value="questions">Domande ({form.questions.length})</TabsTrigger>
@@ -1053,36 +1030,6 @@ export default function FormDetailPage() {
               </Card>
             </TabsContent>
           </Tabs>
-        </div>
-
-        {/* Sidebar */}
-        <div className="space-y-6">
-          {/* Info Card */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg">Informazioni</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="flex items-center space-x-2">
-                <Users className="h-4 w-4 text-gray-400" />
-                <span className="text-sm text-gray-600">
-                  Creato da: <span className="font-medium">{form.owner.name}</span>
-                </span>
-              </div>
-              <div className="flex items-center space-x-2">
-                <Calendar className="h-4 w-4 text-gray-400" />
-                <span className="text-sm text-gray-600">
-                  Creato il: <span className="font-medium">{formatDate(form.createdAt)}</span>
-                </span>
-              </div>
-              <div className="flex items-center space-x-2">
-                <Calendar className="h-4 w-4 text-gray-400" />
-                <span className="text-sm text-gray-600">
-                  Aggiornato il: <span className="font-medium">{formatDate(form.updatedAt)}</span>
-                </span>
-              </div>
-            </CardContent>
-          </Card>
         </div>
       </div>
 

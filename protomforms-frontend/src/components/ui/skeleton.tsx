@@ -61,11 +61,11 @@ function FormCardSkeleton({ className }: { className?: string }) {
         
         <div className="flex items-center justify-between pt-2">
           <Skeleton className="h-4 w-24" />
-          <div className="flex space-x-2">
+          <>
             <Skeleton className="h-8 w-8" />
             <Skeleton className="h-8 w-8" />
             <Skeleton className="h-8 w-8" />
-          </div>
+          </>
         </div>
       </div>
     </div>

@@ -43,9 +43,7 @@ import {
   List, 
   MoreHorizontal,
   Eye,
-  Edit,
   Trash2,
-  Share2,
   Copy,
   Calendar,
   Users,
@@ -352,12 +350,6 @@ export default function AdminFormsPage() {
             <BarChart className="h-4 w-4 mr-2" />
             Analytics
           </Button>
-          <Button asChild>
-            <Link to="/admin/forms/new" className="inline-flex items-center">
-              <PlusCircle className="h-4 w-4 mr-2" />
-              Nuovo Form
-            </Link>
-          </Button>
         </div>
       </motion.div>
 
@@ -499,7 +491,7 @@ export default function AdminFormsPage() {
               </CardContent>
             </Card>
           </motion.div>
-        ) : filteredForms.length === 0 ? (
+        ) : filteredForms.length === 0 && searchQuery ? (
           <motion.div
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
@@ -513,19 +505,8 @@ export default function AdminFormsPage() {
                 </div>
                 <h3 className="text-xl font-semibold text-gray-900 mb-2">Nessun form trovato</h3>
                 <p className="text-gray-500 mb-6">
-                  {searchQuery ? 
-                    'Nessun form corrisponde ai criteri di ricerca.' : 
-                    'Non hai ancora creato nessun form.'
-                  }
+                  Nessun form corrisponde ai criteri di ricerca.
                 </p>
-                {!searchQuery && (
-                  <Button asChild>
-                    <Link to="/admin/forms/new">
-                      <PlusCircle className="h-4 w-4 mr-2" />
-                      Crea il tuo primo form
-                    </Link>
-                  </Button>
-                )}
               </CardContent>
             </Card>
           </motion.div>
@@ -534,6 +515,32 @@ export default function AdminFormsPage() {
             className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 items-stretch"
             style={{ opacity: 1 }}
           >
+            {/* Card Crea Nuovo Form */}
+            <motion.div
+              initial={{ opacity: 1 }}
+              whileHover={{ scale: 1.02 }}
+              className="h-full"
+            >
+              <Link to="/admin/forms/new" className="block h-full">
+                <Card className="border-2 border-dashed border-gray-300 hover:border-[#FFCD00] shadow-sm hover:shadow-md transition-all duration-300 group relative overflow-hidden h-full flex flex-col bg-white hover:bg-gray-50 cursor-pointer">
+                  <CardContent className="flex-1 flex flex-col items-center justify-center p-4">
+                    <div className="flex flex-col items-center justify-center space-y-3">
+                      <div className="w-12 h-12 rounded-full bg-gradient-to-br from-gray-100 to-gray-200 group-hover:from-[#FFCD00]/10 group-hover:to-[#FFCD00]/20 flex items-center justify-center transition-all duration-300 border-2 border-gray-200 group-hover:border-[#FFCD00]/30">
+                        <PlusCircle className="h-6 w-6 text-gray-400 group-hover:text-[#FFCD00] transition-all duration-300" strokeWidth={1.5} />
+                      </div>
+                      <div className="text-center space-y-1">
+                        <CardTitle className="text-sm font-medium text-gray-600 group-hover:text-[#FFCD00] transition-colors">
+                          Crea Nuovo Form
+                        </CardTitle>
+                        <CardDescription className="text-xs text-gray-400">
+                          Inizia da qui
+                        </CardDescription>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </Link>
+            </motion.div>
             {filteredForms.map((form, index) => {
               const StatusIcon = statusConfig[form.status].icon;
               return (
@@ -551,48 +558,54 @@ export default function AdminFormsPage() {
                     )}
                     
                     <CardHeader className="pb-3 flex-shrink-0">
-                      <div className="flex items-start justify-between">
-                        <div className="flex-1 pr-4 min-w-0">
-                          <CardTitle className="text-lg leading-tight group-hover:text-[#FFCD00] transition-colors line-clamp-2 break-words">
-                            <Link to={`/admin/forms/${form.id}`} className="block">
-                              {form.title}
-                            </Link>
-                          </CardTitle>
-                          <CardDescription className="mt-2 line-clamp-2 break-words">
-                            {form.description}
-              </CardDescription>
+                      {/* Header con badge tipo e status */}
+                      <div className="flex items-start justify-between gap-3 mb-3">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <Badge 
+                            variant="outline" 
+                            className={`text-xs font-medium ${typeConfig[form.type].color} border`}
+                          >
+                            {typeConfig[form.type].label}
+                          </Badge>
+                          <Badge 
+                            className={`text-xs font-medium ${statusConfig[form.status].color}`}
+                          >
+                            <StatusIcon className="h-2.5 w-2.5 mr-1.5" />
+                            {statusConfig[form.status].label}
+                          </Badge>
                         </div>
                       </div>
                       
-                      <div className="flex items-center space-x-2 mt-4">
-                        <Badge 
-                          className={`text-xs ${statusConfig[form.status].color}`}
-                        >
-                          <StatusIcon className="h-3 w-3 mr-1" />
-                          {statusConfig[form.status].label}
-                        </Badge>
-                        <Badge 
-                          variant="outline" 
-                          className={`text-xs ${typeConfig[form.type].color}`}
-                        >
-                          {typeConfig[form.type].label}
-                        </Badge>
+                      {/* Titolo - più prominente */}
+                      <div className="mb-2">
+                        <CardTitle className="text-base font-semibold leading-snug group-hover:text-[#FFCD00] transition-colors line-clamp-2 break-words">
+                          <Link to={`/admin/forms/${form.id}`} className="block">
+                            {form.title}
+                          </Link>
+                        </CardTitle>
+                      </div>
+                      
+                      {/* Descrizione - separata visivamente */}
+                      <div className="pt-2 border-t border-gray-100">
+                        <CardDescription className="text-xs leading-relaxed line-clamp-2 break-words text-gray-600">
+                          {form.description || 'Nessuna descrizione'}
+                        </CardDescription>
                       </div>
             </CardHeader>
 
                     <CardContent className="pt-0 flex-1 flex flex-col">
                       <div className="space-y-4 flex-1 flex flex-col">
                         {/* Stats */}
-                        <div className="grid grid-cols-2 gap-4 text-sm">
-                          <div className="flex items-center space-x-2">
-                            <MessageSquare className="h-4 w-4 text-gray-400" />
-                            <span className="text-gray-600">
+                        <div className="grid grid-cols-2 gap-2 text-xs">
+                          <div className="flex items-center space-x-1.5">
+                            <MessageSquare className="h-3.5 w-3.5 text-gray-400 flex-shrink-0" />
+                            <span className="text-gray-600 truncate">
                               {typeof form.responses === 'number' && !isNaN(form.responses) ? form.responses : 0} risposte
                             </span>
                           </div>
-                          <div className="flex items-center space-x-2">
-                            <Target className="h-4 w-4 text-gray-400" />
-                            <span className="text-gray-600">
+                          <div className="flex items-center space-x-1.5">
+                            <Target className="h-3.5 w-3.5 text-gray-400 flex-shrink-0" />
+                            <span className="text-gray-600 truncate">
                               {typeof form.completionRate === 'number' && !isNaN(form.completionRate) ? form.completionRate : 0}% completato
                             </span>
                           </div>
@@ -639,18 +652,6 @@ export default function AdminFormsPage() {
                                   Visualizza
                                 </Link>
                               </DropdownMenuItem>
-                              <DropdownMenuItem asChild>
-                                <Link to={`/admin/forms/${form.id}/edit`}>
-                                  <Edit className="mr-2 h-4 w-4" />
-                                  Modifica
-                                </Link>
-                              </DropdownMenuItem>
-                              <DropdownMenuItem asChild>
-                                <Link to={`/admin/forms/${form.id}/share`}>
-                                  <Share2 className="mr-2 h-4 w-4" />
-                                  Condividi
-                                </Link>
-                              </DropdownMenuItem>
                               <DropdownMenuSeparator />
                               <DropdownMenuItem 
                                 onClick={() => handleDuplicateForm(form.id)}
@@ -679,6 +680,35 @@ export default function AdminFormsPage() {
         ) : (
           /* List View */
           <div className="space-y-2" style={{ opacity: 1 }}>
+            {/* Card Crea Nuovo Form - List View */}
+            <motion.div
+              initial={{ opacity: 1 }}
+            >
+              <Link to="/admin/forms/new" className="block">
+                <Card className="border-2 border-dashed border-gray-300 hover:border-[#FFCD00] shadow-sm hover:shadow-md transition-all duration-300 group bg-white hover:bg-gray-50 cursor-pointer">
+                  <CardContent className="p-6">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center space-x-4 flex-1">
+                        <div className="flex-shrink-0">
+                          <div className="w-10 h-10 rounded-full bg-gradient-to-br from-gray-100 to-gray-200 group-hover:from-[#FFCD00]/10 group-hover:to-[#FFCD00]/20 flex items-center justify-center transition-all duration-300 border-2 border-gray-200 group-hover:border-[#FFCD00]/30">
+                            <PlusCircle className="h-5 w-5 text-gray-400 group-hover:text-[#FFCD00] transition-all duration-300" strokeWidth={1.5} />
+                          </div>
+                        </div>
+                        
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center space-x-3">
+                            <h3 className="text-sm font-medium text-gray-600 group-hover:text-[#FFCD00] transition-colors truncate">
+                              Crea Nuovo Form
+                            </h3>
+                          </div>
+                          <p className="text-xs text-gray-400 mt-1 line-clamp-1">Inizia da qui</p>
+                        </div>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </Link>
+            </motion.div>
             {filteredForms.map((form, index) => {
               const StatusIcon = statusConfig[form.status].icon;
               return (
@@ -701,21 +731,21 @@ export default function AdminFormsPage() {
                           </div>
                           
                           <div className="flex-1 min-w-0">
-                            <div className="flex items-center space-x-3">
-                              <h3 className="text-lg font-semibold text-gray-900 truncate">
+                            <div className="flex items-center space-x-2 flex-wrap gap-1">
+                              <h3 className="text-sm font-semibold text-gray-900 truncate">
                                 <Link to={`/admin/forms/${form.id}`} className="hover:text-[#FFCD00] transition-colors">
                                   {form.title}
                                 </Link>
                               </h3>
                               <Badge className={`text-xs ${statusConfig[form.status].color}`}>
-                                <StatusIcon className="h-3 w-3 mr-1" />
+                                <StatusIcon className="h-2.5 w-2.5 mr-1" />
                                 {statusConfig[form.status].label}
                               </Badge>
                               <Badge variant="outline" className={`text-xs ${typeConfig[form.type].color}`}>
                                 {typeConfig[form.type].label}
                               </Badge>
                             </div>
-                            <p className="text-sm text-gray-500 mt-1 line-clamp-1">{form.description}</p>
+                            <p className="text-xs text-gray-500 mt-1 line-clamp-1">{form.description || 'Nessuna descrizione'}</p>
                             <div className="flex items-center space-x-4 mt-2 text-xs text-gray-500">
                               <span>{form.category}</span>
                               <span>•</span>
@@ -726,15 +756,15 @@ export default function AdminFormsPage() {
                           </div>
                         </div>
 
-                        <div className="flex items-center space-x-6 text-sm text-gray-500">
+                        <div className="flex items-center space-x-4 text-xs text-gray-500">
                           <div className="text-center">
-                            <div className="font-medium text-gray-900">
+                            <div className="font-medium text-gray-900 text-sm">
                               {typeof form.responses === 'number' && !isNaN(form.responses) ? form.responses : 0}
                             </div>
                             <div>Risposte</div>
                           </div>
                           <div className="text-center">
-                            <div className="font-medium text-gray-900">
+                            <div className="font-medium text-gray-900 text-sm">
                               {typeof form.completionRate === 'number' && !isNaN(form.completionRate) ? form.completionRate : 0}%
                             </div>
                             <div>Completato</div>
@@ -751,18 +781,6 @@ export default function AdminFormsPage() {
                                 <Link to={`/admin/forms/${form.id}`}>
                                   <Eye className="mr-2 h-4 w-4" />
                                   Visualizza
-                                </Link>
-                              </DropdownMenuItem>
-                              <DropdownMenuItem asChild>
-                                <Link to={`/admin/forms/${form.id}/edit`}>
-                                  <Edit className="mr-2 h-4 w-4" />
-                                  Modifica
-                                </Link>
-                              </DropdownMenuItem>
-                              <DropdownMenuItem asChild>
-                                <Link to={`/admin/forms/${form.id}/share`}>
-                                  <Share2 className="mr-2 h-4 w-4" />
-                                  Condividi
                                 </Link>
                               </DropdownMenuItem>
                               <DropdownMenuSeparator />

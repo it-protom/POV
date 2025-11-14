@@ -45,7 +45,7 @@ const FormDetailPage: React.FC = () => {
                   <CardTitle className="text-2xl mb-2">{form.title}</CardTitle>
                   <CardDescription>{form.description}</CardDescription>
                 </div>
-                <div className="flex space-x-2">
+                <>
                   <Button variant="outline" size="sm">
                     <Edit className="w-4 h-4 mr-2" />
                     Edit
@@ -54,7 +54,7 @@ const FormDetailPage: React.FC = () => {
                     <Share className="w-4 h-4 mr-2" />
                     Share
                   </Button>
-                </div>
+                </>
               </div>
             </CardHeader>
           </Card>

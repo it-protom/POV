@@ -51,13 +51,14 @@ import SetupPage from './pages/setup/page';
 // Components
 import ProtectedRoute from './components/ProtectedRoute';
 import Navbar from './components/Navbar';
+import GlobalUI from './components/GlobalUI';
 
 function App() {
   return (
     <AuthProvider>
       <LoadingProvider>
         <Router>
-          <div className="min-h-screen bg-gray-50">
+          <div className="min-h-screen bg-[#E5E5E7]">
           <Routes>
             {/* Public routes */}
             <Route path="/" element={<LandingPage />} />
@@ -387,6 +388,9 @@ function App() {
           
           {/* Global toast notifications */}
           <Toaster position="top-right" />
+          
+          {/* Global UI Components - Available on all pages */}
+          <GlobalUI />
     </div>
         </Router>
       </LoadingProvider>

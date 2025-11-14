@@ -4,7 +4,7 @@ import { BarChart3, FileText, Users, TrendingUp } from 'lucide-react';
 
 const DashboardPage: React.FC = () => {
   return (
-    <div className="container mx-auto px-6 py-8">
+    <div className="container mx-auto px-6 py-8 relative min-h-screen pb-24">
       <div className="mb-8">
         <h1 className="text-3xl font-bold text-gray-900 mb-2">Dashboard</h1>
         <p className="text-gray-600">Panoramica delle attività e statistiche</p>
